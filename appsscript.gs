@@ -50,16 +50,22 @@ function doPost(e) {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName("Pedidos");
 
     sheet.appendRow([
-      new Date().toLocaleString("es-CO"),
-      body.nombre    || "",
-      body.barrio    || "",
-      body.direccion || "",
-      body.casa      || "",
-      body.conjunto  || "",
-      body.nota      || "",
-      body.pago      || "",
-      body.productos || "",
-      body.total     || 0,
+      new Date().toLocaleString("es-CO"), // fecha
+      body.nombre         || "",          // nombre
+      body.ciudad         || "",          // ciudad
+      body.departamento   || "",          // departamento
+      body.barrio         || "",          // barrio
+      body.direccion      || "",          // direccion
+      body.casa           || "",          // casa
+      body.conjunto       || "",          // conjunto
+      body.nota           || "",          // nota
+      body.pago           || "",          // medio de pago
+      body.zona_envio     || "",          // zona envío
+      body.costo_envio    ?? "",          // costo envío
+      body.subtotal       || 0,           // subtotal productos
+      body.total          || 0,           // total con envío
+      body.estado_pago    || "PENDIENTE", // estado_pago
+      body.productos      || "",          // detalle productos
     ]);
 
     return ContentService
@@ -183,27 +189,54 @@ function inicializarPedidos() {
   const ss  = SpreadsheetApp.openById(SHEET_ID);
   let sheet = ss.getSheetByName("Pedidos");
 
-  if (!sheet) {
-    sheet = ss.insertSheet("Pedidos");
-  }
+  if (!sheet) sheet = ss.insertSheet("Pedidos");
 
-  // Solo agrega encabezados si la hoja está vacía
-  if (sheet.getLastRow() === 0) {
-    const headers = ["fecha", "nombre", "barrio", "direccion", "casa", "conjunto", "nota", "pago", "productos", "total"];
-    sheet.appendRow(headers);
+  // Limpia y recrea encabezados (para actualizar columnas si ya existía)
+  sheet.clearContents();
 
-    const hdrRange = sheet.getRange(1, 1, 1, headers.length);
-    hdrRange.setFontWeight("bold");
-    hdrRange.setBackground("#0D9488");
-    hdrRange.setFontColor("#FFFFFF");
+  const headers = [
+    "fecha",        // A
+    "nombre",       // B
+    "ciudad",       // C
+    "departamento", // D
+    "barrio",       // E
+    "direccion",    // F
+    "casa",         // G
+    "conjunto",     // H
+    "nota",         // I
+    "medio_pago",   // J
+    "zona_envio",   // K
+    "costo_envio",  // L
+    "subtotal",     // M
+    "total",        // N
+    "estado_pago",  // O  ← PENDIENTE / PAGADO / CONTRA ENTREGA / ENTREGADO
+    "productos",    // P  ← Detalle completo, un producto por línea
+  ];
+  sheet.appendRow(headers);
 
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, headers.length);
-    sheet.getRange(1, 10, 1, 1).setNumberFormat("$ #,##0.00"); // columna total
-  }
+  // Formato encabezados
+  const hdrRange = sheet.getRange(1, 1, 1, headers.length);
+  hdrRange.setFontWeight("bold");
+  hdrRange.setBackground("#0D9488");
+  hdrRange.setFontColor("#FFFFFF");
+  hdrRange.setHorizontalAlignment("center");
 
-  Logger.log('✅ Hoja "Pedidos" lista.');
-  SpreadsheetApp.getUi().alert('✅ Hoja "Pedidos" configurada y lista para recibir pedidos.');
+  // Ancho fijo para columna de productos (más amplia)
+  sheet.setColumnWidth(16, 400);  // columna P = productos
+  sheet.setColumnWidth(15, 130);  // columna O = estado_pago
+  sheet.setColumnWidth(1,  160);  // columna A = fecha
+  sheet.getRange("L2:N1000").setNumberFormat("$ #,##0.00"); // costo_envio, subtotal, total
+  sheet.getRange("P2:P1000").setWrap(true);
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, 14);
+
+  Logger.log('✅ Hoja "Pedidos" lista con columnas nuevas.');
+  SpreadsheetApp.getUi().alert(
+    '✅ Hoja "Pedidos" configurada.\n\n' +
+    'Columna M = ESTADO DE PAGO\n' +
+    'Valores: PENDIENTE → PAGADO → ENTREGADO\n\n' +
+    'Cámbiala manualmente cuando confirmes el pago.'
+  );
 }
 
 /* ─────────────────────────────────────────────────────────────

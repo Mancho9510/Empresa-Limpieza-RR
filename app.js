@@ -15,6 +15,8 @@ const CONFIG = {
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwntGswrb4Omm-O9jiX3FW0Lukjn5i-Zmcsrk2hf7seqGJbXvMvaI8xO2mt2oqgBhyczQ/exec",
   WA_NUMBER:       "573503443140",
   AUTOPLAY_MS:     4200,
+  PAY_NUMBER:      "3203346819",   // Número Nequi / Breb / Daviplata
+  PAY_HOLDER:      "Limpieza RR", // Nombre del titular
 };
 
 /* ─── ESTADO GLOBAL ─────────────────────────────────────── */
@@ -352,11 +354,7 @@ function closeCart() { $("cartSidebar").classList.remove("on"); overlayOn(false)
    MODAL DE PEDIDO
 ═══════════════════════════════════════════════════════════ */
 function openOrder() {
-  $("sumItems").innerHTML = cart.map(it => {
-    const p = products.find(x => x.id === it.id);
-    return `<div class="si"><span>${p.name} ${p.size} ×${it.qty}</span><span>${fmt(p.price * it.qty)}</span></div>`;
-  }).join("");
-  $("sumTotal").textContent = fmt(subtotal());
+  updateOrderSummary();
   closeCart();
   $("orderModal").classList.add("on");
   overlayOn(true);
@@ -364,79 +362,130 @@ function openOrder() {
 function closeOrder() { $("orderModal").classList.remove("on"); overlayOn(false); }
 
 async function confirmOrder() {
-  const nom = $("fNombre").value.trim();
-  const bar = $("fBarrio").value.trim();
-  const dir = $("fDir").value.trim();
-  const cas = $("fCasa").value.trim();
-  const con = $("fConj").value.trim();
-  const not = $("fNota").value.trim();
-  const pag = document.querySelector('input[name="pago"]:checked');
+  const nom    = $("fNombre").value.trim();
+  const ciu    = $("fCiudad").value.trim();
+  const dep    = $("fDepto").value.trim();
+  const bar    = $("fBarrio").value.trim();
+  const dir    = $("fDir").value.trim();
+  const cas    = $("fCasa").value.trim();
+  const con    = $("fConj").value.trim();
+  const not    = $("fNota").value.trim();
+  const pag    = document.querySelector('input[name="pago"]:checked');
+  const envSel = $("fEnvio").value;
 
-  if (!nom || !bar || !dir) {
-    alert("⚠️ Por favor completa: Nombre, Barrio y Dirección.");
-    return;
+  if (!nom || !ciu || !dep || !bar || !dir) {
+    alert("⚠️ Por favor completa: Nombre, Ciudad, Departamento, Barrio y Dirección."); return;
   }
   if (!pag) {
-    alert("⚠️ Por favor selecciona un medio de pago.");
-    return;
+    alert("⚠️ Por favor selecciona un medio de pago."); return;
+  }
+  if (!envSel) {
+    alert("⚠️ Por favor selecciona una zona de envío."); return;
   }
 
-  // Deshabilitar botón mientras guarda
   const btn = document.querySelector(".btn-confirm");
-  btn.disabled  = true;
+  btn.disabled = true;
   btn.classList.add("saving");
   btn.textContent = "⏳ Guardando pedido...";
 
-  // Armar resumen de productos como texto
-  const productosTexto = cart.map(it => {
+  const shipping    = getShippingCost();
+  const shippingLbl = getShippingLabel();
+  const sub         = subtotal();
+  const total       = shipping !== null ? sub + shipping : sub;
+  const isContra    = pag.value === "Contra entrega";
+
+  // Productos separados para Sheets
+  const productosLineas = cart.map(it => {
     const p = products.find(x => x.id === it.id);
-    return `${p.name} ${p.size} x${it.qty} = ${fmt(p.price * it.qty)}`;
-  }).join(" | ");
+    return `${p.name} ${p.size} | Cant: ${it.qty} | P.Unit: ${fmt(p.price)} | Subtotal: ${fmt(p.price * it.qty)}`;
+  }).join("\n");
 
   // Datos para Google Sheets
   const orderData = {
-    nombre:    nom,
-    barrio:    bar,
-    direccion: dir,
-    casa:      cas,
-    conjunto:  con,
-    nota:      not,
-    pago:      pag.value,
-    productos: productosTexto,
-    total:     subtotal(),
+    nombre:      nom,
+    ciudad:      ciu,
+    departamento: dep,
+    barrio:      bar,
+    direccion:   dir,
+    casa:        cas,
+    conjunto:    con,
+    nota:        not,
+    pago:        pag.value,
+    zona_envio:  shippingLbl,
+    costo_envio: shipping !== null ? shipping : "A convenir",
+    subtotal:    sub,
+    total:       shipping !== null ? total : "A convenir",
+    estado_pago: isContra ? "CONTRA ENTREGA" : "PENDIENTE",
+    productos:   productosLineas,
   };
 
-  // 1. Guardar en Google Sheets (no bloquea si falla)
   await saveOrderToSheets(orderData);
 
-  // 2. Armar mensaje de WhatsApp
-  let msg = `🧹 *NUEVO PEDIDO – Limpieza RR*\n\n`;
-  msg += `📦 *Productos:*\n`;
+  // Mensaje WhatsApp
+  const payInfo = PAY_INFO[pag.value];
+  let msg = `🧹 *NUEVO PEDIDO – Limpieza RR*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  msg += `📦 *PRODUCTOS:*\n`;
   cart.forEach(it => {
     const p = products.find(x => x.id === it.id);
-    msg += `• ${p.name} ${p.size} ×${it.qty} → ${fmt(p.price * it.qty)}\n`;
+    msg += `▪️ ${p.name} ${p.size}\n`;
+    msg += `   Cantidad: ${it.qty}  |  ${fmt(p.price * it.qty)}\n`;
   });
-  msg += `\n💰 *TOTAL: ${fmt(subtotal())}*\n\n`;
-  msg += `📍 *Datos de entrega:*\n`;
-  msg += `• Nombre: ${nom}\n• Barrio: ${bar}\n• Dirección: ${dir}\n`;
+
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `🛒 Subtotal: ${fmt(sub)}\n`;
+  if (shipping === null) {
+    msg += `🚚 Envío: A convenir\n`;
+    msg += `💰 *TOTAL: ${fmt(sub)} + envío*\n`;
+  } else if (shipping === 0) {
+    msg += `🚚 Envío: Sin costo (recoge en punto)\n`;
+    msg += `💰 *TOTAL: ${fmt(total)}*\n`;
+  } else {
+    msg += `🚚 Envío: ${fmt(shipping)}\n`;
+    msg += `💰 *TOTAL A PAGAR: ${fmt(total)}*\n`;
+  }
+
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📍 *DATOS DE ENTREGA:*\n`;
+  msg += `• Nombre: ${nom}\n`;
+  msg += `• Ciudad: ${ciu} – ${dep}\n`;
+  msg += `• Barrio: ${bar}\n`;
+  msg += `• Dirección: ${dir}\n`;
   if (cas) msg += `• Casa/Apto: ${cas}\n`;
   if (con) msg += `• Conjunto: ${con}\n`;
   if (not) msg += `• Nota: ${not}\n`;
-  msg += `\n💳 *Medio de pago:* ${pag.value}`;
 
-  // 3. Abrir WhatsApp
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💳 *MEDIO DE PAGO:* ${pag.value}\n`;
+  if (isContra) {
+    msg += `🚪 Pago al momento de la entrega.\n`;
+    msg += `💵 Por favor ten el dinero exacto listo.`;
+  } else if (payInfo.num) {
+    msg += `📱 Número: *${payInfo.num}*\n`;
+    msg += `👤 A nombre de: ${CONFIG.PAY_HOLDER}\n`;
+    msg += `\n📎 *Por favor adjunta el comprobante de pago a este mensaje.*`;
+  } else {
+    msg += `🏦 Te compartiremos los datos bancarios para la transferencia.\n`;
+    msg += `📎 *Una vez transferido, adjunta el comprobante de pago.*`;
+  }
+
   window.open(`https://wa.me/${CONFIG.WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
 
-  // 4. Limpiar carrito y cerrar
   cart = [];
   refreshCart();
   closeOrder();
   showToast("✅ ¡Pedido enviado por WhatsApp y guardado!");
 
-  // Resetear formulario y botón
-  ["fNombre","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => $(id).value = "");
+  // Reset formulario
+  ["fNombre","fCiudad","fDepto","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => $(id).value = "");
+  $("fEnvio").value = "";
   document.querySelectorAll('input[name="pago"]').forEach(r => r.checked = false);
-  btn.disabled  = false;
+  $("payInfo").classList.add("pay-info--hidden");
+  $("payInfo").innerHTML = "";
+  $("payProofBanner").classList.add("pay-proof--hidden");
+
+  btn.disabled = false;
   btn.classList.remove("saving");
   btn.innerHTML = `
     <svg width="21" height="21" viewBox="0 0 24 24" fill="white">
@@ -504,5 +553,104 @@ const DEMO_PRODUCTS = [
 ═══════════════════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
   refreshCart();
-  loadProducts(); // Carga productos desde Sheets (o demo si no está configurado)
+  loadProducts();
+  initPaymentListeners();
+  initShippingListener();
 });
+
+/* ════════════════════════════════════════════════════════════
+   PAGO — muestra número y banner de comprobante
+═══════════════════════════════════════════════════════════ */
+const PAY_INFO = {
+  "Nequi":      { icon: "💜", label: "Nequi",      num: CONFIG.PAY_NUMBER },
+  "Breb":       { icon: "💙", label: "Breb",        num: CONFIG.PAY_NUMBER },
+  "Daviplata":  { icon: "❤️", label: "Daviplata",   num: CONFIG.PAY_NUMBER },
+  "Transferencia bancaria": { icon: "🏦", label: "Transferencia", num: null },
+  "Contra entrega": { icon: "🚪", label: "Contra entrega", num: null, isContra: true },
+};
+
+function initPaymentListeners() {
+  document.querySelectorAll('input[name="pago"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      const info   = PAY_INFO[radio.value];
+      const infoEl = $("payInfo");
+      const banner = $("payProofBanner");
+
+      if (info.num) {
+        infoEl.classList.remove("pay-info--hidden");
+        infoEl.innerHTML = `
+          <span class="pay-info-icon">${info.icon}</span>
+          <div>
+            <div class="pay-info-label">Número ${info.label}</div>
+            <div class="pay-info-num">${info.num}</div>
+            <div class="pay-info-name">${CONFIG.PAY_HOLDER}</div>
+          </div>`;
+      } else if (info.isContra) {
+        infoEl.classList.remove("pay-info--hidden");
+        infoEl.innerHTML = `
+          <span class="pay-info-icon">🚪</span>
+          <div>
+            <div class="pay-info-label">Pago contra entrega</div>
+            <div class="pay-info-num" style="font-size:1rem">Pagas cuando recibas tu pedido</div>
+            <div class="pay-info-name">Ten el dinero exacto listo 💵</div>
+          </div>`;
+        banner.classList.add("pay-proof--hidden");
+        return;
+      } else {
+        infoEl.classList.add("pay-info--hidden");
+        infoEl.innerHTML = "";
+      }
+      banner.classList.remove("pay-proof--hidden");
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   ENVÍO — actualiza resumen al cambiar zona
+═══════════════════════════════════════════════════════════ */
+function initShippingListener() {
+  $("fEnvio").addEventListener("change", updateOrderSummary);
+}
+
+function getShippingCost() {
+  const val = $("fEnvio").value;
+  if (!val || val === "custom") return null; // null = a convenir
+  return Number(val);
+}
+
+function getShippingLabel() {
+  const sel = $("fEnvio");
+  return sel.options[sel.selectedIndex]?.text || "";
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESUMEN DEL PEDIDO (con envío)
+═══════════════════════════════════════════════════════════ */
+function updateOrderSummary() {
+  $("sumItems").innerHTML = cart.map(it => {
+    const p = products.find(x => x.id === it.id);
+    return `<div class="si">
+      <span>${p.name} ${p.size} ×${it.qty}</span>
+      <span>${fmt(p.price * it.qty)}</span>
+    </div>`;
+  }).join("");
+
+  const shipping    = getShippingCost();
+  const shipRow     = $("sumShipping");
+  const shipVal     = $("sumShippingVal");
+  const totalEl     = $("sumTotal");
+  const sub         = subtotal();
+
+  if (shipping === null) {
+    shipRow.classList.remove("sum-shipping--hidden");
+    shipVal.textContent = "A convenir";
+    totalEl.textContent = fmt(sub) + " + envío";
+  } else if (shipping === 0) {
+    shipRow.classList.add("sum-shipping--hidden");
+    totalEl.textContent = fmt(sub);
+  } else {
+    shipRow.classList.remove("sum-shipping--hidden");
+    shipVal.textContent = fmt(shipping);
+    totalEl.textContent = fmt(sub + shipping);
+  }
+}

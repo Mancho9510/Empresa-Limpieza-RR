@@ -270,8 +270,7 @@ footer strong { color: #fff; }
 .overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
   z-index: 200; opacity: 0; pointer-events: none;
-  -webkit-backdrop-filter: blur(16px);
-  transition: opacity .3s; backdrop-filter: blur(4px);
+  transition: opacity .3s; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
 }
 .overlay.on { opacity: 1; pointer-events: all; }
 
@@ -461,3 +460,49 @@ footer strong { color: #fff; }
 
 /* Textarea sin resize */
 #fNota { resize: none; }
+
+/* ══════════════════════════════
+   INFO DE NÚMERO DE PAGO
+══════════════════════════════ */
+.pay-info {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--teal-pale); border: 1.5px solid var(--teal-l);
+  border-radius: var(--r); padding: 14px 18px; margin-top: 12px;
+  animation: fadeUp .3s ease both;
+}
+.pay-info-icon  { font-size: 2rem; flex-shrink: 0; }
+.pay-info-label { font-size: .75rem; color: var(--gray); font-weight: 600; margin-bottom: 2px; }
+.pay-info-num   { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--teal-dk); letter-spacing: .04em; }
+.pay-info-name  { font-size: .78rem; color: var(--gray); margin-top: 2px; }
+
+/* ══════════════════════════════
+   BANNER COMPROBANTE
+══════════════════════════════ */
+.pay-proof-banner {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: #FEF9C3; border: 1.5px solid #FDE047;
+  border-radius: var(--r); padding: 16px 18px;
+  max-width: 640px; margin: 18px auto 0;
+  animation: fadeUp .3s ease both;
+}
+.pay-proof-banner span   { font-size: 1.6rem; flex-shrink: 0; }
+.pay-proof-banner strong { font-size: .92rem; color: #854D0E; display: block; margin-bottom: 4px; }
+.pay-proof-banner p      { font-size: .82rem; color: #92400E; line-height: 1.6; }
+.pay-proof-banner em     { font-style: normal; font-weight: 700; }
+
+/* ══════════════════════════════
+   SELECTOR DE ENVÍO
+══════════════════════════════ */
+#fEnvio {
+  border: 2px solid var(--border); border-radius: 10px;
+  padding: 11px 13px; font: 400 .93rem 'Outfit', sans-serif;
+  color: var(--text); background: var(--bg); outline: none;
+  transition: border-color .2s; cursor: pointer; width: 100%;
+}
+#fEnvio:focus { border-color: var(--teal-l); }
+#sumShipping span:last-child { color: var(--teal); font-weight: 700; }
+
+/* ── Clases de visibilidad (reemplazan style="display:none") ── */
+.pay-info--hidden    { display: none !important; }
+.pay-proof--hidden   { display: none !important; }
+.sum-shipping--hidden { display: none !important; }
