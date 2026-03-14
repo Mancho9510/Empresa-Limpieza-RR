@@ -614,13 +614,13 @@ footer strong { color: #fff; }
   border-bottom: 2px solid var(--border);
   box-shadow: 0 8px 24px rgba(13,148,136,.12);
   z-index: 99;
+  overflow: hidden;       /* ← clave para que max-height funcione */
+  max-height: 0;          /* ← oculto por defecto */
   padding: 0;
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height .35s cubic-bezier(.4,0,.2,1), padding .3s;
+  transition: max-height .35s cubic-bezier(.4,0,.2,1);
 }
 .mobile-menu.open {
-  max-height: 400px;
+  max-height: 400px;      /* ← se abre al hacer clic */
   padding: 8px 0 16px;
 }
 .mobile-menu a,
@@ -667,7 +667,18 @@ footer strong { color: #fff; }
   .hamburger  { display: flex; }
   .nav-links  { display: none !important; }
   .btn-wa-nav { display: none !important; }
-  .mobile-menu { display: block; }
+
+  /* Mobile menu: visible en DOM pero cerrado (max-height:0) */
+  .mobile-menu {
+    display: block;
+    max-height: 0;    /* cerrado por defecto */
+    padding: 0;
+    overflow: hidden;
+  }
+  .mobile-menu.open {
+    max-height: 400px;
+    padding: 8px 0 16px;
+  }
 
   /* Nav relativo para el desplegable */
   nav { position: sticky; top: 0; z-index: 100; }
