@@ -77,15 +77,28 @@ nav ul a:hover { color: var(--teal); }
    HERO / INICIO
 ══════════════════════════════ */
 #inicio {
-  display: grid; grid-template-columns: 1fr 1fr;
-  min-height: 88vh; padding: 0 5%; gap: 48px; align-items: center;
-  position: relative; overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 88vh;
+  padding: 0 5%;
+  gap: 48px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 #inicio::before {
   content: ''; position: absolute; top: -80px; right: -80px;
   width: 520px; height: 520px;
   background: radial-gradient(circle, rgba(20, 184, 166, 0.13) 0%, transparent 65%);
   pointer-events: none;
+}
+
+/* El carrusel ocupa exactamente su columna (mitad de pantalla) */
+.carousel-wrap {
+  animation: fadeUp .5s .2s ease both;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* evita que desborde el grid */
 }
 
 .hero-badge {
@@ -130,17 +143,33 @@ nav ul a:hover { color: var(--teal); }
 /* ══════════════════════════════
    CARRUSEL
 ══════════════════════════════ */
-.carousel-wrap  { animation: fadeUp .5s .2s ease both; }
 .carousel-label {
   text-align: center; color: var(--gray); font-size: .85rem; font-weight: 600;
   letter-spacing: .04em; margin-bottom: 14px;
 }
-.carousel-box   { background: var(--white); border-radius: var(--r-lg); box-shadow: var(--sh-lg); overflow: hidden; }
-.carousel-track { display: flex; transition: transform .5s cubic-bezier(.4, 0, .2, 1); }
+.carousel-box   {
+  background: var(--white);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+  overflow: hidden;
+  width: 100%;
+}
+.carousel-track {
+  display: flex;
+  transition: transform .5s cubic-bezier(.4, 0, .2, 1);
+  width: 100%;
+}
 .carousel-slide {
-  min-width: 100%; padding: 36px 32px;
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 12px; cursor: pointer;
+  min-width: 100%;
+  width: 100%;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 .c-icon  {
   width: 96px; height: 96px; border-radius: 50%;
@@ -695,9 +724,14 @@ footer strong { color: #fff; }
     gap: 28px !important;
   }
 
-  /* Carrusel primero en móvil */
-  .carousel-wrap { order: -1; }
-  .hero-content  { order: 1; }
+  /* Carrusel primero en móvil — centrado */
+  .carousel-wrap {
+    order: -1;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .hero-content { order: 1; }
 
   /* Título hero más pequeño */
   .hero-title { font-size: clamp(1.6rem, 6vw, 2.4rem) !important; }
