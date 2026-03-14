@@ -252,15 +252,20 @@
       <div class="pay-info pay-info--hidden" id="payInfo"></div>
     </div>
     <div class="fg full">
-      <label for="fEnvio">Zona de envío *</label>
-      <select id="fEnvio" aria-label="Zona de envío">
+      <label for="fEnvio">Zona de envío — Bogotá *</label>
+      <select id="fEnvio" aria-label="Zona de envío" onchange="onEnvioChange()">
         <option value="">— Selecciona tu zona —</option>
+        <option value="5000">📍 Zona Centro (Kennedy, Bosa, Puente Aranda) — $ 5.000</option>
+        <option value="7000">📍 Zona Norte (Usaquén, Chapinero, Suba) — $ 7.000</option>
+        <option value="8000">📍 Zona Sur (Usme, Ciudad Bolívar, Tunjuelito) — $ 8.000</option>
+        <option value="10000">📍 Zona Occidente (Fontibón, Engativá, Barrios Unidos) — $ 10.000</option>
+        <option value="12000">📍 Zona Oriente (San Cristóbal, Rafael Uribe, Antonio Nariño) — $ 12.000</option>
+        <option value="15000">📍 Zona Noroccidente (Suba lejano, La Conejera) — $ 15.000</option>
+        <option value="20000">📍 Zona Periférica (límites distritales) — $ 20.000</option>
+        <option value="convenir">✏️ Mi barrio no aparece — Precio a convenir</option>
         <option value="0">🏠 Recoge en punto (Sin costo)</option>
-        <option value="3000">📦 Zona 1 — Barrios cercanos ($ 3.000)</option>
-        <option value="5000">📦 Zona 2 — Barrios medios ($ 5.000)</option>
-        <option value="8000">📦 Zona 3 — Barrios lejanos ($ 8.000)</option>
-        <option value="custom">✏️ Acordar costo de envío por WhatsApp</option>
       </select>
+      <div class="envio-note" id="envioNote"></div>
     </div>
   </div>
 
