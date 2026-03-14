@@ -575,3 +575,158 @@ footer strong { color: #fff; }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   nav.fixed.bottom-0 { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 }
+
+/* ══════════════════════════════
+   BARRA NAVEGACIÓN INFERIOR (móvil)
+══════════════════════════════ */
+.bottom-nav {
+  display: none; /* oculta en desktop */
+}
+
+@media (max-width: 768px) {
+  /* Espacio para que el contenido no quede tapado */
+  body { padding-bottom: 70px; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(13,148,136,.08);
+    align-items: center;
+    justify-content: space-around;
+    padding: 6px 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-decoration: none;
+    color: var(--gray);
+    font-size: .68rem;
+    font-weight: 600;
+    min-width: 52px;
+    transition: color .2s;
+    font-family: 'Outfit', sans-serif;
+  }
+  .bottom-nav-item:hover { color: var(--teal); }
+
+  .bottom-nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+  }
+
+  .bottom-nav-icon { font-size: 1.4rem; line-height: 1; }
+  .bottom-nav-lbl  { font-size: .65rem; }
+
+  .bottom-nav-badge {
+    position: absolute;
+    top: -4px; right: 2px;
+    background: var(--yellow);
+    color: #1a1a1a;
+    border-radius: 50%;
+    width: 16px; height: 16px;
+    font-size: .6rem;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Ocultar textos del nav principal en móvil */
+  .nav-links   { display: none !important; }
+  .wa-nav-txt  { display: none; }
+  .cart-nav-txt { display: none; }
+
+  /* Hero: columna única en móvil */
+  #inicio {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    padding-top: 28px !important;
+    padding-bottom: 36px !important;
+    gap: 28px !important;
+  }
+
+  /* Carrusel primero en móvil */
+  .carousel-wrap { order: -1; }
+  .hero-content  { order: 1; }
+
+  /* Título hero más pequeño */
+  .hero-title { font-size: clamp(1.6rem, 6vw, 2.4rem) !important; }
+  .hero-stats { gap: 16px; margin-top: 24px; }
+  .stat-num   { font-size: 1.5rem; }
+
+  /* Grid 2 columnas en móvil */
+  .prod-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Filtros: scroll horizontal */
+  .cat-filter-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -4%;
+    padding: 0 4%;
+  }
+  .cat-filter-wrap::-webkit-scrollbar { display: none; }
+  .cat-filter {
+    flex-wrap: nowrap !important;
+    width: max-content;
+    padding-bottom: 4px;
+  }
+  .f-btn { white-space: nowrap; flex-shrink: 0; }
+
+  /* Tarjetas más compactas */
+  .prod-card { padding: 12px 10px; gap: 6px; }
+  .p-icon    { width: 52px; height: 52px; font-size: 1.5rem; }
+  .p-name    { font-size: .72rem; }
+  .p-price   { font-size: .95rem; }
+  .p-addbtn  { font-size: .68rem; padding: 6px 8px; }
+
+  /* Formulario: 1 columna */
+  .form-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .fg.full   { grid-column: 1 !important; }
+  .pay-grid  { grid-template-columns: 1fr 1fr !important; }
+
+  /* Inputs más grandes para dedos */
+  .fg input,
+  .fg select,
+  .fg textarea {
+    font-size: 16px !important; /* evita zoom en iOS */
+    padding: 13px !important;
+    min-height: 48px;
+  }
+
+  /* Botones táctiles */
+  .btn-primary, .btn-outline,
+  .btn-confirm, .btn-order {
+    min-height: 48px;
+    font-size: .95rem;
+  }
+
+  /* Modal producto */
+  .modal-grid { grid-template-columns: 1fr !important; }
+  .m-img { width: 90px; height: 90px; font-size: 2.8rem; margin: 0 auto; }
+
+  /* Carrito ancho completo en pantallas muy pequeñas */
+  .cart-sidebar { width: 100vw !important; }
+
+  /* Sección productos */
+  #productos { padding: 48px 4% 60px !important; }
+  #contacto  { padding: 48px 4% !important; }
+}
+
+@media (max-width: 380px) {
+  .prod-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .p-icon    { width: 44px; height: 44px; font-size: 1.3rem; }
+}

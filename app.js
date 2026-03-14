@@ -296,11 +296,18 @@ function addById(id, qty) {
 }
 
 function refreshCart() {
-  // Badge
+  // Badge nav principal
   const tot   = cart.reduce((s, i) => s + i.qty, 0);
   const badge = $("cartBadge");
-  badge.textContent    = tot;
-  badge.style.display  = tot > 0 ? "flex" : "none";
+  badge.textContent   = tot;
+  badge.style.display = tot > 0 ? "flex" : "none";
+
+  // Badge barra inferior móvil
+  const badgeMob = $("cartBadgeMobile");
+  if (badgeMob) {
+    badgeMob.textContent   = tot;
+    badgeMob.style.display = tot > 0 ? "flex" : "none";
+  }
 
   // Subtotal y botón
   $("cartSub").textContent    = fmt(subtotal());
