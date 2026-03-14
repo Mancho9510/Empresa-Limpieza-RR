@@ -6,58 +6,129 @@
   <title>Limpieza RR – Productos de Aseo Premium</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal:     { DEFAULT:'#0D9488', light:'#14B8A6', pale:'#CCFBF1', dark:'#0F766E' },
+            brand:    { bg:'#F0FDF9', border:'#99F6E4' },
+          },
+          fontFamily: {
+            syne:   ['Syne', 'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Espacio inferior en móvil para la barra de navegación */
+    @media (max-width: 768px) {
+      body { padding-bottom: 72px; }
+      #inicio { padding-top: 24px !important; }
+    }
+  </style>
 </head>
-<body>
+<body class="font-outfit bg-brand-bg text-gray-900 overflow-x-hidden">
 
-<nav>
-  <a class="logo" href="#">
-    <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- ══════════════════════════════════════════
+     NAV DESKTOP
+══════════════════════════════════════════ -->
+<nav class="sticky top-0 z-50 bg-brand-bg/95 backdrop-blur border-b border-brand-border
+            flex items-center justify-between px-5 md:px-10 py-3 gap-4"
+     style="-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)">
+
+  <!-- Logo -->
+  <a class="logo flex items-center gap-2 no-underline shrink-0" href="#">
+    <svg width="40" height="40" viewBox="0 0 42 42" fill="none">
       <circle cx="21" cy="21" r="21" fill="#0D9488"/>
       <circle cx="11" cy="15" r="3.5" fill="rgba(255,255,255,.28)"/>
       <circle cx="32" cy="11" r="2.5" fill="rgba(255,255,255,.20)"/>
       <circle cx="33" cy="27" r="4.5" fill="rgba(255,255,255,.18)"/>
-      <path d="M21 7 C21 7, 13 17, 13 23 C13 27.4 16.6 31 21 31 C25.4 31 29 27.4 29 23 C29 17 21 7 21 7Z" fill="white" opacity=".92"/>
+      <path d="M21 7 C21 7,13 17,13 23 C13 27.4 16.6 31 21 31 C25.4 31 29 27.4 29 23 C29 17 21 7 21 7Z" fill="white" opacity=".92"/>
       <text x="15.5" y="26.5" font-family="Arial Black,sans-serif" font-size="8.5" font-weight="900" fill="#0F766E">RR</text>
     </svg>
     <div>
-      <div class="logo-text">Limpieza <span>RR</span></div>
-      <div class="logo-sub">Productos de Aseo Premium</div>
+      <div class="font-syne font-extrabold text-teal-dark text-lg leading-none">
+        Limpieza <span class="text-teal-light">RR</span>
+      </div>
+      <div class="text-gray-400 text-[10px] font-medium mt-0.5">Productos de Aseo Premium</div>
     </div>
   </a>
-  <ul>
-    <li><a href="#inicio">Inicio</a></li>
-    <li><a href="#productos">Productos</a></li>
-    <li><a href="#contacto">Contáctanos</a></li>
+
+  <!-- Links desktop -->
+  <ul class="hidden md:flex list-none gap-7">
+    <li><a href="#inicio"    class="text-gray-500 font-medium text-sm no-underline hover:text-teal-DEFAULT transition-colors">Inicio</a></li>
+    <li><a href="#productos" class="text-gray-500 font-medium text-sm no-underline hover:text-teal-DEFAULT transition-colors">Productos</a></li>
+    <li><a href="#contacto"  class="text-gray-500 font-medium text-sm no-underline hover:text-teal-DEFAULT transition-colors">Contáctanos</a></li>
   </ul>
-  <div class="nav-r">
-    <a class="btn-wa-nav" href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+
+  <!-- Botones nav -->
+  <div class="flex items-center gap-2">
+    <a href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer"
+       class="hidden sm:flex btn-wa-nav items-center gap-1.5 bg-green-500 text-white rounded-full px-4 py-2 text-sm font-semibold no-underline hover:bg-green-600 transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
       WhatsApp
     </a>
-    <button class="btn-cart" onclick="openCart()">
-      🛒 Carrito
+    <button onclick="openCart()"
+            class="btn-cart relative flex items-center gap-2 bg-teal-DEFAULT text-white rounded-full px-4 py-2 text-sm font-semibold cursor-pointer border-none hover:bg-teal-dark transition-all">
+      🛒 <span class="hidden sm:inline">Carrito</span>
       <span class="cart-badge" id="cartBadge">0</span>
     </button>
   </div>
 </nav>
 
-<section id="inicio">
-  <div>
-    <div class="hero-badge">✨ Calidad garantizada en cada producto</div>
-    <h1 class="hero-title">Tu hogar <em>más limpio</em><br>y fresco que nunca</h1>
-    <p class="hero-desc">Descubre nuestra línea completa de productos de aseo de calidad profesional. Directamente para tu hogar o negocio, al mejor precio.</p>
-    <div class="hero-ctas">
-      <a href="#productos" class="btn-primary">🧴 Ver catálogo</a>
-      <a href="#contacto" class="btn-outline">Contáctanos</a>
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section id="inicio"
+         class="grid grid-cols-1 md:grid-cols-2 min-h-[80vh] md:min-h-[88vh]
+                px-5 md:px-[5%] py-12 md:py-0 gap-8 md:gap-12 items-center relative overflow-hidden">
+  <!-- Blob decorativo -->
+  <div class="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
+       style="background:radial-gradient(circle,rgba(20,184,166,.13) 0%,transparent 65%)"></div>
+
+  <!-- Texto hero -->
+  <div class="order-2 md:order-1">
+    <div class="hero-badge inline-flex items-center gap-1.5 bg-teal-pale text-teal-dark
+                rounded-full px-4 py-1.5 text-xs font-semibold mb-5">
+      ✨ Calidad garantizada en cada producto
     </div>
-    <div class="hero-stats">
-      <div><div class="stat-num" id="statCount">29+</div><div class="stat-lbl">Productos</div></div>
-      <div><div class="stat-num">100%</div><div class="stat-lbl">Calidad</div></div>
-      <div><div class="stat-num">⭐</div><div class="stat-lbl">TOP Selección</div></div>
+    <h1 class="hero-title font-syne font-extrabold leading-tight mb-4
+               text-3xl sm:text-4xl md:text-5xl">
+      Tu hogar <em class="not-italic text-teal-DEFAULT">más limpio</em><br>y fresco que nunca
+    </h1>
+    <p class="text-gray-500 leading-relaxed mb-8 max-w-md text-sm sm:text-base">
+      Descubre nuestra línea completa de productos de aseo de calidad profesional.
+      Directamente para tu hogar o negocio, al mejor precio.
+    </p>
+    <div class="flex gap-3 flex-wrap">
+      <a href="#productos" class="btn-primary no-underline">🧴 Ver catálogo</a>
+      <a href="#contacto"  class="btn-outline no-underline">Contáctanos</a>
+    </div>
+    <!-- Stats -->
+    <div class="flex gap-6 mt-8">
+      <div>
+        <div class="font-syne font-extrabold text-2xl text-teal-DEFAULT" id="statCount">29+</div>
+        <div class="text-gray-400 text-xs font-medium">Productos</div>
+      </div>
+      <div>
+        <div class="font-syne font-extrabold text-2xl text-teal-DEFAULT">100%</div>
+        <div class="text-gray-400 text-xs font-medium">Calidad</div>
+      </div>
+      <div>
+        <div class="font-syne font-extrabold text-2xl text-teal-DEFAULT">⭐</div>
+        <div class="text-gray-400 text-xs font-medium">TOP Selección</div>
+      </div>
     </div>
   </div>
-  <div class="carousel-wrap">
+
+  <!-- Carrusel -->
+  <div class="carousel-wrap order-1 md:order-2">
     <div class="carousel-label">⭐ PRODUCTOS DESTACADOS</div>
     <div class="carousel-box">
       <div class="carousel-track" id="cTrack">
@@ -75,16 +146,26 @@
   </div>
 </section>
 
-<section id="productos">
-  <div class="sec-hd fi">
+<!-- ══════════════════════════════════════════
+     PRODUCTOS
+══════════════════════════════════════════ -->
+<section id="productos" class="px-4 md:px-[5%] py-16 md:py-20">
+  <div class="sec-hd fi text-center mb-10">
     <div class="sec-tag">🧹 Catálogo completo</div>
     <h2 class="sec-title">Todos nuestros productos</h2>
     <p class="sec-sub">Encuentra todo lo que necesitas para mantener tu hogar impecable</p>
   </div>
-  <div class="cat-filter fi" id="catFilter">
-    <button class="f-btn on">Todos</button>
+
+  <!-- Filtros: scroll horizontal en móvil -->
+  <div class="fi mb-8 -mx-4 px-4 md:mx-0 md:px-0">
+    <div class="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:justify-center
+                scrollbar-hide snap-x snap-mandatory" id="catFilter">
+      <button class="f-btn on snap-start shrink-0">Todos</button>
+    </div>
   </div>
-  <div class="prod-grid" id="prodGrid">
+
+  <!-- Grid: 2 columnas en móvil, 3-4 en desktop -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5" id="prodGrid">
     <div class="skeleton skel-card"></div>
     <div class="skeleton skel-card"></div>
     <div class="skeleton skel-card"></div>
@@ -94,23 +175,27 @@
   </div>
 </section>
 
-<section id="contacto">
-  <div class="contact-inner">
+<!-- ══════════════════════════════════════════
+     CONTACTO
+══════════════════════════════════════════ -->
+<section id="contacto" class="py-16 md:py-20 px-4 md:px-[5%] bg-white">
+  <div class="contact-inner max-w-2xl mx-auto text-center">
     <div class="sec-tag sec-tag--contact">📞 Contáctanos</div>
-    <h2 class="sec-title">¿Tienes preguntas?<br>¡Estamos aquí!</h2>
+    <h2 class="sec-title mt-3">¿Tienes preguntas?<br>¡Estamos aquí!</h2>
     <p class="sec-sub sec-sub--contact">Escríbenos o llámanos, con gusto te atendemos</p>
-    <div class="c-cards">
-      <div class="c-card">
+    <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+      <div class="c-card flex-1">
         <div class="c-card-ico">📱</div>
         <h3>Llámanos</h3>
         <p><a href="tel:+573503443140">+57 350 344 3140</a></p>
         <p class="contact-hours">Lun–Sáb · 8 am – 6 pm</p>
       </div>
-      <div class="c-card">
+      <div class="c-card flex-1">
         <div class="c-card-ico">💬</div>
         <h3>WhatsApp</h3>
-        <p>¡Realiza tu pedido o resuelve<br>tus dudas por chat!</p>
-        <a class="btn-wa" href="https://wa.me/573503443140?text=Hola%20Limpieza%20RR%2C%20quisiera%20hacer%20un%20pedido" target="_blank" rel="noopener noreferrer">
+        <p>¡Realiza tu pedido o resuelve tus dudas por chat!</p>
+        <a class="btn-wa" href="https://wa.me/573503443140?text=Hola%20Limpieza%20RR%2C%20quisiera%20hacer%20un%20pedido"
+           target="_blank" rel="noopener noreferrer">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
           Escribir ahora
         </a>
@@ -119,19 +204,70 @@
   </div>
 </section>
 
-<footer>
-  <div class="footer-brand"><strong>Limpieza RR</strong> · Productos de Aseo Premium</div>
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer class="bg-gray-900 text-gray-400 text-center py-7 px-5 text-sm">
+  <div class="footer-brand mb-1"><strong class="text-white">Limpieza RR</strong> · Productos de Aseo Premium</div>
   <div>📍 Colombia &nbsp;·&nbsp; 📞 +57 350 344 3140</div>
   <div class="footer-copy">© 2025 Limpieza RR. Todos los derechos reservados.</div>
 </footer>
 
+<!-- ══════════════════════════════════════════
+     BARRA NAVEGACIÓN INFERIOR (solo móvil)
+══════════════════════════════════════════ -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 md:hidden
+            bg-white border-t border-brand-border
+            flex items-center justify-around px-2 py-2 safe-area-inset-bottom"
+     style="box-shadow:0 -4px 20px rgba(13,148,136,.08)">
+  <a href="#inicio" class="flex flex-col items-center gap-0.5 no-underline text-gray-400
+                           hover:text-teal-DEFAULT transition-colors min-w-[52px]">
+    <span class="text-xl">🏠</span>
+    <span class="text-[10px] font-semibold">Inicio</span>
+  </a>
+  <a href="#productos" class="flex flex-col items-center gap-0.5 no-underline text-gray-400
+                              hover:text-teal-DEFAULT transition-colors min-w-[52px]">
+    <span class="text-xl">🧴</span>
+    <span class="text-[10px] font-semibold">Productos</span>
+  </a>
+  <button onclick="openCart()"
+          class="flex flex-col items-center gap-0.5 text-gray-400 bg-none border-none cursor-pointer
+                 hover:text-teal-DEFAULT transition-colors min-w-[52px] relative">
+    <span class="text-xl">🛒</span>
+    <span class="text-[10px] font-semibold">Carrito</span>
+    <span class="cart-badge-mobile absolute -top-1 -right-1 bg-amber-400 text-gray-900
+                 rounded-full w-4 h-4 text-[9px] font-bold hidden items-center justify-center"
+          id="cartBadgeMobile">0</span>
+  </button>
+  <a href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer"
+     class="flex flex-col items-center gap-0.5 no-underline text-gray-400
+            hover:text-green-500 transition-colors min-w-[52px]">
+    <span class="text-xl">💬</span>
+    <span class="text-[10px] font-semibold">WhatsApp</span>
+  </a>
+  <a href="#contacto" class="flex flex-col items-center gap-0.5 no-underline text-gray-400
+                             hover:text-teal-DEFAULT transition-colors min-w-[52px]">
+    <span class="text-xl">📞</span>
+    <span class="text-[10px] font-semibold">Contacto</span>
+  </a>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     OVERLAY
+══════════════════════════════════════════ -->
 <div class="overlay" id="overlay" onclick="overlayClick()"></div>
 
+<!-- ══════════════════════════════════════════
+     MODAL DE PRODUCTO (bottom sheet)
+══════════════════════════════════════════ -->
 <div class="prod-modal" id="prodModal">
   <div class="drag-bar"></div>
   <div class="modal-grid" id="modalGrid"></div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     CARRITO LATERAL
+══════════════════════════════════════════ -->
 <div class="cart-sidebar" id="cartSidebar">
   <div class="cart-hd">
     <span class="cart-title">🛒 Tu carrito</span>
@@ -144,17 +280,20 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     MODAL DE PEDIDO
+══════════════════════════════════════════ -->
 <div class="order-modal" id="orderModal">
   <div class="om-hd">
     <button class="x-btn" onclick="closeOrder()">✕</button>
     <h2 class="om-title">Datos de entrega</h2>
   </div>
   <div class="form-grid">
-    <div class="fg full"><label>Nombre completo *</label><input id="fNombre" type="text" placeholder="Tu nombre completo"></div>
-    <div class="fg"><label>Ciudad *</label><input id="fCiudad" type="text" placeholder="Ej: Bogotá"></div>
-    <div class="fg"><label>Departamento *</label><input id="fDepto" type="text" placeholder="Ej: Cundinamarca"></div>
+    <div class="fg full"><label>Nombre completo *</label><input id="fNombre" type="text" placeholder="Tu nombre completo" autocomplete="name"></div>
+    <div class="fg"><label>Ciudad *</label><input id="fCiudad" type="text" placeholder="Ej: Bogotá" autocomplete="address-level2"></div>
+    <div class="fg"><label>Departamento *</label><input id="fDepto" type="text" placeholder="Ej: Cundinamarca" autocomplete="address-level1"></div>
     <div class="fg"><label>Barrio *</label><input id="fBarrio" type="text" placeholder="Ej: El Campín"></div>
-    <div class="fg"><label>Dirección *</label><input id="fDir" type="text" placeholder="Ej: Calle 45 #12-34"></div>
+    <div class="fg"><label>Dirección *</label><input id="fDir" type="text" placeholder="Ej: Calle 45 #12-34" autocomplete="street-address"></div>
     <div class="fg"><label>Casa / Apartamento</label><input id="fCasa" type="text" placeholder="Ej: Apto 301 – Piso 3"></div>
     <div class="fg"><label>Nombre del conjunto</label><input id="fConj" type="text" placeholder="Si aplica"></div>
     <div class="fg full"><label>Nota adicional</label><textarea id="fNota" rows="2" placeholder="Indicaciones para la entrega (opcional)"></textarea></div>
@@ -163,28 +302,12 @@
     <div class="fg full">
       <label>Medio de pago *</label>
       <div class="pay-grid">
-        <div class="pay-opt">
-          <input type="radio" name="pago" id="pTrans" value="Transferencia bancaria">
-          <label for="pTrans">🏦 Transferencia</label>
-        </div>
-        <div class="pay-opt">
-          <input type="radio" name="pago" id="pNequi" value="Nequi">
-          <label for="pNequi">💜 Nequi</label>
-        </div>
-        <div class="pay-opt">
-          <input type="radio" name="pago" id="pBreb" value="Breb">
-          <label for="pBreb">💙 Breb</label>
-        </div>
-        <div class="pay-opt">
-          <input type="radio" name="pago" id="pDavi" value="Daviplata">
-          <label for="pDavi">❤️ Daviplata</label>
-        </div>
-        <div class="pay-opt">
-          <input type="radio" name="pago" id="pContra" value="Contra entrega">
-          <label for="pContra">🚪 Contra entrega</label>
-        </div>
+        <div class="pay-opt"><input type="radio" name="pago" id="pTrans" value="Transferencia bancaria"><label for="pTrans">🏦 Transferencia</label></div>
+        <div class="pay-opt"><input type="radio" name="pago" id="pNequi" value="Nequi"><label for="pNequi">💜 Nequi</label></div>
+        <div class="pay-opt"><input type="radio" name="pago" id="pBreb"  value="Breb"><label  for="pBreb">💙 Breb</label></div>
+        <div class="pay-opt"><input type="radio" name="pago" id="pDavi"  value="Daviplata"><label for="pDavi">❤️ Daviplata</label></div>
+        <div class="pay-opt"><input type="radio" name="pago" id="pContra" value="Contra entrega"><label for="pContra">🚪 Contra entrega</label></div>
       </div>
-      <!-- Número de pago / aviso contra entrega (aparece dinámicamente) -->
       <div class="pay-info pay-info--hidden" id="payInfo"></div>
     </div>
 
@@ -200,10 +323,9 @@
         <option value="custom">✏️ Acordar costo de envío por WhatsApp</option>
       </select>
     </div>
+  </div>
 
-  </div><!-- /form-grid -->
-
-  <!-- RESUMEN DEL PEDIDO -->
+  <!-- RESUMEN -->
   <div class="order-sum">
     <h3>📦 Resumen del pedido</h3>
     <div id="sumItems"></div>
@@ -221,7 +343,7 @@
     <span>📎</span>
     <div>
       <strong>Adjunta el comprobante de pago</strong>
-      <p>Al enviar el pedido por WhatsApp, por favor adjunta la <em>captura de pantalla</em> o el <em>comprobante</em> de tu transferencia para confirmar el pago.</p>
+      <p>Al enviar el pedido por WhatsApp, adjunta la <em>captura de pantalla</em> o el <em>comprobante</em> de tu transferencia.</p>
     </div>
   </div>
 
@@ -232,5 +354,19 @@
 </div>
 
 <script src="app.js"></script>
+<script>
+  // Sincronizar badge del carrito con la barra inferior móvil
+  const origRefreshCart = refreshCart;
+  const _origRefresh = window.refreshCart;
+  document.addEventListener("DOMContentLoaded", () => {
+    const origFn = window.refreshCart;
+    window.refreshCart = function() {
+      origFn && origFn();
+      const tot = cart.reduce((s,i) => s+i.qty, 0);
+      const mob = document.getElementById("cartBadgeMobile");
+      if (mob) { mob.textContent = tot; mob.style.display = tot > 0 ? "flex" : "none"; }
+    };
+  });
+</script>
 </body>
 </html>

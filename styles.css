@@ -506,3 +506,72 @@ footer strong { color: #fff; }
 .pay-info--hidden    { display: none !important; }
 .pay-proof--hidden   { display: none !important; }
 .sum-shipping--hidden { display: none !important; }
+
+
+/* ══════════════════════════════
+   MEJORAS MÓVIL (mobile-first)
+══════════════════════════════ */
+
+/* Ocultar scrollbar de filtros en móvil */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Grid de productos más compacto en móvil */
+@media (max-width: 480px) {
+  .prod-card { padding: 14px 12px; gap: 7px; }
+  .p-icon    { width: 56px; height: 56px; font-size: 1.6rem; }
+  .p-name    { font-size: .75rem; }
+  .p-price   { font-size: 1rem; }
+  .p-addbtn  { font-size: .72rem; padding: 6px 10px; }
+}
+
+/* Carrito: ancho completo en móvil */
+@media (max-width: 480px) {
+  .cart-sidebar { width: 100vw; }
+}
+
+/* Modal pedido: scroll suave en móvil */
+@media (max-width: 768px) {
+  .order-modal { padding: 24px 4% 80px; }
+  .form-grid   { grid-template-columns: 1fr; gap: 12px; }
+  .fg.full     { grid-column: 1; }
+  .pay-grid    { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .om-title    { font-size: 1.2rem; }
+  .fg input,
+  .fg select,
+  .fg textarea {
+    font-size: 16px; /* evita zoom automático en iOS */
+    padding: 13px;
+  }
+}
+
+/* Producto modal en móvil */
+@media (max-width: 480px) {
+  .prod-modal  { padding: 20px 4% 28px; }
+  .modal-grid  { grid-template-columns: 1fr; gap: 16px; }
+  .m-img       { width: 90px; height: 90px; font-size: 2.8rem; margin: 0 auto; }
+  .m-name      { font-size: 1.1rem; }
+  .m-price     { font-size: 1.4rem; }
+  .m-desc      { font-size: .85rem; }
+}
+
+/* Carrusel más alto en móvil */
+@media (max-width: 480px) {
+  .carousel-slide { padding: 24px 20px; }
+  .c-icon         { width: 80px; height: 80px; font-size: 2.4rem; }
+  .c-price        { font-size: 1.4rem; }
+}
+
+/* Botones táctiles más grandes */
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-outline,
+  .btn-confirm,
+  .btn-order  { min-height: 48px; font-size: .95rem; }
+  .c-add      { min-height: 42px; }
+}
+
+/* Safe area para barra inferior (iPhone notch) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  nav.fixed.bottom-0 { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+}

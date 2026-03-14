@@ -1,0 +1,24 @@
+{
+  "name": "empresa-limpieza-rr",
+  "version": "1.0.0",
+  "description": "Sitio web de catálogo y ventas para **Limpieza RR**, empresa colombiana de productos de aseo premium. Permite a los clientes ver el catálogo completo, agregar productos al carrito y realizar pedidos directamente por **WhatsApp**, con registro automático de pedidos en **Google Sheets**.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mancho9510/Empresa-Limpieza-RR.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Mancho9510/Empresa-Limpieza-RR/issues"
+  },
+  "homepage": "https://github.com/Mancho9510/Empresa-Limpieza-RR#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
