@@ -834,8 +834,8 @@ footer strong { color: #fff; }
   box-shadow: 0 20px 56px rgba(13,148,136,.28);
 }
 .premium-card--featured::before { opacity: 1; background: rgba(255,255,255,.25); }
-.premium-card--featured h3  { color: #fff; }
-.premium-card--featured p   { color: rgba(255,255,255,.88); }
+.premium-card--featured h3  { color: #ffffff; font-size: 1.1rem; }
+.premium-card--featured p   { color: #ffffff; opacity: 1; font-weight: 500; }
 .premium-card--featured:hover { transform: translateY(-12px); }
 
 .premium-icon-wrap {
