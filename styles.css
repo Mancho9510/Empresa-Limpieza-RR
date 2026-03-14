@@ -868,9 +868,8 @@ footer strong { color: #fff; }
   box-shadow: 0 20px 56px rgba(13,148,136,.28);
 }
 .premium-card--featured::before { opacity: 1; background: rgba(255,255,255,.25); }
-.premium-card--featured h3  { color: #ffffff; font-size: 1.1rem; }
-.premium-card--featured p   { color: #ffffff; opacity: 1; font-weight: 500; }
-.premium-card--featured:hover { transform: translateY(-12px); }
+.premium-card--featured h3      { color: #ffffff; font-size: 1.1rem; }
+.premium-card--featured:hover   { transform: translateY(-12px); }
 
 .premium-icon-wrap {
   width: 60px; height: 60px;
@@ -894,8 +893,11 @@ footer strong { color: #fff; }
   line-height: 1.75;
   flex: 1;
 }
-.premium-card p strong       { color: var(--teal-dk); }
-.premium-card--featured p strong { color: #fff; font-weight: 700; }
+.premium-card p strong             { color: var(--teal-dk); }
+
+/* Override para tarjeta destacada — debe ir DESPUÉS de .premium-card p */
+.premium-card--featured p          { color: #ffffff; font-weight: 500; }
+.premium-card--featured p strong   { color: #ffffff; font-weight: 700; }
 
 .premium-tag {
   display: inline-flex;
