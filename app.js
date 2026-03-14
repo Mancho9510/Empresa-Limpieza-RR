@@ -616,13 +616,32 @@ function initPaymentListeners() {
    ENVÍO — actualiza resumen al cambiar zona
 ═══════════════════════════════════════════════════════════ */
 function initShippingListener() {
-  $("fEnvio").addEventListener("change", updateOrderSummary);
+  // El select ya tiene onchange="onEnvioChange()" en el HTML
+  // que a su vez llama updateOrderSummary()
 }
 
 function getShippingCost() {
   const val = $("fEnvio").value;
-  if (!val || val === "custom") return null; // null = a convenir
+  if (!val || val === "convenir") return null; // null = precio a convenir
   return Number(val);
+}
+
+/* Muestra nota informativa al seleccionar "precio a convenir" */
+function onEnvioChange() {
+  const val  = $("fEnvio").value;
+  const note = $("envioNote");
+  if (!note) return;
+  if (val === "convenir") {
+    note.innerHTML = '⚠️ <strong>Precio a convenir:</strong> al confirmar tu pedido por WhatsApp acordaremos el costo de envío según tu dirección exacta.';
+    note.classList.add("envio-note--visible");
+  } else if (val !== "") {
+    note.innerHTML = '✅ El costo de envío será cobrado junto al pedido.';
+    note.classList.add("envio-note--visible");
+  } else {
+    note.innerHTML = "";
+    note.classList.remove("envio-note--visible");
+  }
+  updateOrderSummary();
 }
 
 function getShippingLabel() {
