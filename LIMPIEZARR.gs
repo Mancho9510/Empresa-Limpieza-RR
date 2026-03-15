@@ -169,6 +169,162 @@ function doGet(e) {
       return jsonResponse({ ok: true, pedidos: todos });
     }
 
+    // ── Admin: métricas del dashboard ─────────────────────
+    if (action === "admin_dashboard") {
+      var clave = e.parameter.clave || "";
+      if (clave !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+
+      // ── CacheService: devuelve resultado guardado si existe (TTL: 5 min) ──
+      var cache    = CacheService.getScriptCache();
+      var CACHE_KEY = "admin_dashboard_v1";
+      var forceRefresh = e.parameter.refresh === "1";
+      if (!forceRefresh) {
+        var cached = cache.get(CACHE_KEY);
+        if (cached) {
+          try {
+            var cachedData = JSON.parse(cached);
+            cachedData.fromCache = true;
+            return jsonResponse(cachedData);
+          } catch(ce) { /* cache corrupto, recalcular */ }
+        }
+      }
+
+      var ss2      = SpreadsheetApp.getActiveSpreadsheet();
+      var pedSheet = ss2.getSheetByName("Pedidos");
+      var cliSheet = ss2.getSheetByName("Clientes");
+      var calSheet = ss2.getSheetByName("Calificaciones");
+      var proSheet = ss2.getSheetByName("Productos");
+      if (!pedSheet) return jsonResponse({ ok: false, error: "Hoja Pedidos no encontrada" });
+
+      var pData = pedSheet.getDataRange().getValues();
+      var pHdr  = pData[0]; var PC = {};
+      pHdr.forEach(function(h,i){ PC[String(h).toLowerCase().trim()]=i; });
+      var rows = pData.slice(1).filter(function(r){ return r[0]!==""; });
+
+      var hoy     = new Date();
+      var hoyDia  = Number(Utilities.formatDate(hoy,"America/Bogota","d"));
+      var hoyMes  = Number(Utilities.formatDate(hoy,"America/Bogota","M"));
+      var hoyAnio = Number(Utilities.formatDate(hoy,"America/Bogota","yyyy"));
+
+      var totHoy=0,cntHoy=0,totMes=0,cntMes=0,totGen=0,pend=0,pagados=0,entregados=0;
+      var prodCount={}, clienteCount={}, zonaCount={}, pagoCount={};
+      var semanas={"Esta semana":0,"Sem anterior":0,"Hace 2 sem":0,"Hace 3 sem":0,
+                   "Hace 4 sem":0,"Hace 5 sem":0,"Hace 6 sem":0,"Hace 7 sem":0};
+
+      rows.forEach(function(r){
+        var rawF  = r[PC["fecha"]];
+        var total = Number(r[PC["total"]])||0;
+        var estP  = String(r[PC["estado_pago"]]||"").toUpperCase();
+        var estE  = String(r[PC["estado_envio"]]||"");
+        var prods = String(r[PC["productos"]]||"");
+        var zona  = String(r[PC["zona_envio"]]||"Sin zona").replace(/\([^)]+\)/g,"").replace(/—.*/,"").replace(/\$/g,"").trim().split("—")[0].trim();
+        var pago  = String(r[PC["pago"]]||"Sin datos");
+        var nom   = String(r[PC["nombre"]]||"");
+        var tel   = String(r[PC["telefono"]]||"");
+
+        totGen += total;
+        if (estP==="PENDIENTE"||estP==="") pend++;
+        if (estP==="PAGADO") pagados++;
+        if (estE==="Entregado") entregados++;
+
+        var clv = nom + (tel?" ("+tel+")":"");
+        if (clv.trim()) clienteCount[clv]=(clienteCount[clv]||0)+1;
+        if (zona) zonaCount[zona]=(zonaCount[zona]||0)+1;
+        if (pago) pagoCount[pago]=(pagoCount[pago]||0)+1;
+
+        try {
+          var fd=(rawF instanceof Date)?rawF:new Date(String(rawF));
+          if (!isNaN(fd.getTime())){
+            var fD=Number(Utilities.formatDate(fd,"America/Bogota","d"));
+            var fM=Number(Utilities.formatDate(fd,"America/Bogota","M"));
+            var fA=Number(Utilities.formatDate(fd,"America/Bogota","yyyy"));
+            if (fD===hoyDia&&fM===hoyMes&&fA===hoyAnio){totHoy+=total;cntHoy++;}
+            if (fM===hoyMes&&fA===hoyAnio){totMes+=total;cntMes++;}
+            var diff=Math.floor((hoy.getTime()-fd.getTime())/(1000*60*60*24));
+            if (diff>=0&&diff<56){
+              var sem=Math.floor(diff/7);
+              var semKey=sem===0?"Esta semana":sem===1?"Sem anterior":"Hace "+sem+" sem";
+              if (semanas.hasOwnProperty(semKey)) semanas[semKey]+=total;
+            }
+          }
+        } catch(ed){}
+
+        prods.split("
+").forEach(function(line){
+          var m=line.match(/Cant[^0-9]*([0-9]+)/i);
+          var cant=m?parseInt(m[1],10):1;
+          var k=line.split("|")[0].trim();
+          if (k) prodCount[k]=(prodCount[k]||0)+cant;
+        });
+      });
+
+      var topProd = Object.keys(prodCount).map(function(k){return{nombre:k,cant:prodCount[k]};})
+        .sort(function(a,b){return b.cant-a.cant;}).slice(0,5);
+      var topCli  = Object.keys(clienteCount).map(function(k){return{nombre:k,pedidos:clienteCount[k]};})
+        .sort(function(a,b){return b.pedidos-a.pedidos;}).slice(0,5);
+      var topZonas= Object.keys(zonaCount).map(function(k){return{zona:k,cnt:zonaCount[k]};})
+        .sort(function(a,b){return b.cnt-a.cnt;}).slice(0,5);
+      var topPagos= Object.keys(pagoCount).map(function(k){return{metodo:k,cnt:pagoCount[k]};})
+        .sort(function(a,b){return b.cnt-a.cnt;});
+
+      // Calificaciones
+      var avgRating=0, numResenas=0;
+      if (calSheet&&calSheet.getLastRow()>1){
+        var cData=calSheet.getDataRange().getValues();
+        var cHdr=cData[0].map(function(h){return String(h).toLowerCase();});
+        var si=cHdr.indexOf("estrellas");
+        if (si>=0){
+          var stars=cData.slice(1).map(function(r){return Number(r[si]);}).filter(function(v){return v>0;});
+          numResenas=stars.length;
+          if (stars.length>0) avgRating=parseFloat((stars.reduce(function(a,b){return a+b;},0)/stars.length).toFixed(1));
+        }
+      }
+
+      // Alertas stock
+      var alertasStock=[];
+      if (proSheet&&proSheet.getLastRow()>1){
+        var prData=proSheet.getDataRange().getValues();
+        var prHdr=prData[0].map(function(h){return String(h).toLowerCase().trim();});
+        var ni=prHdr.indexOf("nombre"),ti=prHdr.indexOf("tamano"),si=prHdr.indexOf("stock");
+        if (si>=0){
+          prData.slice(1).forEach(function(r){
+            if (!r[ni]) return;
+            var sv=r[si]; if (sv===""||sv===null) return;
+            var sn=Number(sv); if (isNaN(sn)) return;
+            alertasStock.push({nombre:String(r[ni]||"")+" "+String(r[ti]||""),stock:sn,
+              nivel:sn===0?"agotado":sn<=5?"bajo":null});
+          });
+          alertasStock=alertasStock.filter(function(a){return a.nivel!==null;});
+        }
+      }
+
+      // Clientes totales y VIP
+      var numClientes=0, vip=0;
+      if (cliSheet&&cliSheet.getLastRow()>1){
+        numClientes=cliSheet.getLastRow()-1;
+        var clData=cliSheet.getDataRange().getValues();
+        var clHdr=clData[0].map(function(h){return String(h).toLowerCase();});
+        var ti2=clHdr.indexOf("tipo");
+        if (ti2>=0) clData.slice(1).forEach(function(r){ if (String(r[ti2]).toUpperCase().indexOf("VIP")>=0) vip++; });
+      }
+
+      var resultado = {
+        ok: true,
+        fromCache: false,
+        generadoEn: Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm"),
+        kpis: { totHoy:totHoy, cntHoy:cntHoy, totMes:totMes, cntMes:cntMes,
+                totGen:totGen, totalPedidos:rows.length, pend:pend, pagados:pagados,
+                entregados:entregados, ticket:rows.length>0?Math.round(totGen/rows.length):0,
+                numClientes:numClientes, vip:vip, avgRating:avgRating, numResenas:numResenas },
+        semanas: semanas,
+        topProd: topProd, topCli: topCli, topZonas: topZonas, topPagos: topPagos,
+        alertasStock: alertasStock,
+      };
+      // Guardar en caché por 5 minutos (300 segundos)
+      try { cache.put(CACHE_KEY, JSON.stringify(resultado), 300); } catch(ce) {}
+      return jsonResponse(resultado);
+    }
+
     return jsonResponse({ ok: false, error: "Accion no reconocida: " + action });
 
   } catch(err) {
