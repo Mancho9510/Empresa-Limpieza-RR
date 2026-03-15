@@ -818,30 +818,49 @@ function closeHistory() {
   $("overlay").classList.remove("on");
 }
 async function searchHistory() {
-  const tel = ($("historyPhone")?.value || "").trim().replace(/\D/g, "");
+  const tel = ($("historyPhone")?.value || "").trim().replace(/[^0-9]/g, "");
   if (!tel || tel.length < 7) { showToast("⚠️ Ingresa un teléfono válido"); return; }
   const btn = $("historySearchBtn");
   if (btn) { btn.disabled = true; btn.textContent = "⏳ Buscando..."; }
   const res = $("historyResult");
   res.innerHTML = '<div class="hist-loading">Consultando pedidos...</div>';
   try {
-    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=historial&telefono=${encodeURIComponent(tel)}`;
-    const data = await fetch(url).then(r => r.json());
-    if (!data.ok || !data.pedidos?.length) {
-      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.</div>';
+    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=historial&telefono=${encodeURIComponent(tel)}&t=${Date.now()}`;
+    const raw  = await fetch(url);
+    const text = await raw.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) {
+      console.error("Respuesta no JSON:", text.slice(0, 200));
+      res.innerHTML = '<div class="hist-empty">⚠️ Error del servidor. Intenta de nuevo.</div>';
+      if (btn) { btn.disabled = false; btn.textContent = "🔍 Buscar"; }
+      return;
+    }
+    if (!data.ok || !data.pedidos || !data.pedidos.length) {
+      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.<br><small>Verifica que sea el mismo número con el que hiciste el pedido.</small></div>';
     } else {
-      res.innerHTML = data.pedidos.map(p => `
+      res.innerHTML = data.pedidos.map(p => {
+        const prods = String(p.productos || "").split("\n")
+          .filter(l => l.trim())
+          .map(l => `<div class="hist-prod-line">▪ ${l.trim()}</div>`)
+          .join("");
+        const totalStr = (typeof p.total === "number" || !isNaN(Number(p.total)))
+          ? fmt(Number(p.total)) : String(p.total || "");
+        const estadoClass = String(p.estado_pago || "").toLowerCase().replace(/[^a-z]/g, "-");
+        return `
         <div class="hist-item">
           <div class="hist-item-hd">
-            <span class="hist-date">📅 ${p.fecha}</span>
-            <span class="hist-status hist-status--${(p.estado_pago||'').toLowerCase().replace(/\s/g,'-')}">${p.estado_pago || 'Pendiente'}</span>
+            <span class="hist-date">📅 ${p.fecha || ""}</span>
+            <span class="hist-status hist-status--${estadoClass}">${p.estado_pago || "Pendiente"}</span>
           </div>
-          <div class="hist-prods">${(p.productos||'').split('\n').map(l=>`<div class="hist-prod-line">▪ ${l}</div>`).join('')}</div>
-          <div class="hist-total">Total: <strong>${typeof p.total === 'number' ? fmt(p.total) : p.total}</strong></div>
-        </div>`).join("");
+          <div class="hist-prods">${prods || "<div class='hist-prod-line'>Sin detalle</div>"}</div>
+          <div class="hist-total">Total: <strong>${totalStr}</strong></div>
+        </div>`;
+      }).join("");
     }
-  } catch {
-    res.innerHTML = '<div class="hist-empty">⚠️ Error al consultar. Intenta de nuevo.</div>';
+  } catch(err) {
+    console.error("Error historial:", err);
+    res.innerHTML = '<div class="hist-empty">⚠️ Error al consultar. Verifica tu conexión.</div>';
   }
   if (btn) { btn.disabled = false; btn.textContent = "🔍 Buscar"; }
 }
@@ -867,10 +886,17 @@ async function searchStatus() {
   const res = $("statusResult");
   res.innerHTML = '<div class="hist-loading">Consultando...</div>';
   try {
-    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=estado&telefono=${encodeURIComponent(tel)}`;
-    const data = await fetch(url).then(r => r.json());
-    if (!data.ok || !data.pedidos?.length) {
-      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.</div>';
+    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=estado&telefono=${encodeURIComponent(tel)}&t=${Date.now()}`;
+    const raw  = await fetch(url);
+    const text = await raw.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+      res.innerHTML = '<div class="hist-empty">⚠️ Error del servidor. Intenta de nuevo.</div>';
+      if (btn) { btn.disabled = false; btn.textContent = "Consultar"; }
+      return;
+    }
+    if (!data.ok || !data.pedidos || !data.pedidos.length) {
+      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.<br><small>Verifica que sea el mismo número con el que hiciste el pedido.</small></div>';
     } else {
       const STEPS = ["Recibido","En preparación","En camino","Entregado"];
       res.innerHTML = data.pedidos.slice(0,3).map(p => {
