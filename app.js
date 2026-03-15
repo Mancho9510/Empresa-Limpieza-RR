@@ -53,6 +53,32 @@ function showToast(msg) {
   }, 3000);
 }
 
+/* ─── Convierte URLs de Google Drive al formato de imagen directa ─── */
+function sanitizeImgUrl(url) {
+  if (!url || url.trim() === "") return "";
+  // Formato compartir Drive: https://drive.google.com/file/d/FILE_ID/view
+  const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return `https://drive.google.com/uc?export=view&id=${matchFile[1]}`;
+  // Formato open Drive: https://drive.google.com/open?id=FILE_ID
+  const matchOpen = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchOpen) return `https://drive.google.com/uc?export=view&id=${matchOpen[1]}`;
+  // URL directa (ya es imagen)
+  if (url.startsWith("http")) return url;
+  return "";
+}
+
+/* Renderiza la miniatura: imagen real o emoji de respaldo */
+function prodThumb(p, size = "md") {
+  if (p.img) {
+    const cls = size === "lg" ? "p-img p-img--lg" : "p-img";
+    return `<img class="${cls}" src="${p.img}" alt="${p.name}" loading="lazy"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="p-img-fallback ${size === 'lg' ? 'p-img-fallback--lg' : ''}" style="display:none">${p.e}</div>`;
+  }
+  const cls = size === "lg" ? "p-icon p-icon--lg" : "p-icon";
+  return `<div class="${cls}">${p.e}</div>`;
+}
+
 /* ════════════════════════════════════════════════════════════
    CARGA DE PRODUCTOS DESDE GOOGLE SHEETS
 ═══════════════════════════════════════════════════════════ */
@@ -104,14 +130,15 @@ async function loadProducts() {
 
     // Normalizar los campos que vienen del Sheet
     products = json.data.map((row, i) => ({
-      id:   Number(row.id)   || i + 1,
-      name: String(row.nombre   || ""),
-      size: String(row["tamaño"] || row.tamano || ""),
-      price:Number(String(row.precio).replace(/[^0-9.]/g, "")) || 0,
-      cat:  String(row.categoria  || "General"),
-      top:  String(row.destacado).toLowerCase() === "true" || row.destacado === true,
-      e:    String(row.emoji      || "🧴"),
-      desc: String(row.descripcion|| "Producto de limpieza de alta calidad."),
+      id:    Number(row.id)   || i + 1,
+      name:  String(row.nombre   || ""),
+      size:  String(row["tamaño"] || row.tamano || ""),
+      price: Number(String(row.precio).replace(/[^0-9.]/g, "")) || 0,
+      cat:   String(row.categoria  || "General"),
+      top:   String(row.destacado).toLowerCase() === "true" || row.destacado === true,
+      e:     String(row.emoji      || "🧴"),
+      desc:  String(row.descripcion|| "Producto de limpieza de alta calidad."),
+      img:   sanitizeImgUrl(String(row.imagen || "")),
     }));
 
     onProductsLoaded();
@@ -181,7 +208,7 @@ function buildCarousel() {
 
   track.innerHTML = topP.map(p => `
     <div class="carousel-slide" onclick="openModal(${p.id})">
-      <div class="c-icon">${p.e}</div>
+      <div class="c-img-wrap">${prodThumb(p, "md")}</div>
       <div class="top-chip">⭐ DESTACADO</div>
       <div class="c-name">${p.name}<br><span class="c-size">${p.size}</span></div>
       <div class="c-price">${fmt(p.price)}</div>
@@ -238,7 +265,7 @@ function renderProds() {
   $("prodGrid").innerHTML = list.map(p => `
     <div class="prod-card" onclick="openModal(${p.id})">
       ${p.top ? `<div class="prod-chip top-chip">⭐ TOP</div>` : ""}
-      <div class="p-icon">${p.e}</div>
+      <div class="p-img-wrap">${prodThumb(p, "md")}</div>
       <div class="p-name">${p.name} ${p.size}</div>
       <div class="p-price">${fmt(p.price)}</div>
       <button class="p-addbtn" onclick="event.stopPropagation(); quickAdd(${p.id})">
@@ -257,9 +284,9 @@ function openModal(id) {
   if (!p) return;
 
   $("modalGrid").innerHTML = `
-    <div class="m-img">${p.e}</div>
+    <div class="m-img-wrap">${prodThumb(p, "lg")}</div>
     <div>
-      ${p.top ? `<div class="top-chip" style="display:inline-block;margin-bottom:10px">⭐ Producto Destacado</div>` : ""}
+      ${p.top ? `<div class="top-chip modal-top-chip">⭐ Producto Destacado</div>` : ""}
       <h2 class="m-name">${p.name} ${p.size}</h2>
       <div class="m-price">${fmt(p.price)}</div>
       <p class="m-desc">${p.desc}</p>
@@ -380,8 +407,13 @@ async function confirmOrder() {
   const pag    = document.querySelector('input[name="pago"]:checked');
   const envSel = $("fEnvio").value;
 
-  if (!nom || !ciu || !dep || !bar || !dir) {
-    alert("⚠️ Por favor completa: Nombre, Ciudad, Departamento, Barrio y Dirección."); return;
+  const tel = $("fTelefono") ? $("fTelefono").value.trim() : "";
+
+  if (!nom || !tel || !ciu || !dep || !bar || !dir) {
+    alert("⚠️ Por favor completa todos los campos obligatorios: Nombre, Teléfono, Ciudad, Departamento, Barrio y Dirección."); return;
+  }
+  if (!/^[0-9]{7,15}$/.test(tel.replace(/\s/g,""))) {
+    alert("⚠️ El teléfono debe contener solo números (7 a 15 dígitos)."); return;
   }
   if (!pag) {
     alert("⚠️ Por favor selecciona un medio de pago."); return;
@@ -409,21 +441,22 @@ async function confirmOrder() {
 
   // Datos para Google Sheets
   const orderData = {
-    nombre:      nom,
-    ciudad:      ciu,
+    nombre:       nom,
+    telefono:     tel,
+    ciudad:       ciu,
     departamento: dep,
-    barrio:      bar,
-    direccion:   dir,
-    casa:        cas,
-    conjunto:    con,
-    nota:        not,
-    pago:        pag.value,
-    zona_envio:  shippingLbl,
-    costo_envio: shipping !== null ? shipping : "A convenir",
-    subtotal:    sub,
-    total:       shipping !== null ? total : "A convenir",
-    estado_pago: isContra ? "CONTRA ENTREGA" : "PENDIENTE",
-    productos:   productosLineas,
+    barrio:       bar,
+    direccion:    dir,
+    casa:         cas,
+    conjunto:     con,
+    nota:         not,
+    pago:         pag.value,
+    zona_envio:   shippingLbl,
+    costo_envio:  shipping !== null ? shipping : "A convenir",
+    subtotal:     sub,
+    total:        shipping !== null ? total : "A convenir",
+    estado_pago:  isContra ? "CONTRA ENTREGA" : "PENDIENTE",
+    productos:    productosLineas,
   };
 
   await saveOrderToSheets(orderData);
@@ -485,7 +518,7 @@ async function confirmOrder() {
   showToast("✅ ¡Pedido enviado por WhatsApp y guardado!");
 
   // Reset formulario
-  ["fNombre","fCiudad","fDepto","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => $(id).value = "");
+  ["fNombre","fTelefono","fCiudad","fDepto","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => { if ($(id)) $(id).value = ""; });
   $("fEnvio").value = "";
   document.querySelectorAll('input[name="pago"]').forEach(r => r.checked = false);
   $("payInfo").classList.add("pay-info--hidden");
@@ -524,6 +557,7 @@ document.querySelectorAll(".fi").forEach(el => observer.observe(el));
    (Se usan solo si APPS_SCRIPT_URL no está configurada)
 ═══════════════════════════════════════════════════════════ */
 const DEMO_PRODUCTS = [
+  // Nota: el campo img puede ser una URL de Google Drive o cualquier URL de imagen
   { id:1,  name:"Cera Autobrillante Envase",                  size:"1 Kg",    price:16000,    cat:"Ceras",           top:false, e:"✨", desc:"Cera autobrillante de alta calidad para pisos. Brinda protección y brillo duradero. Fácil aplicación y secado rápido." },
   { id:2,  name:"Cera Autobrillante Galón",                   size:"4 Kg",    price:46333.68, cat:"Ceras",           top:false, e:"✨", desc:"Presentación galón para uso intensivo. Ideal para negocios o grandes superficies. Excelente rendimiento y brillo profesional." },
   { id:3,  name:"Detergente Textil Galón",                    size:"4 Kg",    price:26743.72, cat:"Detergentes",     top:false, e:"🧺", desc:"Potente fórmula para ropa de todo tipo. Elimina manchas difíciles y cuida las fibras del tejido con gran rendimiento." },
