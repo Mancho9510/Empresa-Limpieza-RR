@@ -14,6 +14,19 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+// ══════════════════════════════════════════════════════════
+// CONFIGURACIÓN — ajusta estos valores
+// ══════════════════════════════════════════════════════════
+var CONFIG_WA = {
+  // Para activar notificaciones WhatsApp via CallMeBot:
+  // 1. Envía "I allow callmebot to send me messages" a +34 644 60 83 57 en WhatsApp
+  // 2. Recibirás tu API key
+  // 3. Pon tu número y API key aquí
+  NUMERO:  "573503443140",   // Tu número con código de país, sin +
+  API_KEY: "https://api.callmebot.com/whatsapp.php?phone=573503443140&text=This+is+a+test&apikey=4942289",               // Tu API key de CallMeBot (dejar vacío = desactivado)
+  ACTIVO:  true,            // Cambiar a true cuando tengas la API key
+};
+
 // Helper seguro para obtener el spreadsheet activo
 function getSS() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -249,8 +262,7 @@ function doGet(e) {
           }
         } catch(ed){}
 
-        prods.split("
-").forEach(function(line){
+        prods.split("/n").forEach(function(line){
           var m=line.match(/Cant[^0-9]*([0-9]+)/i);
           var cant=m?parseInt(m[1],10):1;
           var k=line.split("|")[0].trim();
@@ -363,8 +375,14 @@ function doPost(e) {
     descontarStock(ss, body.productos);
     // Notificar y actualizar dashboard en bloque separado
     // para que un error aquí no afecte la respuesta al cliente
-    try { notificarPedido(body); } catch(e2) { Logger.log("Email fallido: " + e2.message); }
-    try { actualizarDashboard(ss); } catch(e3) { Logger.log("Dashboard fallido: " + e3.message); }
+    try { notificarPedido(body); }      catch(e2) { Logger.log("Email fallido: " + e2.message); }
+    try { notificarWA(body); }          catch(e3) { Logger.log("WA fallido: " + e3.message); }
+    // Invalidar caché del dashboard para que el próximo acceso recalcule
+    try {
+      CacheService.getScriptCache().remove("admin_dashboard_v1");
+    } catch(e4) {}
+    // Actualizar dashboard en background (no bloquea la respuesta)
+    try { actualizarDashboard(ss); } catch(e5) { Logger.log("Dashboard fallido: " + e5.message); }
     return jsonResponse({ ok: true });
   } catch (err) {
     Logger.log("Error doPost: " + err.message);
@@ -643,6 +661,33 @@ function configuracionInicial() {
    POBLAR PRODUCTOS
 ────────────────────────────────────────────────────────────── */
 // ── Las funciones de configuración están en LIMPIEZARR_Setup.gs ──
+/* ──────────────────────────────────────────────────────────────
+   NOTIFICACIÓN WHATSAPP via CallMeBot (gratuito)
+   Configurar: CONFIG_WA.NUMERO, CONFIG_WA.API_KEY, CONFIG_WA.ACTIVO = true
+────────────────────────────────────────────────────────────── */
+function notificarWA(body) {
+  if (!CONFIG_WA.ACTIVO || !CONFIG_WA.API_KEY) return;
+  var total   = body.total ? "$ " + Number(body.total).toLocaleString("es-CO") : "A convenir";
+  var mensaje =
+    "NUEVO PEDIDO - Limpieza RR" +
+    "Cliente: " + (body.nombre || "") + "" +
+    "Tel: "     + (body.telefono || "") + "" +
+    "Barrio: "  + (body.barrio || "") + "" +
+    "Pago: "    + (body.pago || "") + "" +
+    "Total: "   + total + "" +
+    "Zona: "    + (body.zona_envio || "");
+  var url = "https://api.callmebot.com/whatsapp.php" +
+    "?phone="   + CONFIG_WA.NUMERO +
+    "&text="    + encodeURIComponent(mensaje) +
+    "&apikey="  + CONFIG_WA.API_KEY;
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    Logger.log("WA notify status: " + resp.getResponseCode());
+  } catch(err) {
+    Logger.log("WA notify error: " + err.message);
+  }
+}
+
 /* ──────────────────────────────────────────────────────────────
    ACTUALIZAR ESTADO DE PEDIDO — llamado desde el panel admin
    body: { accion, clave, fila, estado_envio, estado_pago }
