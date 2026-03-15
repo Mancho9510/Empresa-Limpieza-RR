@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Limpieza RR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal:     #0D9488;
+      --teal-l:   #14B8A6;
+      --teal-pale:#CCFBF1;
+      --teal-dk:  #0F766E;
+      --bg:       #0F172A;
+      --bg2:      #1E293B;
+      --bg3:      #334155;
+      --border:   #334155;
+      --text:     #F1F5F9;
+      --muted:    #94A3B8;
+      --yellow:   #F59E0B;
+      --red:      #EF4444;
+      --green:    #22C55E;
+      --r:        12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ── */
+    .login-wrap {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px;
+      background: radial-gradient(ellipse at 60% 20%, rgba(13,148,136,.18) 0%, transparent 60%);
+    }
+    .login-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 44px 40px; width: 100%; max-width: 360px;
+      text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,.4);
+    }
+    .login-logo { font-size: 2.8rem; margin-bottom: 6px; }
+    .login-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--teal-l); margin-bottom: 4px; }
+    .login-sub   { color: var(--muted); font-size: .85rem; margin-bottom: 28px; }
+    .login-input {
+      width: 100%; background: var(--bg3); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; color: var(--text);
+      font: 500 1rem 'Outfit', sans-serif; outline: none;
+      transition: border-color .2s; margin-bottom: 14px;
+      text-align: center; letter-spacing: .1em;
+    }
+    .login-input:focus { border-color: var(--teal-l); }
+    .login-btn {
+      width: 100%; background: var(--teal); color: #fff; border: none;
+      border-radius: 10px; padding: 13px; font: 700 1rem 'Outfit', sans-serif;
+      cursor: pointer; transition: all .2s;
+    }
+    .login-btn:hover { background: var(--teal-dk); transform: translateY(-1px); }
+    .login-err { color: #FCA5A5; font-size: .82rem; margin-top: 10px; min-height: 18px; }
+
+    /* ── APP ── */
+    .app { display: none; flex-direction: column; min-height: 100vh; }
+    .app.on { display: flex; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo  { font-size: 1.5rem; }
+    .topbar-name  { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--teal-l); }
+    .topbar-badge { background: var(--teal); color: #fff; border-radius: 50px; padding: 2px 10px; font-size: .72rem; font-weight: 700; }
+    .topbar-r     { display: flex; align-items: center; gap: 10px; }
+    .btn-refresh  {
+      background: var(--bg3); color: var(--teal-l); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px; font: 600 .82rem 'Outfit', sans-serif;
+      cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-refresh:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+    .btn-refresh.spin svg { animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-logout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+    .btn-logout:hover { color: var(--red); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px; padding: 20px 24px;
+    }
+    .stat-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 20px;
+    }
+    .stat-card-lbl { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 6px; }
+    .stat-card-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--text); }
+    .stat-card-val.green { color: var(--green); }
+    .stat-card-val.yellow { color: var(--yellow); }
+    .stat-card-val.red    { color: var(--red); }
+
+    /* ── FILTERS ── */
+    .filters {
+      padding: 0 24px 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-input {
+      background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif;
+      outline: none; transition: border-color .2s; min-width: 200px;
+    }
+    .filter-input:focus { border-color: var(--teal-l); }
+    .filter-select {
+      background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif;
+      outline: none; cursor: pointer;
+    }
+    .filter-count { color: var(--muted); font-size: .82rem; margin-left: auto; }
+
+    /* ── PEDIDOS GRID ── */
+    .pedidos-wrap { flex: 1; padding: 0 24px 32px; overflow-x: auto; }
+    .loading-msg  { text-align: center; color: var(--muted); padding: 60px 0; font-size: .97rem; }
+
+    .pedido-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); margin-bottom: 12px; overflow: hidden;
+      transition: border-color .2s;
+    }
+    .pedido-card:hover { border-color: var(--teal); }
+    .pedido-hd {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto;
+      align-items: center; gap: 12px;
+      padding: 14px 18px; cursor: pointer;
+    }
+    .pedido-cliente { font-weight: 600; font-size: .95rem; }
+    .pedido-tel     { color: var(--muted); font-size: .82rem; }
+    .pedido-fecha   { color: var(--muted); font-size: .78rem; }
+    .pedido-total   { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--teal-l); font-size: 1rem; white-space: nowrap; }
+
+    .badge {
+      border-radius: 50px; padding: 3px 11px; font-size: .7rem; font-weight: 700;
+      white-space: nowrap; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .badge-pendiente     { background: rgba(239,68,68,.15);  color: #FCA5A5; }
+    .badge-pagado        { background: rgba(34,197,94,.15);  color: #86EFAC; }
+    .badge-contra-entrega{ background: rgba(245,158,11,.15); color: #FCD34D; }
+    .badge-recibido      { background: rgba(148,163,184,.12);color: #94A3B8; }
+    .badge-preparacion   { background: rgba(245,158,11,.15); color: #FCD34D; }
+    .badge-en-camino     { background: rgba(59,130,246,.15); color: #93C5FD; }
+    .badge-entregado     { background: rgba(34,197,94,.15);  color: #86EFAC; }
+
+    .chevron { color: var(--muted); transition: transform .25s; font-size: 1rem; }
+    .pedido-card.open .chevron { transform: rotate(180deg); }
+
+    /* ── PEDIDO DETALLE ── */
+    .pedido-body {
+      display: none; border-top: 1px solid var(--border);
+      padding: 18px; animation: fadeIn .2s ease;
+    }
+    .pedido-card.open .pedido-body { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .detail-row  { display: flex; flex-direction: column; gap: 3px; }
+    .detail-lbl  { font-size: .72rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+    .detail-val  { font-size: .88rem; }
+
+    .prods-title { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 8px; }
+    .prod-lines  { background: var(--bg3); border-radius: 8px; padding: 12px; }
+    .prod-line   { font-size: .82rem; color: var(--text); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .prod-line:last-child { border-bottom: none; }
+
+    /* ── ACCIONES DE ESTADO ── */
+    .estado-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .estado-title   { font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 12px; }
+    .estado-row     { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .estado-lbl     { font-size: .8rem; color: var(--muted); min-width: 90px; }
+    .estado-select  {
+      background: var(--bg3); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; color: var(--text); font: 500 .85rem 'Outfit', sans-serif;
+      outline: none; cursor: pointer; transition: border-color .2s;
+    }
+    .estado-select:focus { border-color: var(--teal-l); }
+    .btn-save {
+      background: var(--teal); color: #fff; border: none; border-radius: 8px;
+      padding: 9px 20px; font: 700 .85rem 'Outfit', sans-serif; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-save:hover   { background: var(--teal-dk); }
+    .btn-save:disabled{ background: var(--bg3); color: var(--muted); cursor: not-allowed; }
+    .btn-wa-contact {
+      background: rgba(37,211,102,.15); color: #86EFAC;
+      border: 1px solid rgba(37,211,102,.3); border-radius: 8px;
+      padding: 8px 14px; font: 600 .82rem 'Outfit', sans-serif;
+      cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+      transition: all .2s;
+    }
+    .btn-wa-contact:hover { background: rgba(37,211,102,.25); }
+
+    .save-ok  { color: #86EFAC; font-size: .8rem; }
+    .save-err { color: #FCA5A5; font-size: .8rem; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--teal-dk); color: #fff; border-radius: 50px;
+      padding: 11px 24px; font-weight: 600; font-size: .88rem;
+      z-index: 999; transition: transform .35s cubic-bezier(.4,0,.2,1);
+      white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── EMPTY ── */
+    .empty-msg { text-align: center; padding: 60px 0; color: var(--muted); }
+    .empty-msg .empty-ico { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .topbar   { padding: 12px 16px; }
+      .stats-bar, .filters, .pedidos-wrap { padding-left: 16px; padding-right: 16px; }
+      .pedido-hd { grid-template-columns: 1fr auto auto; }
+      .pedido-fecha { display: none; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">Admin — Limpieza RR</div>
+    <div class="login-sub">Ingresa la clave de acceso</div>
+    <input class="login-input" type="password" id="loginInput"
+           placeholder="Clave de acceso"
+           onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar al panel</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="app" id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">🧴</div>
+      <div>
+        <div class="topbar-name">Limpieza RR</div>
+      </div>
+      <div class="topbar-badge" id="topBadge">0 pedidos</div>
+    </div>
+    <div class="topbar-r">
+      <button class="btn-refresh" id="refreshBtn" onclick="loadPedidos()">
+        <svg id="refreshIco" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/>
+        </svg>
+        Actualizar
+      </button>
+      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-card-lbl">TOTAL PEDIDOS</div><div class="stat-card-val" id="sTotPed">—</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">PENDIENTES PAGO</div><div class="stat-card-val yellow" id="sPend">—</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">EN CAMINO</div><div class="stat-card-val green" id="sCamino">—</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">ENTREGADOS</div><div class="stat-card-val" id="sEntregado">—</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <input class="filter-input" type="text" id="filterSearch"
+           placeholder="🔍  Buscar cliente, teléfono, barrio..."
+           oninput="renderPedidos()">
+    <select class="filter-select" id="filterEstadoPago" onchange="renderPedidos()">
+      <option value="">Todos los pagos</option>
+      <option value="PENDIENTE">Pendiente</option>
+      <option value="PAGADO">Pagado</option>
+      <option value="CONTRA ENTREGA">Contra entrega</option>
+    </select>
+    <select class="filter-select" id="filterEstadoEnvio" onchange="renderPedidos()">
+      <option value="">Todos los envíos</option>
+      <option value="Recibido">Recibido</option>
+      <option value="En preparación">En preparación</option>
+      <option value="En camino">En camino</option>
+      <option value="Entregado">Entregado</option>
+    </select>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+
+  <!-- PEDIDOS -->
+  <div class="pedidos-wrap" id="pedidosWrap">
+    <div class="loading-msg">⏳ Cargando pedidos...</div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── CONFIG ─────────────────────────────────────────────── */
+const APPS_URL = "https://script.google.com/macros/s/AKfycbwntGswrb4Omm-O9jiX3FW0Lukjn5i-Zmcsrk2hf7seqGJbXvMvaI8xO2mt2oqgBhyczQ/exec";
+const ADMIN_KEY = "LIMPIEZARR2025";
+
+/* ─── ESTADO ─────────────────────────────────────────────── */
+let pedidos = [];
+let sesion  = false;
+
+/* ─── LOGIN ─────────────────────────────────────────────── */
+function doLogin() {
+  const val = document.getElementById("loginInput").value.trim();
+  if (val === ADMIN_KEY) {
+    sesion = true;
+    document.getElementById("loginWrap").style.display = "none";
+    document.getElementById("app").classList.add("on");
+    loadPedidos();
+  } else {
+    document.getElementById("loginErr").textContent = "❌ Clave incorrecta";
+    setTimeout(() => { document.getElementById("loginErr").textContent = ""; }, 2000);
+  }
+}
+function doLogout() {
+  sesion = false;
+  document.getElementById("app").classList.remove("on");
+  document.getElementById("loginWrap").style.display = "flex";
+  document.getElementById("loginInput").value = "";
+}
+
+/* ─── CARGAR PEDIDOS ─────────────────────────────────────── */
+async function loadPedidos() {
+  const btn = document.getElementById("refreshBtn");
+  btn.classList.add("spin");
+  document.getElementById("pedidosWrap").innerHTML =
+    '<div class="loading-msg">⏳ Cargando pedidos...</div>';
+  try {
+    const url  = `${APPS_URL}?action=admin_pedidos&clave=${ADMIN_KEY}&t=${Date.now()}`;
+    const raw  = await fetch(url);
+    const text = await raw.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+      document.getElementById("pedidosWrap").innerHTML =
+        '<div class="loading-msg">⚠️ Error de conexión. Verifica la URL del Apps Script.</div>';
+      return;
+    }
+    if (!data.ok) {
+      document.getElementById("pedidosWrap").innerHTML =
+        `<div class="loading-msg">❌ ${data.error || "Error desconocido"}</div>`;
+      return;
+    }
+    pedidos = data.pedidos || [];
+    updateStats();
+    renderPedidos();
+    showToast("✅ " + pedidos.length + " pedidos cargados");
+  } catch(err) {
+    document.getElementById("pedidosWrap").innerHTML =
+      '<div class="loading-msg">⚠️ Sin conexión. Intenta de nuevo.</div>';
+  }
+  btn.classList.remove("spin");
+}
+
+/* ─── ESTADÍSTICAS ───────────────────────────────────────── */
+function updateStats() {
+  const tot      = pedidos.length;
+  const pend     = pedidos.filter(p => (p.estado_pago||"").toUpperCase() === "PENDIENTE").length;
+  const camino   = pedidos.filter(p => (p.estado_envio||"") === "En camino").length;
+  const entregado= pedidos.filter(p => (p.estado_envio||"") === "Entregado").length;
+  document.getElementById("sTotPed").textContent    = tot;
+  document.getElementById("sPend").textContent      = pend;
+  document.getElementById("sCamino").textContent    = camino;
+  document.getElementById("sEntregado").textContent = entregado;
+  document.getElementById("topBadge").textContent   = tot + " pedidos";
+}
+
+/* ─── RENDERIZAR PEDIDOS ─────────────────────────────────── */
+function fmt(n) { return "$ " + Math.round(n).toLocaleString("es-CO"); }
+
+function badgeClass(val, tipo) {
+  const v = String(val || "").toLowerCase().replace(/\s+/g, "-");
+  return "badge badge-" + v;
+}
+
+function renderPedidos() {
+  const search  = (document.getElementById("filterSearch").value || "").toLowerCase();
+  const fPago   = document.getElementById("filterEstadoPago").value;
+  const fEnvio  = document.getElementById("filterEstadoEnvio").value;
+
+  let lista = pedidos.filter(p => {
+    if (search) {
+      const hay = (p.nombre||"").toLowerCase().includes(search) ||
+                  (p.telefono||"").includes(search) ||
+                  (p.barrio||"").toLowerCase().includes(search);
+      if (!hay) return false;
+    }
+    if (fPago  && (p.estado_pago ||"").toUpperCase() !== fPago.toUpperCase())  return false;
+    if (fEnvio && (p.estado_envio||"") !== fEnvio) return false;
+    return true;
+  });
+
+  document.getElementById("filterCount").textContent =
+    lista.length !== pedidos.length
+      ? `Mostrando ${lista.length} de ${pedidos.length}`
+      : `${pedidos.length} pedidos`;
+
+  if (!lista.length) {
+    document.getElementById("pedidosWrap").innerHTML = `
+      <div class="empty-msg">
+        <div class="empty-ico">📭</div>
+        <p>No se encontraron pedidos</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById("pedidosWrap").innerHTML = lista.map(p => {
+    const prodLines = String(p.productos||"").split("\n")
+      .filter(l => l.trim())
+      .map(l => `<div class="prod-line">${l.trim()}</div>`)
+      .join("");
+    const totalStr = typeof p.total === "number" ? fmt(p.total) : String(p.total||"");
+    const pagoClass = badgeClass(p.estado_pago, "pago");
+    const envioClass = badgeClass(p.estado_envio, "envio");
+
+    return `
+    <div class="pedido-card" id="card-${p.fila}">
+      <div class="pedido-hd" onclick="toggleCard(${p.fila})">
+        <div>
+          <div class="pedido-cliente">${p.nombre || "Sin nombre"}</div>
+          <div class="pedido-tel">${p.telefono || ""} · ${p.barrio || ""}</div>
+        </div>
+        <span class="${pagoClass}">${p.estado_pago || "Pendiente"}</span>
+        <span class="${envioClass}">${p.estado_envio || "Recibido"}</span>
+        <span class="pedido-total">${totalStr}</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="pedido-body">
+        <div class="detail-grid">
+          <div class="detail-row">
+            <span class="detail-lbl">FECHA</span>
+            <span class="detail-val">${p.fecha||""}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-lbl">PAGO</span>
+            <span class="detail-val">${p.pago||""}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-lbl">DIRECCIÓN</span>
+            <span class="detail-val">${p.barrio||""}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-lbl">TOTAL</span>
+            <span class="detail-val" style="color:var(--teal-l);font-weight:700">${totalStr}</span>
+          </div>
+        </div>
+
+        <div class="prods-title">PRODUCTOS</div>
+        <div class="prod-lines">${prodLines || "<div class='prod-line'>Sin detalle</div>"}</div>
+
+        <!-- Acciones de estado -->
+        <div class="estado-section">
+          <div class="estado-title">ACTUALIZAR ESTADO</div>
+          <div class="estado-row">
+            <span class="estado-lbl">💳 Pago</span>
+            <select class="estado-select" id="selPago-${p.fila}">
+              <option value="PENDIENTE"      ${p.estado_pago==="PENDIENTE"?"selected":""}>Pendiente</option>
+              <option value="PAGADO"         ${p.estado_pago==="PAGADO"?"selected":""}>Pagado</option>
+              <option value="CONTRA ENTREGA" ${p.estado_pago==="CONTRA ENTREGA"?"selected":""}>Contra entrega</option>
+            </select>
+          </div>
+          <div class="estado-row">
+            <span class="estado-lbl">🚚 Envío</span>
+            <select class="estado-select" id="selEnvio-${p.fila}">
+              <option value="Recibido"       ${(p.estado_envio||"Recibido")==="Recibido"?"selected":""}>📥 Recibido</option>
+              <option value="En preparación" ${p.estado_envio==="En preparación"?"selected":""}>📦 En preparación</option>
+              <option value="En camino"      ${p.estado_envio==="En camino"?"selected":""}>🚚 En camino</option>
+              <option value="Entregado"      ${p.estado_envio==="Entregado"?"selected":""}>✅ Entregado</option>
+            </select>
+          </div>
+          <div class="estado-row" style="margin-top:4px">
+            <button class="btn-save" onclick="guardarEstado(${p.fila})" id="btnSave-${p.fila}">
+              💾 Guardar cambios
+            </button>
+            <span id="saveMsg-${p.fila}"></span>
+            ${p.telefono ? `
+            <a class="btn-wa-contact"
+               href="https://wa.me/57${String(p.telefono).replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hola '+p.nombre+', te informamos que tu pedido de Limpieza RR ya está '+document.getElementById?.('selEnvio-'+p.fila)?.value)}"
+               target="_blank" rel="noopener noreferrer" id="waLink-${p.fila}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+              Avisar cliente
+            </a>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ─── TOGGLE CARD ────────────────────────────────────────── */
+function toggleCard(fila) {
+  const card = document.getElementById("card-" + fila);
+  // Cerrar otras
+  document.querySelectorAll(".pedido-card.open").forEach(c => {
+    if (c !== card) c.classList.remove("open");
+  });
+  card.classList.toggle("open");
+}
+
+/* ─── GUARDAR ESTADO ─────────────────────────────────────── */
+async function guardarEstado(fila) {
+  const selPago  = document.getElementById("selPago-"  + fila);
+  const selEnvio = document.getElementById("selEnvio-" + fila);
+  const btn      = document.getElementById("btnSave-"  + fila);
+  const msg      = document.getElementById("saveMsg-"  + fila);
+  if (!selPago || !selEnvio) return;
+
+  btn.disabled    = true;
+  btn.textContent = "⏳ Guardando...";
+  msg.className   = "";
+  msg.textContent = "";
+
+  try {
+    const res = await fetch(APPS_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "text/plain" },
+      body:    JSON.stringify({
+        accion:       "actualizar_estado",
+        clave:        ADMIN_KEY,
+        fila:         fila,
+        estado_pago:  selPago.value,
+        estado_envio: selEnvio.value,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      msg.className   = "save-ok";
+      msg.textContent = "✅ Guardado";
+      // Actualizar local
+      const p = pedidos.find(x => x.fila === fila);
+      if (p) { p.estado_pago = selPago.value; p.estado_envio = selEnvio.value; }
+      showToast("✅ Estado actualizado correctamente");
+      // Actualizar link de WhatsApp
+      const waLink = document.getElementById("waLink-" + fila);
+      if (waLink && p) {
+        const msg2 = "Hola " + p.nombre + ", te informamos que tu pedido de Limpieza RR ya está " + selEnvio.value;
+        waLink.href = "https://wa.me/57" + String(p.telefono).replace(/[^0-9]/g,"") +
+                      "?text=" + encodeURIComponent(msg2);
+      }
+      setTimeout(() => { msg.textContent = ""; }, 3000);
+    } else {
+      msg.className   = "save-err";
+      msg.textContent = "❌ " + (data.error || "Error");
+    }
+  } catch(err) {
+    msg.className   = "save-err";
+    msg.textContent = "❌ Error de conexión";
+  }
+
+  btn.disabled    = false;
+  btn.textContent = "💾 Guardar cambios";
+}
+
+/* ─── TOAST ─────────────────────────────────────────────── */
+function showToast(txt) {
+  const t = document.getElementById("toast");
+  t.textContent = txt;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+/* ─── INIT ───────────────────────────────────────────────── */
+document.getElementById("loginInput").focus();
+</script>
+</body>
+</html>
