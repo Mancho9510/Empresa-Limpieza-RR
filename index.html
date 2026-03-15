@@ -8,9 +8,14 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Limpieza RR – Productos de Aseo Premium</title>
+  <meta name="description" content="Productos de aseo premium para tu hogar. Detergentes, fragancias, desengrasantes y más. Pedidos por WhatsApp con entrega en Bogotá.">
+  <!-- theme-color: soportado por Chrome/Edge/Safari. Firefox lo ignora sin errores -->
+  <meta name="theme-color" content="#0D9488" media="(prefers-color-scheme: light)">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -36,6 +41,8 @@
     <li><a href="#inicio">Inicio</a></li>
     <li><a href="#productos">Productos</a></li>
     <li><a href="#contacto">Contáctanos</a></li>
+    <li><a href="#" onclick="openHistory(); return false;">Mis Pedidos</a></li>
+    <li><a href="#" onclick="openStatus(); return false;">Rastrear</a></li>
   </ul>
 
   <div class="nav-r">
@@ -62,6 +69,8 @@
     <a href="#inicio"    onclick="closeMenu()"><span class="mm-icon">🏠</span> Inicio</a>
     <a href="#productos" onclick="closeMenu()"><span class="mm-icon">🧴</span> Productos</a>
     <a href="#contacto"  onclick="closeMenu()"><span class="mm-icon">📞</span> Contáctanos</a>
+    <a href="#" onclick="closeMenu(); openHistory();"><span class="mm-icon">📋</span> Mis Pedidos</a>
+    <a href="#" onclick="closeMenu(); openStatus();"><span class="mm-icon">🚚</span> Rastrear Pedido</a>
     <div class="mm-divider"></div>
     <a href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer" class="mm-wa" onclick="closeMenu()">
       <span class="mm-icon">💬</span> Escribir por WhatsApp
@@ -156,6 +165,13 @@
     <h2 class="sec-title">Todos nuestros productos</h2>
     <p class="sec-sub">Encuentra todo lo que necesitas para mantener tu hogar impecable</p>
   </div>
+  <div class="search-bar-wrap fi">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar productos..." oninput="onSearch(event)" autocomplete="off">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+    </div>
+  </div>
   <div class="cat-filter-wrap fi">
     <div class="cat-filter" id="catFilter">
       <button class="f-btn on">Todos</button>
@@ -204,6 +220,17 @@
 </footer>
 
 <!-- ══ OVERLAY ══ -->
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div class="pwa-banner" id="pwaBanner">
+  <div class="pwa-banner-ico">📱</div>
+  <div class="pwa-banner-txt">
+    <strong>Instala Limpieza RR</strong>
+    <span>Accede rápido desde tu celular</span>
+  </div>
+  <button class="pwa-btn-install" onclick="installPWA()">Instalar</button>
+  <button class="pwa-btn-dismiss" onclick="dismissPWA()">✕</button>
+</div>
+
 <div class="overlay" id="overlay" onclick="overlayClick()"></div>
 
 <!-- ══ MODAL PRODUCTO ══ -->
@@ -220,7 +247,20 @@
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-ft">
+    <div class="coupon-row">
+      <input type="text" id="couponInput" class="coupon-input" placeholder="Código de descuento" maxlength="20">
+      <button id="couponBtn" class="coupon-btn" onclick="applyCoupon()">Aplicar</button>
+    </div>
+    <div class="coupon-msg" id="couponMsg"></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">$0</span></div>
+    <div class="cart-sub cart-disc-row cart-disc-row--hidden" id="cartDiscRow">
+      <span class="disc-label">🏷️ Descuento</span>
+      <span id="cartDiscVal" class="disc-val">$0</span>
+    </div>
+    <div class="cart-sub cart-total-final">
+      <span><strong>Total</strong></span>
+      <span id="cartTotalRow"><strong>$0</strong></span>
+    </div>
     <button class="btn-order" id="btnOrder" onclick="openOrder()" disabled>Realizar pedido →</button>
   </div>
 </div>
@@ -264,7 +304,6 @@
         <option value="15000">📍 Zona Noroccidente (Suba lejano, La Conejera) — $ 15.000</option>
         <option value="20000">📍 Zona Periférica (límites distritales) — $ 20.000</option>
         <option value="convenir">✏️ Mi barrio no aparece — Precio a convenir</option>
-        <option value="0">🏠 Recoge en punto (Sin costo)</option>
       </select>
       <div class="envio-note" id="envioNote"></div>
     </div>
@@ -296,7 +335,54 @@
   </button>
 </div>
 
-<script src="app.js?v=8"></script>
+<!-- ══ MODAL CALIFICACIÓN ══ -->
+<div class="rating-modal" id="ratingModal">
+  <div class="drag-bar"></div>
+  <div class="rating-inner">
+    <h3 class="rating-title">⭐ ¿Cómo fue tu experiencia?</h3>
+    <p class="rating-sub">Tu opinión nos ayuda a mejorar</p>
+    <div class="stars-row">
+      <button class="star-btn" onclick="setRating(1)">★</button>
+      <button class="star-btn" onclick="setRating(2)">★</button>
+      <button class="star-btn" onclick="setRating(3)">★</button>
+      <button class="star-btn" onclick="setRating(4)">★</button>
+      <button class="star-btn" onclick="setRating(5)">★</button>
+    </div>
+    <textarea id="ratingComment" class="rating-comment" rows="3" placeholder="Cuéntanos cómo fue (opcional)"></textarea>
+    <div class="rating-actions">
+      <button class="btn-primary" onclick="submitRating()">Enviar calificación</button>
+      <button class="btn-outline" onclick="closeRating()">Ahora no</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL HISTORIAL ══ -->
+<div class="history-modal" id="historyModal">
+  <div class="hm-hd">
+    <h2 class="hm-title">📋 Mis Pedidos</h2>
+    <button class="x-btn" onclick="closeHistory()">✕</button>
+  </div>
+  <div class="hm-search">
+    <input type="tel" id="historyPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15">
+    <button id="historySearchBtn" class="btn-primary" onclick="searchHistory()">🔍 Buscar</button>
+  </div>
+  <div id="historyResult" class="hm-result"></div>
+</div>
+
+<!-- ══ MODAL ESTADO ══ -->
+<div class="history-modal" id="statusModal">
+  <div class="hm-hd">
+    <h2 class="hm-title">🚚 Rastrear Pedido</h2>
+    <button class="x-btn" onclick="closeStatus()">✕</button>
+  </div>
+  <div class="hm-search">
+    <input type="tel" id="statusPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15">
+    <button id="statusSearchBtn" class="btn-primary" onclick="searchStatus()">Consultar</button>
+  </div>
+  <div id="statusResult" class="hm-result"></div>
+</div>
+
+<script src="app.js?v=9"></script>
 <script>
   function toggleMenu() {
     const btn  = document.getElementById('hamburger');

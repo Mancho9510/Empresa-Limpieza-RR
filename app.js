@@ -79,6 +79,41 @@ function prodThumb(p, size = "md") {
   return `<div class="${cls}">${p.e}</div>`;
 }
 
+/* Renderiza la galería de imágenes del modal */
+let galleryIdx = 0;
+function buildGallery(p) {
+  const imgs = [p.img, p.img2, p.img3].filter(Boolean);
+  if (!imgs.length) return `<div class="m-img-wrap">${prodThumb(p, "lg")}</div>`;
+  if (imgs.length === 1) {
+    return `<div class="m-img-wrap">
+      <img class="p-img p-img--lg" src="${imgs[0]}" alt="${p.name}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="p-img-fallback p-img-fallback--lg" style="display:none">${p.e}</div>
+    </div>`;
+  }
+  galleryIdx = 0;
+  return `
+    <div class="gallery-wrap">
+      <div class="gallery-main" id="galleryMain">
+        <img class="gallery-img" src="${imgs[0]}" alt="${p.name}" id="galleryImg"
+             onerror="this.src='';this.parentElement.innerHTML='<div class=\'gallery-emoji\'>${p.e}</div>'">
+      </div>
+      <div class="gallery-dots" id="galleryDots">
+        ${imgs.map((img, i) => `
+          <div class="gallery-dot ${i === 0 ? 'on' : ''}" onclick="goGallery(${i}, ${JSON.stringify(imgs).replace(/"/g, "'")})">
+            <img src="${img}" alt="foto ${i+1}">
+          </div>`).join("")}
+      </div>
+    </div>`;
+}
+function goGallery(idx, imgs) {
+  galleryIdx = idx;
+  const imgsArr = typeof imgs === 'string' ? JSON.parse(imgs.replace(/'/g, '"')) : imgs;
+  const mainImg = $("galleryImg");
+  if (mainImg) mainImg.src = imgsArr[idx];
+  document.querySelectorAll(".gallery-dot").forEach((d, i) => d.classList.toggle("on", i === idx));
+}
+
 /* ════════════════════════════════════════════════════════════
    CARGA DE PRODUCTOS DESDE GOOGLE SHEETS
 ═══════════════════════════════════════════════════════════ */
@@ -109,16 +144,27 @@ function showError(msg) {
  * Espera que el script devuelva JSON con la estructura:
  * { ok: true, data: [ { id, nombre, tamaño, precio, categoria, destacado, emoji, descripcion }, ... ] }
  */
-async function loadProducts() {
+async function loadProducts(forceRefresh = false) {
   showSkeletons();
 
-  // Si aún no configuraron la URL, usa los datos de demostración
+  // Demo mode
   if (CONFIG.APPS_SCRIPT_URL === "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
     console.warn("⚠️ Apps Script URL no configurada. Usando datos de demostración.");
     await simulateDelay(600);
     products = DEMO_PRODUCTS;
     onProductsLoaded();
     return;
+  }
+
+  // ── Caché localStorage (30 min) ──────────────────────────
+  if (!forceRefresh) {
+    const cached = getCachedProducts();
+    if (cached) {
+      products = cached;
+      onProductsLoaded();
+      showToast("⚡ Catálogo cargado al instante");
+      return;
+    }
   }
 
   try {
@@ -139,14 +185,53 @@ async function loadProducts() {
       e:     String(row.emoji      || "🧴"),
       desc:  String(row.descripcion|| "Producto de limpieza de alta calidad."),
       img:   sanitizeImgUrl(String(row.imagen || "")),
+      img2:  sanitizeImgUrl(String(row.imagen2 || "")),
+      img3:  sanitizeImgUrl(String(row.imagen3 || "")),
+      stock: (row.stock !== undefined && row.stock !== "" && row.stock !== null)
+               ? String(row.stock).trim() !== "" ? Number(row.stock) : null
+               : null,
     }));
 
+    setCachedProducts(products);
     onProductsLoaded();
 
   } catch (err) {
     console.error("Error cargando productos:", err);
-    showError("No se pudieron cargar los productos. Verifica tu conexión o la URL del Apps Script.");
+    // Intentar desde caché aunque esté vencido
+    const stale = getCachedProducts(true);
+    if (stale) {
+      products = stale;
+      onProductsLoaded();
+      showToast("⚠️ Sin conexión — mostrando catálogo guardado");
+    } else {
+      showError("No se pudieron cargar los productos. Verifica tu conexión.");
+    }
   }
+}
+
+/* ════════════════════════════════════════════════════════════
+   CACHÉ DE PRODUCTOS
+═══════════════════════════════════════════════════════════ */
+const CACHE_KEY = "lrr_prods_v1";
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
+
+function getCachedProducts(allowStale = false) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (!allowStale && Date.now() - ts > CACHE_TTL) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return data;
+  } catch { return null; }
+}
+function setCachedProducts(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch {}
+}
+function clearProductCache() {
+  try { localStorage.removeItem(CACHE_KEY); } catch {}
 }
 
 /**
@@ -252,26 +337,47 @@ function setCat(c) {
   renderProds();
 }
 
-function renderProds() {
-  const list = activeCat === "Todos"
-    ? products
-    : products.filter(p => p.cat === activeCat);
+let searchQuery = "";
 
+function renderProds() {
+  let list = activeCat === "Todos" ? products : products.filter(p => p.cat === activeCat);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.cat.toLowerCase().includes(q) ||
+      p.desc.toLowerCase().includes(q) ||
+      p.size.toLowerCase().includes(q)
+    );
+  }
   if (!list.length) {
-    $("prodGrid").innerHTML = `<p style="color:var(--gray);grid-column:1/-1;text-align:center;padding:40px 0">No hay productos en esta categoría.</p>`;
+    const msg = searchQuery
+      ? `<div class="no-results"><div class="no-results-icon">🔍</div><p>Sin resultados para <strong>"${searchQuery}"</strong></p><button class="btn-outline" style="margin-top:12px" onclick="clearSearch()">Limpiar búsqueda</button></div>`
+      : `<p style="color:var(--gray);grid-column:1/-1;text-align:center;padding:40px 0">No hay productos en esta categoría.</p>`;
+    $("prodGrid").innerHTML = msg;
     return;
   }
 
-  $("prodGrid").innerHTML = list.map(p => `
-    <div class="prod-card" onclick="openModal(${p.id})">
+  $("prodGrid").innerHTML = list.map(p => {
+    // stock: null = sin control, número = unidades disponibles (0 = agotado)
+    const stockNum  = (p.stock !== null && p.stock !== undefined && p.stock !== "")
+                      ? Number(p.stock) : null;
+    const tieneStock = stockNum !== null && !isNaN(stockNum);
+    const agotado    = tieneStock && stockNum <= 0;
+    const pocosLeft  = tieneStock && stockNum > 0 && stockNum <= 5;
+    return `
+    <div class="prod-card ${agotado ? 'prod-card--agotado' : ''}" onclick="${agotado ? '' : `openModal(${p.id})`}">
       ${p.top ? `<div class="prod-chip top-chip">⭐ TOP</div>` : ""}
+      ${agotado ? `<div class="stock-badge stock-badge--out">Agotado</div>` : ""}
+      ${pocosLeft ? `<div class="stock-badge stock-badge--low">¡Solo ${stockNum}!</div>` : ""}
       <div class="p-img-wrap">${prodThumb(p, "md")}</div>
       <div class="p-name">${p.name} ${p.size}</div>
       <div class="p-price">${fmt(p.price)}</div>
-      <button class="p-addbtn" onclick="event.stopPropagation(); quickAdd(${p.id})">
-        + Agregar al carrito
+      <button class="p-addbtn" ${agotado ? 'disabled' : `onclick="event.stopPropagation(); quickAdd(${p.id})"`}>
+        ${agotado ? 'Agotado' : '+ Agregar al carrito'}
       </button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -284,7 +390,7 @@ function openModal(id) {
   if (!p) return;
 
   $("modalGrid").innerHTML = `
-    <div class="m-img-wrap">${prodThumb(p, "lg")}</div>
+    ${buildGallery(p)}
     <div>
       ${p.top ? `<div class="top-chip modal-top-chip">⭐ Producto Destacado</div>` : ""}
       <h2 class="m-name">${p.name} ${p.size}</h2>
@@ -317,6 +423,22 @@ function quickAdd(id)   { addById(id, 1); showToast("✅ Producto agregado al ca
    CARRITO
 ═══════════════════════════════════════════════════════════ */
 function addById(id, qty) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  // Verificar stock si existe la propiedad
+  // Solo controlar stock si el campo tiene valor real (no vacío/null)
+  if (p.stock !== null && p.stock !== undefined && p.stock !== "" && Number(p.stock) >= 0) {
+    const stockNum = Number(p.stock);
+    if (!isNaN(stockNum) && stockNum >= 0) {
+      const enCarrito = cart.find(x => x.id === id)?.qty || 0;
+      if (enCarrito + qty > stockNum) {
+        showToast(`⚠️ Solo quedan ${stockNum} unidades disponibles`);
+        if (stockNum === 0) return;
+        qty = Math.max(0, stockNum - enCarrito);
+        if (qty === 0) return;
+      }
+    }
+  }
   const ex = cart.find(x => x.id === id);
   ex ? ex.qty += qty : cart.push({ id, qty });
   refreshCart();
@@ -337,8 +459,25 @@ function refreshCart() {
   }
 
   // Subtotal y botón
-  $("cartSub").textContent    = fmt(subtotal());
-  $("btnOrder").disabled      = cart.length === 0;
+  const sub      = subtotal();
+  const discount = getDiscount();
+  const finalTotal = sub - discount;
+
+  $("cartSub").textContent = fmt(sub);
+  // Mostrar descuento si hay cupón
+  const discRow = $("cartDiscRow");
+  const discVal = $("cartDiscVal");
+  if (discRow && discVal) {
+    if (discount > 0) {
+      discRow.classList.remove("cart-disc-row--hidden");
+      discVal.textContent = "− " + fmt(discount);
+    } else {
+      discRow.classList.add("cart-disc-row--hidden");
+    }
+  }
+  const totalRow = $("cartTotalRow");
+  if (totalRow) totalRow.textContent = fmt(finalTotal);
+  $("btnOrder").disabled = cart.length === 0;
 
   // Cuerpo del carrito
   const body = $("cartBody");
@@ -381,6 +520,76 @@ function updQty(id, d) {
 }
 function remItem(id) { cart = cart.filter(x => x.id !== id); refreshCart(); }
 function subtotal()  { return cart.reduce((s, it) => s + products.find(x => x.id === it.id).price * it.qty, 0); }
+
+/* ════════════════════════════════════════════════════════════
+   CUPONES DE DESCUENTO
+═══════════════════════════════════════════════════════════ */
+let activeCoupon = null; // { code, type: 'pct'|'fixed', value, label }
+
+async function applyCoupon() {
+  const code = ($("couponInput")?.value || "").trim().toUpperCase();
+  const btn  = $("couponBtn");
+  const msg  = $("couponMsg");
+  if (!code) { showCouponMsg("Ingresa un código", "error"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "⏳";
+
+  try {
+    const url = `${CONFIG.APPS_SCRIPT_URL}?action=cupon&code=${encodeURIComponent(code)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.ok && json.cupon) {
+      activeCoupon = { code, ...json.cupon };
+      showCouponMsg(`✅ ${json.cupon.label} aplicado`, "ok");
+      refreshCart();
+    } else {
+      activeCoupon = null;
+      showCouponMsg("❌ Código inválido o vencido", "error");
+      refreshCart();
+    }
+  } catch {
+    showCouponMsg("⚠️ No se pudo verificar el código", "error");
+  }
+  btn.disabled = false;
+  btn.textContent = "Aplicar";
+}
+
+function removeCoupon() {
+  activeCoupon = null;
+  if ($("couponInput")) $("couponInput").value = "";
+  showCouponMsg("", "");
+  refreshCart();
+}
+
+function showCouponMsg(msg, type) {
+  const el = $("couponMsg");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "coupon-msg" + (type ? " coupon-msg--" + type : "");
+}
+
+function getDiscount() {
+  if (!activeCoupon) return 0;
+  const sub = subtotal();
+  if (activeCoupon.type === "pct")   return Math.round(sub * activeCoupon.value / 100);
+  if (activeCoupon.type === "fixed") return Math.min(activeCoupon.value, sub);
+  return 0;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BÚSQUEDA
+═══════════════════════════════════════════════════════════ */
+function onSearch(e) {
+  searchQuery = e.target.value.trim();
+  renderProds();
+}
+function clearSearch() {
+  searchQuery = "";
+  const inp = $("searchInput");
+  if (inp) inp.value = "";
+  renderProds();
+}
 function openCart()  { $("cartSidebar").classList.add("on"); overlayOn(true); $("prodModal").classList.remove("on"); refreshCart(); }
 function closeCart() { $("cartSidebar").classList.remove("on"); overlayOn(false); }
 
@@ -430,7 +639,7 @@ async function confirmOrder() {
   const shipping    = getShippingCost();
   const shippingLbl = getShippingLabel();
   const sub         = subtotal();
-  const total       = shipping !== null ? sub + shipping : sub;
+  const total       = (shipping !== null ? sub + shipping : sub);
   const isContra    = pag.value === "Contra entrega";
 
   // Productos separados para Sheets
@@ -438,6 +647,9 @@ async function confirmOrder() {
     const p = products.find(x => x.id === it.id);
     return `${p.name} ${p.size} | Cant: ${it.qty} | P.Unit: ${fmt(p.price)} | Subtotal: ${fmt(p.price * it.qty)}`;
   }).join("\n");
+
+  const discount    = getDiscount();
+  const finalTotal  = (shipping !== null ? sub + shipping : sub) - discount;
 
   // Datos para Google Sheets
   const orderData = {
@@ -450,6 +662,8 @@ async function confirmOrder() {
     casa:         cas,
     conjunto:     con,
     nota:         not,
+    cupon:        activeCoupon ? activeCoupon.code : "",
+    descuento:    discount,
     pago:         pag.value,
     zona_envio:   shippingLbl,
     costo_envio:  shipping !== null ? shipping : "A convenir",
@@ -512,13 +726,19 @@ async function confirmOrder() {
 
   window.open(`https://wa.me/${CONFIG.WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
 
+  const lastOrderData = { ...orderData };
   cart = [];
+  activeCoupon = null;
   refreshCart();
   closeOrder();
   showToast("✅ ¡Pedido enviado por WhatsApp y guardado!");
+  // Mostrar modal de calificación 2 segundos después
+  setTimeout(() => openRating(lastOrderData.nombre, lastOrderData.telefono), 2000);
 
   // Reset formulario
   ["fNombre","fTelefono","fCiudad","fDepto","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => { if ($(id)) $(id).value = ""; });
+  if ($("couponInput")) $("couponInput").value = "";
+  showCouponMsg("", "");
   $("fEnvio").value = "";
   document.querySelectorAll('input[name="pago"]').forEach(r => r.checked = false);
   $("payInfo").classList.add("pay-info--hidden");
@@ -534,14 +754,201 @@ async function confirmOrder() {
     Confirmar pedido por WhatsApp`;
 }
 
+
 /* ════════════════════════════════════════════════════════════
-   OVERLAY CLICK
+   CALIFICACIONES (Rating)
+═══════════════════════════════════════════════════════════ */
+let ratingNombre = "";
+let ratingTel    = "";
+let ratingVal    = 0;
+
+function openRating(nombre, tel) {
+  ratingNombre = nombre || "";
+  ratingTel    = tel    || "";
+  ratingVal    = 0;
+  renderStars(0);
+  if ($("ratingComment")) $("ratingComment").value = "";
+  $("ratingModal").classList.add("on");
+  $("overlay").classList.add("on");
+}
+function closeRating() {
+  $("ratingModal").classList.remove("on");
+  $("overlay").classList.remove("on");
+}
+function setRating(val) {
+  ratingVal = val;
+  renderStars(val);
+}
+function renderStars(val) {
+  document.querySelectorAll(".star-btn").forEach((s, i) => {
+    s.classList.toggle("on", i < val);
+  });
+}
+async function submitRating() {
+  if (!ratingVal) { showToast("⭐ Selecciona una calificación"); return; }
+  const comment = $("ratingComment")?.value.trim() || "";
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        accion:     "calificacion",
+        nombre:     ratingNombre,
+        telefono:   ratingTel,
+        estrellas:  ratingVal,
+        comentario: comment,
+      }),
+    });
+  } catch {}
+  closeRating();
+  showToast("⭐ ¡Gracias por tu calificación!");
+}
+
+/* ════════════════════════════════════════════════════════════
+   HISTORIAL DE PEDIDOS
+═══════════════════════════════════════════════════════════ */
+function openHistory() {
+  $("historyModal").classList.add("on");
+  $("overlay").classList.add("on");
+  $("historyResult").innerHTML = "";
+  if ($("historyPhone")) $("historyPhone").value = "";
+}
+function closeHistory() {
+  $("historyModal").classList.remove("on");
+  $("overlay").classList.remove("on");
+}
+async function searchHistory() {
+  const tel = ($("historyPhone")?.value || "").trim().replace(/\D/g, "");
+  if (!tel || tel.length < 7) { showToast("⚠️ Ingresa un teléfono válido"); return; }
+  const btn = $("historySearchBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Buscando..."; }
+  const res = $("historyResult");
+  res.innerHTML = '<div class="hist-loading">Consultando pedidos...</div>';
+  try {
+    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=historial&telefono=${encodeURIComponent(tel)}`;
+    const data = await fetch(url).then(r => r.json());
+    if (!data.ok || !data.pedidos?.length) {
+      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.</div>';
+    } else {
+      res.innerHTML = data.pedidos.map(p => `
+        <div class="hist-item">
+          <div class="hist-item-hd">
+            <span class="hist-date">📅 ${p.fecha}</span>
+            <span class="hist-status hist-status--${(p.estado_pago||'').toLowerCase().replace(/\s/g,'-')}">${p.estado_pago || 'Pendiente'}</span>
+          </div>
+          <div class="hist-prods">${(p.productos||'').split('\n').map(l=>`<div class="hist-prod-line">▪ ${l}</div>`).join('')}</div>
+          <div class="hist-total">Total: <strong>${typeof p.total === 'number' ? fmt(p.total) : p.total}</strong></div>
+        </div>`).join("");
+    }
+  } catch {
+    res.innerHTML = '<div class="hist-empty">⚠️ Error al consultar. Intenta de nuevo.</div>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "🔍 Buscar"; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ESTADO DEL PEDIDO
+═══════════════════════════════════════════════════════════ */
+function openStatus() {
+  $("statusModal").classList.add("on");
+  $("overlay").classList.add("on");
+  $("statusResult").innerHTML = "";
+  if ($("statusPhone")) $("statusPhone").value = "";
+}
+function closeStatus() {
+  $("statusModal").classList.remove("on");
+  $("overlay").classList.remove("on");
+}
+async function searchStatus() {
+  const tel = ($("statusPhone")?.value || "").trim().replace(/\D/g, "");
+  if (!tel || tel.length < 7) { showToast("⚠️ Ingresa un teléfono válido"); return; }
+  const btn = $("statusSearchBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+  const res = $("statusResult");
+  res.innerHTML = '<div class="hist-loading">Consultando...</div>';
+  try {
+    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=estado&telefono=${encodeURIComponent(tel)}`;
+    const data = await fetch(url).then(r => r.json());
+    if (!data.ok || !data.pedidos?.length) {
+      res.innerHTML = '<div class="hist-empty">📭 No encontramos pedidos con ese número.</div>';
+    } else {
+      const STEPS = ["Recibido","En preparación","En camino","Entregado"];
+      res.innerHTML = data.pedidos.slice(0,3).map(p => {
+        const stepIdx = STEPS.indexOf(p.estado_envio || "Recibido");
+        const current = stepIdx >= 0 ? stepIdx : 0;
+        return `
+          <div class="status-card">
+            <div class="status-card-hd">
+              <span>📅 ${p.fecha}</span>
+              <span class="hist-status hist-status--${(p.estado_pago||'').toLowerCase().replace(/\s/g,'-')}">${p.estado_pago||'Pendiente'}</span>
+            </div>
+            <div class="status-steps">
+              ${STEPS.map((s, i) => `
+                <div class="status-step ${i <= current ? 'done' : ''} ${i === current ? 'active' : ''}">
+                  <div class="step-dot"></div>
+                  <div class="step-lbl">${s}</div>
+                </div>`).join('<div class="step-line"></div>')}
+            </div>
+            <div class="hist-total">Total: <strong>${typeof p.total === 'number' ? fmt(p.total) : p.total}</strong></div>
+          </div>`;
+      }).join("");
+    }
+  } catch {
+    res.innerHTML = '<div class="hist-empty">⚠️ Error al consultar. Intenta de nuevo.</div>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "Consultar"; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PWA — Progressive Web App
+═══════════════════════════════════════════════════════════ */
+let deferredPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = $("pwaBanner");
+  if (banner) {
+    banner.classList.add("show");
+    setTimeout(() => banner.classList.remove("show"), 15000);
+  }
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    const banner = $("pwaBanner");
+    if (banner) banner.classList.remove("show");
+  });
+}
+
+function dismissPWA() {
+  const banner = $("pwaBanner");
+  if (banner) banner.classList.remove("show");
+}
+
+// Registrar Service Worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("SW registrado"))
+      .catch(err => console.warn("SW error:", err));
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   OVERLAY CLICK — actualizado con nuevos modales
 ═══════════════════════════════════════════════════════════ */
 function overlayClick() {
-  if ($("prodModal").classList.contains("on"))     closeModal();
-  else if ($("cartSidebar").classList.contains("on")) closeCart();
-  // El modal de pedido no se cierra con overlay para no perder el formulario
+  if ($("prodModal")?.classList.contains("on"))    { closeModal();   return; }
+  if ($("cartSidebar")?.classList.contains("on"))  { closeCart();    return; }
+  if ($("ratingModal")?.classList.contains("on"))  { closeRating();  return; }
+  if ($("historyModal")?.classList.contains("on")) { closeHistory(); return; }
+  if ($("statusModal")?.classList.contains("on"))  { closeStatus();  return; }
 }
+
 
 /* ════════════════════════════════════════════════════════════
    SCROLL FADE-IN
@@ -557,7 +964,7 @@ document.querySelectorAll(".fi").forEach(el => observer.observe(el));
    (Se usan solo si APPS_SCRIPT_URL no está configurada)
 ═══════════════════════════════════════════════════════════ */
 const DEMO_PRODUCTS = [
-  // Nota: el campo img puede ser una URL de Google Drive o cualquier URL de imagen
+  // img, img2, img3: URLs de imágenes (Drive o externas). stock: null = sin control, 0 = agotado
   { id:1,  name:"Cera Autobrillante Envase",                  size:"1 Kg",    price:16000,    cat:"Ceras",           top:false, e:"✨", desc:"Cera autobrillante de alta calidad para pisos. Brinda protección y brillo duradero. Fácil aplicación y secado rápido." },
   { id:2,  name:"Cera Autobrillante Galón",                   size:"4 Kg",    price:46333.68, cat:"Ceras",           top:false, e:"✨", desc:"Presentación galón para uso intensivo. Ideal para negocios o grandes superficies. Excelente rendimiento y brillo profesional." },
   { id:3,  name:"Detergente Textil Galón",                    size:"4 Kg",    price:26743.72, cat:"Detergentes",     top:false, e:"🧺", desc:"Potente fórmula para ropa de todo tipo. Elimina manchas difíciles y cuida las fibras del tejido con gran rendimiento." },
