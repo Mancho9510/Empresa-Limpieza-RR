@@ -153,15 +153,15 @@ function doGet(e) {
         .map(function(r, idx) {
           return {
             fila:        idx + 2,
-            fecha:       r[aCOL["fecha"]]       || "",
-            nombre:      r[aCOL["nombre"]]      || "",
-            telefono:    r[aCOL["telefono"]]    || "",
-            barrio:      r[aCOL["barrio"]]      || "",
-            pago:        r[aCOL["pago"]]        || "",
-            total:       r[aCOL["total"]]       || 0,
-            estado_pago: r[aCOL["estado_pago"]] || "PENDIENTE",
-            estado_envio:r[aCOL["estado_envio"]]|| "Recibido",
-            productos:   r[aCOL["productos"]]   || "",
+            fecha:       String(r[aCOL["fecha"]]       || ""),
+            nombre:      String(r[aCOL["nombre"]]      || ""),
+            telefono:    String(r[aCOL["telefono"]]    || ""),
+            barrio:      String(r[aCOL["barrio"]]      || ""),
+            pago:        String(r[aCOL["pago"]]        || ""),
+            total:       Number(r[aCOL["total"]])       || 0,
+            estado_pago: String(r[aCOL["estado_pago"]] || "PENDIENTE"),
+            estado_envio:String(r[aCOL["estado_envio"]]|| "Recibido"),
+            productos:   String(r[aCOL["productos"]]   || ""),
           };
         })
         .reverse() // más recientes primero

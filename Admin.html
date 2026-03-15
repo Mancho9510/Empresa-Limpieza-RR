@@ -1,473 +1,523 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Admin — Limpieza RR</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js" defer></script>
+  <script>
+    // Tailwind config inline antes de cargar el CDN
+    window.tailwindConfig = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            teal: {
+              950: '#042f2e', 900: '#134e4a', 800: '#115e59',
+              700: '#0f766e', 600: '#0d9488', 500: '#14b8a6',
+              400: '#2dd4bf', 300: '#5eead4', 200: '#99f6e4', 100: '#ccfbf1', 50: '#f0fdf9'
+            }
+          },
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            display: ['Syne', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --teal:   #0D9488; --teal-l:  #14B8A6; --teal-pale: #CCFBF1; --teal-dk: #0F766E;
-      --bg:     #0F172A; --bg2:     #1E293B; --bg3:       #334155;
-      --border: #334155; --text:    #F1F5F9; --muted:     #94A3B8;
-      --yellow: #F59E0B; --red:     #EF4444; --green:     #22C55E;
-      --r: 12px;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* ── LOGIN ── */
-    .login-wrap {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-      background: radial-gradient(ellipse at 60% 20%, rgba(13,148,136,.18) 0%, transparent 60%);
-    }
-    .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 44px 40px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,.4); }
-    .login-logo  { font-size: 2.8rem; margin-bottom: 6px; }
-    .login-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--teal-l); margin-bottom: 4px; }
-    .login-sub   { color: var(--muted); font-size: .85rem; margin-bottom: 28px; }
-    .login-input {
-      width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 10px;
-      padding: 12px 16px; color: var(--text); font: 500 1rem 'Outfit', sans-serif; outline: none;
-      transition: border-color .2s; margin-bottom: 14px; text-align: center; letter-spacing: .1em;
-    }
-    .login-input:focus { border-color: var(--teal-l); }
-    .login-btn { width: 100%; background: var(--teal); color: #fff; border: none; border-radius: 10px; padding: 13px; font: 700 1rem 'Outfit', sans-serif; cursor: pointer; transition: all .2s; }
-    .login-btn:hover { background: var(--teal-dk); transform: translateY(-1px); }
-    .login-err { color: #FCA5A5; font-size: .82rem; margin-top: 10px; min-height: 18px; }
-
-    /* ── APP ── */
-    .app { display: none; flex-direction: column; min-height: 100vh; }
-    .app.on { display: flex; }
-
-    /* ── TOPBAR ── */
-    .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; z-index: 50; }
-    .topbar-brand { display: flex; align-items: center; gap: 10px; }
-    .topbar-logo  { font-size: 1.5rem; }
-    .topbar-name  { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--teal-l); }
-    .topbar-r { display: flex; align-items: center; gap: 10px; }
-    .btn-icon { background: var(--bg3); color: var(--teal-l); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font: 600 .82rem 'Outfit', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px; }
-    .btn-icon:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
-    .btn-icon.spin svg { animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .btn-logout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
-    .btn-logout:hover { color: var(--red); }
-
-    /* ── TABS ── */
-    .tabs { display: flex; gap: 2px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); }
-    .tab {
-      padding: 10px 22px; font: 600 .88rem 'Outfit', sans-serif; cursor: pointer;
-      border-radius: 8px 8px 0 0; color: var(--muted); border: 1px solid transparent;
-      border-bottom: none; transition: all .2s; background: transparent;
-    }
-    .tab:hover { color: var(--text); background: var(--bg2); }
-    .tab.active { background: var(--bg2); color: var(--teal-l); border-color: var(--border); border-bottom-color: var(--bg2); margin-bottom: -1px; }
-    .tab-panel { display: none; flex: 1; flex-direction: column; }
-    .tab-panel.active { display: flex; }
-
-    /* ── STATS BAR ── */
-    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 16px 24px; }
-    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
-    .stat-card-lbl { font-size: .72rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 5px; }
-    .stat-card-val { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; }
-    .stat-card-val.green  { color: var(--green); }
-    .stat-card-val.yellow { color: var(--yellow); }
-    .stat-card-val.red    { color: var(--red); }
-    .stat-card-val.teal   { color: var(--teal-l); }
-
-    /* ── FILTERS ── */
-    .filters { padding: 0 24px 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .filter-input  { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif; outline: none; transition: border-color .2s; min-width: 200px; }
-    .filter-input:focus { border-color: var(--teal-l); }
-    .filter-select { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif; outline: none; cursor: pointer; }
-    .filter-count  { color: var(--muted); font-size: .82rem; margin-left: auto; }
-
-    /* ── PEDIDOS ── */
-    .pedidos-wrap { flex: 1; padding: 0 24px 32px; overflow-x: auto; }
-    .loading-msg  { text-align: center; color: var(--muted); padding: 60px 0; font-size: .97rem; }
-    .empty-msg    { text-align: center; padding: 60px 0; color: var(--muted); }
-    .empty-msg .empty-ico { font-size: 3rem; margin-bottom: 12px; }
-
-    .pedido-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; transition: border-color .2s; }
-    .pedido-card:hover { border-color: var(--teal); }
-    .pedido-hd   { display: grid; grid-template-columns: 1fr auto auto auto auto; align-items: center; gap: 12px; padding: 13px 18px; cursor: pointer; }
-    .pedido-cliente { font-weight: 600; font-size: .93rem; }
-    .pedido-tel     { color: var(--muted); font-size: .8rem; }
-    .pedido-total   { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--teal-l); font-size: .97rem; white-space: nowrap; }
-    .chevron { color: var(--muted); transition: transform .25s; font-size: .9rem; }
-    .pedido-card.open .chevron { transform: rotate(180deg); }
-    .pedido-body { display: none; border-top: 1px solid var(--border); padding: 16px 18px; animation: fadeIn .2s ease; }
-    .pedido-card.open .pedido-body { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
-
-    .badge { border-radius: 50px; padding: 3px 10px; font-size: .68rem; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
-    .badge-pendiente      { background: rgba(239,68,68,.15);  color: #FCA5A5; }
-    .badge-pagado         { background: rgba(34,197,94,.15);  color: #86EFAC; }
-    .badge-contra-entrega { background: rgba(245,158,11,.15); color: #FCD34D; }
-    .badge-recibido       { background: rgba(148,163,184,.12);color: #94A3B8; }
-    .badge-en-preparación { background: rgba(245,158,11,.15); color: #FCD34D; }
-    .badge-en-camino      { background: rgba(59,130,246,.15); color: #93C5FD; }
-    .badge-entregado      { background: rgba(34,197,94,.15);  color: #86EFAC; }
-
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-    .detail-row  { display: flex; flex-direction: column; gap: 3px; }
-    .detail-lbl  { font-size: .7rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; }
-    .detail-val  { font-size: .87rem; }
-    .prods-title { font-size: .72rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 7px; }
-    .prod-lines  { background: var(--bg3); border-radius: 8px; padding: 10px 12px; }
-    .prod-line   { font-size: .8rem; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-    .prod-line:last-child { border-bottom: none; }
-
-    .estado-section { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--border); }
-    .estado-title   { font-size: .78rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 11px; }
-    .estado-row     { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 9px; }
-    .estado-lbl     { font-size: .8rem; color: var(--muted); min-width: 85px; }
-    .estado-select  { background: var(--bg3); border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font: 500 .85rem 'Outfit', sans-serif; outline: none; cursor: pointer; transition: border-color .2s; }
-    .estado-select:focus { border-color: var(--teal-l); }
-    .btn-save { background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font: 700 .85rem 'Outfit', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px; }
-    .btn-save:hover { background: var(--teal-dk); }
-    .btn-save:disabled { background: var(--bg3); color: var(--muted); cursor: not-allowed; }
-    .btn-wa-contact { background: rgba(37,211,102,.15); color: #86EFAC; border: 1px solid rgba(37,211,102,.3); border-radius: 8px; padding: 8px 13px; font: 600 .82rem 'Outfit', sans-serif; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
-    .btn-wa-contact:hover { background: rgba(37,211,102,.25); }
-    .save-ok  { color: #86EFAC; font-size: .8rem; }
-    .save-err { color: #FCA5A5; font-size: .8rem; }
-
-    /* ── INVENTARIO ── */
-    .inv-wrap { flex: 1; padding: 0 24px 32px; }
-    .inv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 16px 0 14px; }
-    .inv-stat  { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
-    .inv-stat-lbl { font-size: .7rem; color: var(--muted); font-weight: 600; letter-spacing: .04em; margin-bottom: 4px; }
-    .inv-stat-val { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; }
-
-    .inv-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
-
-    .inv-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    .inv-table th { background: var(--bg3); color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .05em; padding: 10px 12px; text-align: left; position: sticky; top: 0; }
-    .inv-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
-    .inv-table tr:hover td { background: rgba(20,184,166,.04); }
-
-    .stock-pill { border-radius: 50px; padding: 3px 12px; font-size: .72rem; font-weight: 700; display: inline-block; }
-    .stock-ok     { background: rgba(34,197,94,.15);   color: #86EFAC; }
-    .stock-low    { background: rgba(245,158,11,.15);   color: #FCD34D; }
-    .stock-out    { background: rgba(239,68,68,.15);    color: #FCA5A5; }
-    .stock-none   { background: rgba(148,163,184,.1);   color: #94A3B8; }
-
-    .stock-input {
-      width: 80px; background: var(--bg3); border: 1.5px solid var(--border);
-      border-radius: 8px; padding: 6px 10px; color: var(--text);
-      font: 500 .88rem 'Outfit', sans-serif; outline: none; text-align: center;
-      transition: border-color .2s;
-    }
-    .stock-input:focus { border-color: var(--teal-l); }
-    .btn-stock-save {
-      background: var(--teal); color: #fff; border: none; border-radius: 8px;
-      padding: 7px 14px; font: 700 .78rem 'Outfit', sans-serif; cursor: pointer;
-      transition: all .2s; white-space: nowrap;
-    }
-    .btn-stock-save:hover { background: var(--teal-dk); }
-    .btn-stock-save:disabled { background: var(--bg3); color: var(--muted); cursor: not-allowed; }
-    .stock-saved { color: #86EFAC; font-size: .75rem; animation: fadeIn .3s; }
-
-    .cat-badge { background: var(--bg3); color: var(--muted); border-radius: 50px; padding: 2px 9px; font-size: .7rem; }
-
-    .inv-search { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif; outline: none; min-width: 220px; transition: border-color .2s; }
-    .inv-search:focus { border-color: var(--teal-l); }
-    .inv-filter-select { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font: 400 .88rem 'Outfit', sans-serif; outline: none; cursor: pointer; }
-
-    .alerta-banner { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: var(--r); padding: 12px 16px; margin-bottom: 14px; display: none; }
-    .alerta-banner.show { display: block; }
-    .alerta-banner-title { color: #FCA5A5; font-weight: 700; font-size: .88rem; margin-bottom: 6px; }
-    .alerta-banner-items { color: #FCA5A5; font-size: .82rem; }
-
-    /* ── TOAST ── */
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--teal-dk); color: #fff; border-radius: 50px; padding: 11px 24px; font-weight: 600; font-size: .88rem; z-index: 999; transition: transform .35s cubic-bezier(.4,0,.2,1); white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 640px) {
-      .topbar, .tabs, .stats-bar, .filters, .pedidos-wrap, .inv-wrap { padding-left: 14px; padding-right: 14px; }
-      .pedido-hd { grid-template-columns: 1fr auto auto; }
-      .detail-grid { grid-template-columns: 1fr; }
-      .inv-table th:nth-child(3), .inv-table td:nth-child(3) { display: none; }
-    }
+    * { font-family: 'Outfit', sans-serif; }
+    .font-display { font-family: 'Syne', sans-serif; }
+    /* Animaciones */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .animate-fade-up  { animation: fadeUp .25s ease both; }
+    .animate-spin-slow{ animation: spin .7s linear infinite; }
+    .animate-pulse    { animation: pulse 2s infinite; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    /* safe area */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
+    .login-bg { background: radial-gradient(ellipse at 60% 20%, rgba(13,148,136,.2) 0%, transparent 60%); }
   </style>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
 
-<!-- LOGIN -->
-<div class="login-wrap" id="loginWrap">
-  <div class="login-box">
-    <div class="login-logo">🔐</div>
-    <div class="login-title">Admin — Limpieza RR</div>
-    <div class="login-sub">Ingresa la clave de acceso</div>
-    <input class="login-input" type="password" id="loginInput" placeholder="Clave de acceso"
+<!-- ════════════════════════════════════════
+     LOGIN
+════════════════════════════════════════ -->
+<div id="loginWrap" class="fixed inset-0 z-50 flex items-center justify-center p-5 bg-slate-900 login-bg">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl animate-fade-up">
+    <div class="text-5xl mb-2">🔐</div>
+    <h1 class="font-display font-extrabold text-2xl text-teal-400 mb-1">Admin — Limpieza RR</h1>
+    <p class="text-slate-400 text-sm mb-7">Ingresa la clave de acceso</p>
+    <input id="loginInput" type="password" placeholder="••••••••••••"
+           class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-center text-white tracking-widest text-base outline-none focus:border-teal-400 transition mb-4"
            onkeydown="if(event.key==='Enter') doLogin()">
-    <button class="login-btn" onclick="doLogin()">Entrar al panel</button>
-    <div class="login-err" id="loginErr"></div>
+    <button onclick="doLogin()"
+            class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-xl py-3 text-base transition-all duration-150">
+      Entrar al panel
+    </button>
+    <p id="loginErr" class="text-red-400 text-sm mt-3 min-h-[20px]"></p>
   </div>
 </div>
 
-<!-- APP -->
-<div class="app" id="app">
+<!-- ════════════════════════════════════════
+     APP
+════════════════════════════════════════ -->
+<div id="app" class="hidden flex-col min-h-screen">
 
   <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-brand">
-      <div class="topbar-logo">🧴</div>
-      <div class="topbar-name">Limpieza RR — Admin</div>
+  <header class="sticky top-0 z-40 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="text-2xl flex-shrink-0">🧴</span>
+      <div class="min-w-0">
+        <div class="font-display font-extrabold text-teal-400 text-base leading-tight truncate">Limpieza RR</div>
+        <div class="text-slate-400 text-xs hidden sm:block">Panel de Administración</div>
+      </div>
     </div>
-    <div class="topbar-r">
-      <button class="btn-icon" id="refreshBtn" onclick="refreshActivo()">
-        <svg id="refreshIco" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button id="refreshBtn" onclick="refreshActivo()"
+              class="flex items-center gap-1.5 bg-slate-700 hover:bg-teal-600 border border-slate-600 hover:border-teal-500 rounded-lg px-3 py-2 text-xs font-semibold text-teal-300 hover:text-white transition-all">
+        <svg id="refreshIco" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/>
         </svg>
-        Actualizar
+        <span class="hidden sm:inline">Actualizar</span>
       </button>
-      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      <button onclick="doLogout()" class="text-slate-400 hover:text-red-400 text-xs font-medium transition px-2 py-2">
+        Salir
+      </button>
     </div>
-  </div>
+  </header>
 
   <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" id="tab-pedidos"    onclick="switchTab('pedidos')">📦 Pedidos</button>
-    <button class="tab"        id="tab-inventario" onclick="switchTab('inventario')">🏷️ Inventario</button>
+  <div class="bg-slate-800 border-b border-slate-700 px-4 flex gap-1 overflow-x-auto">
+    <button id="tab-pedidos" onclick="switchTab('pedidos')"
+            class="tab-btn flex items-center gap-2 px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 border-teal-500 text-teal-400 transition-all">
+      📦 <span>Pedidos</span>
+    </button>
+    <button id="tab-inventario" onclick="switchTab('inventario')"
+            class="tab-btn flex items-center gap-2 px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+      🏷️ <span>Inventario</span>
+    </button>
   </div>
 
-  <!-- PANEL PEDIDOS -->
-  <div class="tab-panel active" id="panel-pedidos">
-    <div class="stats-bar">
-      <div class="stat-card"><div class="stat-card-lbl">TOTAL</div><div class="stat-card-val teal" id="sTotPed">—</div></div>
-      <div class="stat-card"><div class="stat-card-lbl">PENDIENTES</div><div class="stat-card-val yellow" id="sPend">—</div></div>
-      <div class="stat-card"><div class="stat-card-lbl">EN CAMINO</div><div class="stat-card-val green" id="sCamino">—</div></div>
-      <div class="stat-card"><div class="stat-card-lbl">ENTREGADOS</div><div class="stat-card-val" id="sEntregado">—</div></div>
-      <div class="stat-card"><div class="stat-card-lbl">RECAUDADO</div><div class="stat-card-val teal" id="sTotal">—</div></div>
-    </div>
-    <div class="filters">
-      <input class="filter-input" type="text" id="filterSearch" placeholder="🔍  Buscar nombre, teléfono, barrio..." oninput="renderPedidos()">
-      <select class="filter-select" id="filterPago" onchange="renderPedidos()">
-        <option value="">Todos los pagos</option>
-        <option value="PENDIENTE">Pendiente</option>
-        <option value="PAGADO">Pagado</option>
-        <option value="CONTRA ENTREGA">Contra entrega</option>
-      </select>
-      <select class="filter-select" id="filterEnvio" onchange="renderPedidos()">
-        <option value="">Todos los envíos</option>
-        <option value="Recibido">Recibido</option>
-        <option value="En preparación">En preparación</option>
-        <option value="En camino">En camino</option>
-        <option value="Entregado">Entregado</option>
-      </select>
-      <span class="filter-count" id="filterCount"></span>
-    </div>
-    <div class="pedidos-wrap" id="pedidosWrap">
-      <div class="loading-msg">⏳ Cargando pedidos...</div>
-    </div>
-  </div>
+  <!-- ── PANEL PEDIDOS ── -->
+  <div id="panel-pedidos" class="tab-panel flex flex-1 flex-col">
 
-  <!-- PANEL INVENTARIO -->
-  <div class="tab-panel" id="panel-inventario">
-    <div class="inv-wrap">
-      <div class="inv-stats">
-        <div class="inv-stat"><div class="inv-stat-lbl">TOTAL PRODUCTOS</div><div class="inv-stat-val teal" id="invTotal">—</div></div>
-        <div class="inv-stat"><div class="inv-stat-lbl">AGOTADOS</div><div class="inv-stat-val" style="color:var(--red)" id="invAgotados">—</div></div>
-        <div class="inv-stat"><div class="inv-stat-lbl">STOCK BAJO</div><div class="inv-stat-val" style="color:var(--yellow)" id="invBajos">—</div></div>
-        <div class="inv-stat"><div class="inv-stat-lbl">SIN CONTROL</div><div class="inv-stat-val" style="color:var(--muted)" id="invSinControl">—</div></div>
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">PEDIDOS</div>
+        <div id="sTotPed" class="font-display font-extrabold text-2xl text-teal-400">—</div>
       </div>
-
-      <!-- Banner de alertas -->
-      <div class="alerta-banner" id="alertaBanner">
-        <div class="alerta-banner-title">🚨 Productos que requieren atención</div>
-        <div class="alerta-banner-items" id="alertaItems"></div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">PENDIENTES</div>
+        <div id="sPend" class="font-display font-extrabold text-2xl text-yellow-400">—</div>
       </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">EN CAMINO</div>
+        <div id="sCamino" class="font-display font-extrabold text-2xl text-blue-400">—</div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">ENTREGADOS</div>
+        <div id="sEntregado" class="font-display font-extrabold text-2xl text-green-400">—</div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 col-span-2 sm:col-span-1">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">RECAUDADO</div>
+        <div id="sTotal" class="font-display font-extrabold text-xl text-teal-300">—</div>
+      </div>
+    </div>
 
-      <!-- Filtros inventario -->
-      <div class="inv-filters">
-        <input class="inv-search" type="text" id="invSearch" placeholder="🔍  Buscar producto..." oninput="renderInventario()">
-        <select class="inv-filter-select" id="invCat" onchange="renderInventario()">
-          <option value="">Todas las categorías</option>
+    <!-- Filtros pedidos -->
+    <div class="px-4 pb-3 flex flex-col sm:flex-row gap-2">
+      <input id="filterSearch" type="text" placeholder="🔍 Buscar nombre, teléfono, barrio..."
+             oninput="renderPedidos()"
+             class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
+      <div class="flex gap-2">
+        <select id="filterPago" onchange="renderPedidos()" aria-label="Filtrar por estado de pago"
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+          <option value="">Todos los pagos</option>
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="PAGADO">Pagado</option>
+          <option value="CONTRA ENTREGA">Contra entrega</option>
         </select>
-        <select class="inv-filter-select" id="invEstStock" onchange="renderInventario()">
-          <option value="">Todos los stocks</option>
+        <select id="filterEnvio" onchange="renderPedidos()" aria-label="Filtrar por estado de envío"
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+          <option value="">Todo envío</option>
+          <option value="Recibido">Recibido</option>
+          <option value="En preparación">En prep.</option>
+          <option value="En camino">En camino</option>
+          <option value="Entregado">Entregado</option>
+        </select>
+      </div>
+      <span id="filterCount" class="text-xs text-slate-500 self-center whitespace-nowrap"></span>
+    </div>
+
+    <!-- Lista de pedidos -->
+    <div id="pedidosWrap" class="flex-1 px-4 pb-6 space-y-2.5 overflow-y-auto">
+      <div class="text-center text-slate-500 py-16">⏳ Cargando pedidos...</div>
+    </div>
+  </div>
+
+  <!-- ── PANEL INVENTARIO ── -->
+  <div id="panel-inventario" class="tab-panel hidden flex-1 flex-col">
+
+    <!-- KPIs inventario -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">PRODUCTOS</div>
+        <div id="invTotal" class="font-display font-extrabold text-2xl text-teal-400">—</div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">AGOTADOS</div>
+        <div id="invAgotados" class="font-display font-extrabold text-2xl text-red-400">—</div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">STOCK BAJO</div>
+        <div id="invBajos" class="font-display font-extrabold text-2xl text-yellow-400">—</div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">SIN CONTROL</div>
+        <div id="invSinControl" class="font-display font-extrabold text-2xl text-slate-400">—</div>
+      </div>
+    </div>
+
+    <!-- Banner alertas -->
+    <div id="alertaBanner" class="hidden mx-4 mb-3 bg-red-900/30 border border-red-500/40 rounded-xl p-4">
+      <div class="text-red-400 font-bold text-sm mb-2">🚨 Productos que requieren atención</div>
+      <div id="alertaItems" class="text-red-300 text-xs space-y-1"></div>
+    </div>
+
+    <!-- Filtros inventario -->
+    <div class="px-4 pb-3 flex flex-col sm:flex-row gap-2">
+      <input id="invSearch" type="text" placeholder="🔍 Buscar producto..."
+             oninput="renderInventario()"
+             class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
+      <div class="flex gap-2">
+        <select id="invCat" onchange="renderInventario()" aria-label="Filtrar por categoría"
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+          <option value="">Todas las cats.</option>
+        </select>
+        <select id="invEstStock" onchange="renderInventario()" aria-label="Filtrar por estado de stock"
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+          <option value="">Todo stock</option>
           <option value="agotado">🔴 Agotados</option>
-          <option value="bajo">🟡 Stock bajo (≤5)</option>
+          <option value="bajo">🟡 Stock bajo</option>
           <option value="ok">🟢 En stock</option>
           <option value="sin">⚪ Sin control</option>
         </select>
-        <span class="filter-count" id="invCount"></span>
       </div>
+      <span id="invCount" class="text-xs text-slate-500 self-center whitespace-nowrap"></span>
+    </div>
 
-      <!-- Tabla de inventario -->
-      <div style="overflow-x:auto">
-        <table class="inv-table" id="invTable">
-          <thead>
-            <tr>
-              <th>PRODUCTO</th>
-              <th>TAMAÑO</th>
-              <th>CATEGORÍA</th>
-              <th>PRECIO</th>
-              <th>STOCK ACTUAL</th>
-              <th>NUEVO STOCK</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="invBody">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">⏳ Cargando...</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Tabla de inventario -->
+    <div class="px-4 pb-6 overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="border-b border-slate-700">
+            <th class="text-left text-xs font-bold text-slate-400 tracking-wider py-3 px-3">PRODUCTO</th>
+            <th class="text-left text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden sm:table-cell">CATEGORÍA</th>
+            <th class="text-right text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden md:table-cell">PRECIO</th>
+            <th class="text-center text-xs font-bold text-slate-400 tracking-wider py-3 px-3">STOCK</th>
+            <th class="text-center text-xs font-bold text-slate-400 tracking-wider py-3 px-3">ACTUALIZAR</th>
+          </tr>
+        </thead>
+        <tbody id="invList">
+          <tr><td colspan="5" class="text-center text-slate-500 py-16">⏳ Cargando productos...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
+
+  <!-- NAV BOTTOM (mobile) -->
+  <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-800/95 backdrop-blur border-t border-slate-700 flex pb-safe">
+    <button onclick="switchTab('pedidos')" id="nav-pedidos"
+            class="flex-1 flex flex-col items-center py-3 gap-0.5 text-teal-400 transition">
+      <span class="text-xl">📦</span>
+      <span class="text-xs font-semibold">Pedidos</span>
+    </button>
+    <button onclick="switchTab('inventario')" id="nav-inventario"
+            class="flex-1 flex flex-col items-center py-3 gap-0.5 text-slate-400 transition">
+      <span class="text-xl">🏷️</span>
+      <span class="text-xs font-semibold">Inventario</span>
+    </button>
+  </nav>
 
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div id="toast"
+     class="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 translate-y-20 bg-teal-700 text-white rounded-full px-5 py-2.5 text-sm font-semibold shadow-xl z-50 transition-transform duration-300 whitespace-nowrap pointer-events-none">
+</div>
 
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
 <script>
 /* ── CONFIG ── */
 const APPS_URL  = "https://script.google.com/macros/s/AKfycbwntGswrb4Omm-O9jiX3FW0Lukjn5i-Zmcsrk2hf7seqGJbXvMvaI8xO2mt2oqgBhyczQ/exec";
 const ADMIN_KEY = "LIMPIEZARR2025";
 
 /* ── ESTADO ── */
-let pedidos     = [];
-let productos   = [];
-let tabActivo   = "pedidos";
+let pedidos   = [];
+let productos = [];
+let tabActivo = "pedidos";
 
 /* ── LOGIN ── */
 function doLogin() {
   if (document.getElementById("loginInput").value.trim() === ADMIN_KEY) {
-    document.getElementById("loginWrap").style.display = "none";
-    document.getElementById("app").classList.add("on");
+    document.getElementById("loginWrap").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("app").classList.add("flex");
     loadPedidos();
     loadProductos();
   } else {
-    document.getElementById("loginErr").textContent = "❌ Clave incorrecta";
-    setTimeout(() => document.getElementById("loginErr").textContent = "", 2000);
+    const err = document.getElementById("loginErr");
+    err.textContent = "❌ Clave incorrecta";
+    setTimeout(() => err.textContent = "", 2000);
   }
 }
 function doLogout() {
-  document.getElementById("app").classList.remove("on");
-  document.getElementById("loginWrap").style.display = "flex";
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("app").classList.remove("flex");
+  document.getElementById("loginWrap").classList.remove("hidden");
   document.getElementById("loginInput").value = "";
 }
 
 /* ── TABS ── */
 function switchTab(tab) {
   tabActivo = tab;
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  document.getElementById("tab-" + tab).classList.add("active");
-  document.getElementById("panel-" + tab).classList.add("active");
+  // Tabs superiores
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.classList.remove("border-teal-500", "text-teal-400");
+    b.classList.add("border-transparent", "text-slate-400");
+  });
+  document.getElementById("tab-" + tab).classList.add("border-teal-500", "text-teal-400");
+  document.getElementById("tab-" + tab).classList.remove("border-transparent", "text-slate-400");
+  // Panels
+  document.querySelectorAll(".tab-panel").forEach(p => {
+    p.classList.add("hidden");
+    p.classList.remove("flex");
+  });
+  const activePanel = document.getElementById("panel-" + tab);
+  activePanel.classList.remove("hidden");
+  activePanel.classList.add("flex");
+  // Nav bottom
+  document.querySelectorAll("[id^='nav-']").forEach(b => {
+    b.classList.remove("text-teal-400");
+    b.classList.add("text-slate-400");
+  });
+  document.getElementById("nav-" + tab).classList.add("text-teal-400");
+  document.getElementById("nav-" + tab).classList.remove("text-slate-400");
 }
 
 function refreshActivo() {
-  const btn = document.getElementById("refreshBtn");
-  btn.classList.add("spin");
-  Promise.all([loadPedidos(), loadProductos()]).finally(() => btn.classList.remove("spin"));
+  const ico = document.getElementById("refreshIco");
+  ico.classList.add("animate-spin-slow");
+  Promise.all([loadPedidos(), loadProductos()]).finally(() => ico.classList.remove("animate-spin-slow"));
 }
 
 /* ── HELPERS ── */
 const fmt = n => "$ " + Math.round(n).toLocaleString("es-CO");
+
 function showToast(txt) {
   const t = document.getElementById("toast");
-  t.textContent = txt; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 3000);
-}
-function badgeClass(val) {
-  return "badge badge-" + String(val || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z-]/g, "");
+  t.textContent = txt;
+  t.classList.remove("translate-y-20");
+  t.classList.add("translate-y-0");
+  setTimeout(() => { t.classList.add("translate-y-20"); t.classList.remove("translate-y-0"); }, 3000);
 }
 
-/* ════════════════════════════════════════════════════════
+function badgePago(val) {
+  const v = String(val || "").toUpperCase();
+  if (v === "PAGADO")          return "bg-green-900/50 text-green-300 border border-green-600/40";
+  if (v === "CONTRA ENTREGA")  return "bg-yellow-900/50 text-yellow-300 border border-yellow-600/40";
+  return "bg-red-900/50 text-red-300 border border-red-600/40";
+}
+function badgeEnvio(val) {
+  const v = String(val || "");
+  if (v === "Entregado")       return "bg-green-900/50 text-green-300 border border-green-600/40";
+  if (v === "En camino")       return "bg-blue-900/50 text-blue-300 border border-blue-600/40";
+  if (v === "En preparación")  return "bg-yellow-900/50 text-yellow-300 border border-yellow-600/40";
+  return "bg-slate-700/60 text-slate-300 border border-slate-600/40";
+}
+
+/* ════════════════════════════════════════
    PEDIDOS
-════════════════════════════════════════════════════════ */
+════════════════════════════════════════ */
 async function loadPedidos() {
-  document.getElementById("pedidosWrap").innerHTML = '<div class="loading-msg">⏳ Cargando pedidos...</div>';
+  const wrap = document.getElementById("pedidosWrap");
+  wrap.innerHTML = '<div class="text-center text-slate-500 py-16 animate-pulse">⏳ Cargando pedidos...</div>';
   try {
-    const raw  = await fetch(`${APPS_URL}?action=admin_pedidos&clave=${ADMIN_KEY}&t=${Date.now()}`);
-    const text = await raw.text();
-    let data;
-    try { data = JSON.parse(text); } catch(e) {
-      document.getElementById("pedidosWrap").innerHTML = '<div class="loading-msg">⚠️ Error de conexión.</div>';
+    const url = `${APPS_URL}?action=admin_pedidos&clave=${ADMIN_KEY}&t=${Date.now()}`;
+    let res;
+    try {
+      res = await fetch(url, { redirect: "follow" });
+    } catch(fetchErr) {
+      // Error de red — mostrar mensaje con causa real
+      wrap.innerHTML = `
+        <div class="text-center py-16 space-y-3">
+          <div class="text-4xl">📡</div>
+          <div class="text-red-400 font-semibold">No se pudo conectar al servidor</div>
+          <div class="text-slate-500 text-sm max-w-xs mx-auto">${fetchErr.message}</div>
+          <div class="text-slate-600 text-xs max-w-sm mx-auto mt-2">
+            Posibles causas:<br>
+            • El archivo se abrió desde disco local (usar GitHub Pages o Netlify)<br>
+            • El Apps Script no está publicado como Web App<br>
+            • El acceso no está en "Cualquier usuario"
+          </div>
+          <button onclick="loadPedidos()" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-5 py-2 rounded-lg transition">
+            🔄 Reintentar
+          </button>
+        </div>`;
       return;
     }
-    if (!data.ok) { document.getElementById("pedidosWrap").innerHTML = `<div class="loading-msg">❌ ${data.error}</div>`; return; }
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(parseErr) {
+      wrap.innerHTML = `
+        <div class="text-center py-16 space-y-2">
+          <div class="text-4xl">⚠️</div>
+          <div class="text-yellow-400 font-semibold">Respuesta inesperada del servidor</div>
+          <div class="text-slate-500 text-xs max-w-sm mx-auto">El servidor no devolvió JSON válido. Verifica que el Apps Script esté correctamente publicado.</div>
+          <details class="text-left mt-3 max-w-sm mx-auto">
+            <summary class="text-slate-500 text-xs cursor-pointer">Ver respuesta del servidor</summary>
+            <pre class="text-xs text-slate-400 bg-slate-900 rounded p-2 mt-1 overflow-auto max-h-32">${text.slice(0,500)}</pre>
+          </details>
+          <button onclick="loadPedidos()" class="mt-3 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-5 py-2 rounded-lg transition">
+            🔄 Reintentar
+          </button>
+        </div>`;
+      return;
+    }
+    if (!data.ok) {
+      wrap.innerHTML = `<div class="text-center text-red-400 py-16">❌ ${data.error || "Error desconocido"}</div>`;
+      return;
+    }
     pedidos = data.pedidos || [];
     updateStatsPedidos();
     renderPedidos();
+    showToast("✅ " + pedidos.length + " pedidos cargados");
   } catch(e) {
-    document.getElementById("pedidosWrap").innerHTML = '<div class="loading-msg">⚠️ Sin conexión.</div>';
+    wrap.innerHTML = `
+      <div class="text-center py-16 space-y-2">
+        <div class="text-4xl">❌</div>
+        <div class="text-red-400 font-semibold">Error inesperado</div>
+        <div class="text-slate-500 text-sm">${e.message}</div>
+        <button onclick="loadPedidos()" class="mt-3 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-5 py-2 rounded-lg transition">🔄 Reintentar</button>
+      </div>`;
   }
 }
 
 function updateStatsPedidos() {
-  const pend  = pedidos.filter(p => (p.estado_pago||"").toUpperCase() === "PENDIENTE").length;
-  const cam   = pedidos.filter(p => (p.estado_envio||"") === "En camino").length;
-  const entr  = pedidos.filter(p => (p.estado_envio||"") === "Entregado").length;
-  const total = pedidos.reduce((s, p) => s + (Number(p.total) || 0), 0);
   document.getElementById("sTotPed").textContent    = pedidos.length;
-  document.getElementById("sPend").textContent      = pend;
-  document.getElementById("sCamino").textContent    = cam;
-  document.getElementById("sEntregado").textContent = entr;
-  document.getElementById("sTotal").textContent     = fmt(total);
+  document.getElementById("sPend").textContent      = pedidos.filter(p => (p.estado_pago||"").toUpperCase() === "PENDIENTE").length;
+  document.getElementById("sCamino").textContent    = pedidos.filter(p => p.estado_envio === "En camino").length;
+  document.getElementById("sEntregado").textContent = pedidos.filter(p => p.estado_envio === "Entregado").length;
+  document.getElementById("sTotal").textContent     = fmt(pedidos.reduce((s,p) => s+(Number(p.total)||0), 0));
 }
 
 function renderPedidos() {
-  const q     = (document.getElementById("filterSearch").value || "").toLowerCase();
-  const fPago = document.getElementById("filterPago").value;
-  const fEnv  = document.getElementById("filterEnvio").value;
-  let lista   = pedidos.filter(p => {
-    if (q && ![(p.nombre||""),(p.telefono||""),(p.barrio||"")].join(" ").toLowerCase().includes(q)) return false;
-    if (fPago && (p.estado_pago||"").toUpperCase() !== fPago.toUpperCase()) return false;
-    if (fEnv  && (p.estado_envio||"") !== fEnv) return false;
+  const q    = (document.getElementById("filterSearch").value || "").toLowerCase();
+  const fP   = document.getElementById("filterPago").value;
+  const fE   = document.getElementById("filterEnvio").value;
+  const lista = pedidos.filter(p => {
+    if (q && ![(p.nombre||""),(String(p.telefono)||""),(p.barrio||"")].join(" ").toLowerCase().includes(q)) return false;
+    if (fP && (p.estado_pago||"").toUpperCase() !== fP.toUpperCase()) return false;
+    if (fE && (p.estado_envio||"") !== fE) return false;
     return true;
   });
-  document.getElementById("filterCount").textContent = lista.length !== pedidos.length ? `Mostrando ${lista.length} de ${pedidos.length}` : `${pedidos.length} pedidos`;
+  document.getElementById("filterCount").textContent = lista.length !== pedidos.length ? `${lista.length}/${pedidos.length}` : `${pedidos.length}`;
   if (!lista.length) {
-    document.getElementById("pedidosWrap").innerHTML = '<div class="empty-msg"><div class="empty-ico">📭</div><p>Sin resultados</p></div>';
+    document.getElementById("pedidosWrap").innerHTML = '<div class="text-center text-slate-500 py-16">📭 Sin resultados</div>';
     return;
   }
   document.getElementById("pedidosWrap").innerHTML = lista.map(p => {
-    const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : String(p.total || "");
-    const prodLines = String(p.productos || "").split("\n").filter(l => l.trim()).map(l => `<div class="prod-line">${l.trim()}</div>`).join("");
-    const selPagoOpts = ["PENDIENTE","PAGADO","CONTRA ENTREGA"].map(v => `<option value="${v}" ${(p.estado_pago||"")=== v?"selected":""}>${v}</option>`).join("");
-    const selEnvOpts  = ["Recibido","En preparación","En camino","Entregado"].map(v => `<option value="${v}" ${(p.estado_envio||"Recibido")===v?"selected":""}>${v}</option>`).join("");
-    const waMsg = encodeURIComponent("Hola " + (p.nombre||"") + ", tu pedido de Limpieza RR está: Recibido");
+    const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : (p.total || "");
+    const prodLines = String(p.productos||"").split("\n").filter(l=>l.trim()).map(l=>`<div class="text-xs text-slate-400 py-0.5 border-b border-slate-700/50 last:border-0">▪ ${l.trim()}</div>`).join("");
+    const selPago   = ["PENDIENTE","PAGADO","CONTRA ENTREGA"].map(v=>`<option value="${v}" ${(p.estado_pago||"")=== v?"selected":""}>${v}</option>`).join("");
+    const selEnvio  = ["Recibido","En preparación","En camino","Entregado"].map(v=>`<option value="${v}" ${(p.estado_envio||"Recibido")===v?"selected":""}>${v}</option>`).join("");
+    const waMsg     = encodeURIComponent("Hola " + (p.nombre||"") + ", tu pedido de Limpieza RR está: " + (p.estado_envio||"Recibido"));
     return `
-    <div class="pedido-card" id="card-${p.fila}">
-      <div class="pedido-hd" onclick="toggleCard(${p.fila})">
-        <div><div class="pedido-cliente">${p.nombre||"Sin nombre"}</div><div class="pedido-tel">${p.telefono||""} · ${p.barrio||""}</div></div>
-        <span class="${badgeClass(p.estado_pago)}">${p.estado_pago||"Pendiente"}</span>
-        <span class="${badgeClass(p.estado_envio)}">${p.estado_envio||"Recibido"}</span>
-        <span class="pedido-total">${totalStr}</span>
-        <span class="chevron">▼</span>
-      </div>
-      <div class="pedido-body">
-        <div class="detail-grid">
-          <div class="detail-row"><span class="detail-lbl">FECHA</span><span class="detail-val">${p.fecha||""}</span></div>
-          <div class="detail-row"><span class="detail-lbl">PAGO</span><span class="detail-val">${p.pago||""}</span></div>
-          <div class="detail-row"><span class="detail-lbl">DIRECCIÓN</span><span class="detail-val">${p.barrio||""}, ${p.direccion||""}</span></div>
-          <div class="detail-row"><span class="detail-lbl">TOTAL</span><span class="detail-val" style="color:var(--teal-l);font-weight:700">${totalStr}</span></div>
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden hover:border-teal-600/50 transition-all animate-fade-up" id="card-${p.fila}">
+      <!-- Cabecera del pedido -->
+      <button onclick="toggleCard(${p.fila})" class="w-full text-left p-4 flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-sm truncate">${p.nombre||"Sin nombre"}</div>
+          <div class="text-xs text-slate-400 mt-0.5 truncate">${String(p.telefono||"")} · ${p.barrio||""}</div>
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgePago(p.estado_pago)}">${p.estado_pago||"Pendiente"}</span>
+            <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgeEnvio(p.estado_envio)}">${p.estado_envio||"Recibido"}</span>
+          </div>
         </div>
-        <div class="prods-title">PRODUCTOS</div>
-        <div class="prod-lines">${prodLines||"<div class='prod-line'>Sin detalle</div>"}</div>
-        <div class="estado-section">
-          <div class="estado-title">ACTUALIZAR ESTADO</div>
-          <div class="estado-row">
-            <span class="estado-lbl">💳 Pago</span>
-            <select class="estado-select" id="selPago-${p.fila}">${selPagoOpts}</select>
+        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+          <span class="font-display font-bold text-teal-300 text-sm">${totalStr}</span>
+          <svg id="chev-${p.fila}" class="w-4 h-4 text-slate-500 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </button>
+      <!-- Detalle expandible -->
+      <div id="body-${p.fila}" class="hidden border-t border-slate-700 p-4 space-y-4 animate-fade-up">
+        <!-- Info -->
+        <div class="grid grid-cols-2 gap-3">
+          <div><div class="text-xs text-slate-500 font-semibold mb-0.5">FECHA</div><div class="text-xs">${p.fecha||""}</div></div>
+          <div><div class="text-xs text-slate-500 font-semibold mb-0.5">PAGO</div><div class="text-xs">${p.pago||""}</div></div>
+          <div class="col-span-2"><div class="text-xs text-slate-500 font-semibold mb-0.5">DIRECCIÓN</div><div class="text-xs">${p.barrio||""}, ${p.direccion||""} ${p.casa ? "· "+p.casa : ""}</div></div>
+        </div>
+        <!-- Productos -->
+        <div>
+          <div class="text-xs text-slate-500 font-semibold mb-2">PRODUCTOS</div>
+          <div class="bg-slate-900/50 rounded-xl p-3">${prodLines||"<div class='text-xs text-slate-500'>Sin detalle</div>"}</div>
+        </div>
+        <!-- Total -->
+        <div class="flex justify-between items-center bg-teal-900/20 border border-teal-800/40 rounded-xl px-4 py-3">
+          <span class="text-sm text-slate-400 font-semibold">Total a pagar</span>
+          <span class="font-display font-bold text-teal-300 text-lg">${totalStr}</span>
+        </div>
+        <!-- Actualizar estado -->
+        <div class="bg-slate-900/40 rounded-xl p-4 space-y-3">
+          <div class="text-xs text-slate-400 font-bold tracking-wide">ACTUALIZAR ESTADO</div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+              <label class="text-xs text-slate-500 mb-1 block">💳 Estado de pago</label>
+              <select id="selPago-${p.fila}"
+                      class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
+                ${selPago}
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="text-xs text-slate-500 mb-1 block">🚚 Estado de envío</label>
+              <select id="selEnvio-${p.fila}"
+                      onchange="actualizarWaLink(${p.fila},'${encodeURIComponent(p.nombre||'')}','${String(p.telefono||'').replace(/[^0-9]/g,'')}')"
+                      class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
+                ${selEnvio}
+              </select>
+            </div>
           </div>
-          <div class="estado-row">
-            <span class="estado-lbl">🚚 Envío</span>
-            <select class="estado-select" id="selEnvio-${p.fila}" onchange="actualizarWaLink(${p.fila},'${encodeURIComponent(p.nombre||'')}','${p.telefono||''}')">
-              ${selEnvOpts}
-            </select>
-          </div>
-          <div class="estado-row" style="margin-top:4px;gap:8px">
-            <button class="btn-save" onclick="guardarEstado(${p.fila})">💾 Guardar</button>
-            <span id="saveMsg-${p.fila}"></span>
-            ${p.telefono ? `<a class="btn-wa-contact" id="waLink-${p.fila}" href="https://wa.me/57${String(p.telefono).replace(/[^0-9]/g,'')}?text=${waMsg}" target="_blank" rel="noopener noreferrer">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          <div class="flex flex-wrap gap-2 items-center">
+            <button onclick="guardarEstado(${p.fila})" id="btnSave-${p.fila}"
+                    class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg px-4 py-2.5 text-sm transition-all">
+              💾 Guardar cambios
+            </button>
+            <span id="saveMsg-${p.fila}" class="text-xs"></span>
+            ${p.telefono ? `
+            <a id="waLink-${p.fila}"
+               href="https://wa.me/57${String(p.telefono||"").replace(/[^0-9]/g,"")}?text=${waMsg}"
+               target="_blank" rel="noopener noreferrer"
+               class="flex items-center gap-1.5 bg-green-900/40 hover:bg-green-900/60 border border-green-600/40 text-green-400 rounded-lg px-3 py-2.5 text-sm font-semibold transition">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
               Avisar cliente
             </a>` : ""}
           </div>
@@ -478,9 +528,16 @@ function renderPedidos() {
 }
 
 function toggleCard(fila) {
-  const card = document.getElementById("card-" + fila);
-  document.querySelectorAll(".pedido-card.open").forEach(c => { if (c !== card) c.classList.remove("open"); });
-  card.classList.toggle("open");
+  const body = document.getElementById("body-" + fila);
+  const chev = document.getElementById("chev-" + fila);
+  const isOpen = !body.classList.contains("hidden");
+  // Cerrar todos
+  document.querySelectorAll("[id^='body-']").forEach(el => el.classList.add("hidden"));
+  document.querySelectorAll("[id^='chev-']").forEach(el => el.style.transform = "");
+  if (!isOpen) {
+    body.classList.remove("hidden");
+    chev.style.transform = "rotate(180deg)";
+  }
 }
 
 function actualizarWaLink(fila, nombreEnc, tel) {
@@ -488,149 +545,196 @@ function actualizarWaLink(fila, nombreEnc, tel) {
   const lnk = document.getElementById("waLink-" + fila);
   if (!sel || !lnk) return;
   const msg = encodeURIComponent("Hola " + decodeURIComponent(nombreEnc) + ", tu pedido de Limpieza RR está: " + sel.value);
-  lnk.href = "https://wa.me/57" + tel.replace(/[^0-9]/g,"") + "?text=" + msg;
+  lnk.href = "https://wa.me/57" + String(tel||"").replace(/[^0-9]/g,"") + "?text=" + msg;
 }
 
 async function guardarEstado(fila) {
-  const selPago = document.getElementById("selPago-" + fila);
-  const selEnv  = document.getElementById("selEnvio-" + fila);
-  const btn     = document.querySelector(`#card-${fila} .btn-save`);
-  const msg     = document.getElementById("saveMsg-" + fila);
-  if (!selPago || !selEnv) return;
-  btn.disabled = true; btn.textContent = "⏳";
+  const selP = document.getElementById("selPago-"  + fila);
+  const selE = document.getElementById("selEnvio-" + fila);
+  const btn  = document.getElementById("btnSave-"  + fila);
+  const msg  = document.getElementById("saveMsg-"  + fila);
+  if (!selP || !selE) return;
+  btn.disabled = true; btn.textContent = "⏳ Guardando...";
   try {
-    const res  = await fetch(APPS_URL, { method: "POST", headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ accion: "actualizar_estado", clave: ADMIN_KEY, fila, estado_pago: selPago.value, estado_envio: selEnv.value }) });
-    const data = await res.json();
+    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ accion:"actualizar_estado", clave:ADMIN_KEY, fila, estado_pago:selP.value, estado_envio:selE.value }) }).then(r=>r.json());
     if (data.ok) {
-      msg.className = "save-ok"; msg.textContent = "✅ Guardado";
-      const p = pedidos.find(x => x.fila === fila);
-      if (p) { p.estado_pago = selPago.value; p.estado_envio = selEnv.value; }
+      msg.className = "text-xs text-green-400"; msg.textContent = "✅ Guardado";
+      const p = pedidos.find(x=>x.fila===fila);
+      if (p) { p.estado_pago=selP.value; p.estado_envio=selE.value; }
+      updateStatsPedidos();
       showToast("✅ Estado actualizado");
-      setTimeout(() => { msg.textContent = ""; }, 3000);
-    } else { msg.className = "save-err"; msg.textContent = "❌ " + (data.error||"Error"); }
-  } catch(e) { msg.className = "save-err"; msg.textContent = "❌ Sin conexión"; }
-  btn.disabled = false; btn.textContent = "💾 Guardar";
+      setTimeout(() => msg.textContent = "", 3000);
+    } else { msg.className="text-xs text-red-400"; msg.textContent="❌ Error"; }
+  } catch(e) { msg.className="text-xs text-red-400"; msg.textContent="❌ Sin conexión"; }
+  btn.disabled = false; btn.textContent = "💾 Guardar cambios";
 }
 
-/* ════════════════════════════════════════════════════════
+/* ════════════════════════════════════════
    INVENTARIO
-════════════════════════════════════════════════════════ */
+════════════════════════════════════════ */
 async function loadProductos() {
-  document.getElementById("invBody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">⏳ Cargando...</td></tr>';
+  document.getElementById("invList").innerHTML = '<div class="text-center text-slate-500 py-16 animate-pulse">⏳ Cargando productos...</div>';
   try {
-    const raw  = await fetch(`${APPS_URL}?action=admin_productos&clave=${ADMIN_KEY}&t=${Date.now()}`);
-    const text = await raw.text();
+    const url  = `${APPS_URL}?action=admin_productos&clave=${ADMIN_KEY}&t=${Date.now()}`;
+    const res  = await fetch(url, { redirect: "follow" });
+    const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch(e) {
-      document.getElementById("invBody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">⚠️ Error de conexión</td></tr>';
+      document.getElementById("invList").innerHTML = '<div class="text-center text-yellow-400 py-16">⚠️ Respuesta inválida del servidor</div>';
       return;
     }
-    if (!data.ok) return;
+    if (!data.ok) {
+      document.getElementById("invList").innerHTML = `<div class="text-center text-red-400 py-16">❌ ${data.error}</div>`;
+      return;
+    }
     productos = data.productos || [];
     updateStatsInv();
     poblarCatFilter();
     renderInventario();
-  } catch(e) {
-    document.getElementById("invBody").innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">⚠️ Sin conexión</td></tr>';
+  } catch(fetchErr) {
+    document.getElementById("invList").innerHTML = `<div class="text-center text-red-400 py-16">⚠️ ${fetchErr.message}</div>`;
   }
 }
 
 function updateStatsInv() {
-  const total       = productos.length;
-  const agotados    = productos.filter(p => Number(p.stock) === 0 && p.stock !== "" && p.stock !== null).length;
-  const bajos       = productos.filter(p => { const s = Number(p.stock); return !isNaN(s) && s > 0 && s <= 5 && p.stock !== ""; }).length;
-  const sinControl  = productos.filter(p => p.stock === "" || p.stock === null || p.stock === undefined).length;
-  document.getElementById("invTotal").textContent      = total;
-  document.getElementById("invAgotados").textContent   = agotados;
-  document.getElementById("invBajos").textContent      = bajos;
-  document.getElementById("invSinControl").textContent = sinControl;
-  // Banner alertas
-  const alertas = productos.filter(p => {
-    const s = Number(p.stock);
-    return p.stock !== "" && p.stock !== null && !isNaN(s) && s <= 5;
-  });
-  const banner = document.getElementById("alertaBanner");
+  const tot   = productos.length;
+  const ag    = productos.filter(p => p.stock !== "" && p.stock !== null && Number(p.stock) === 0).length;
+  const bajo  = productos.filter(p => { const s=Number(p.stock); return p.stock !== "" && p.stock !== null && !isNaN(s) && s>0 && s<=5; }).length;
+  const sinC  = productos.filter(p => p.stock === "" || p.stock === null || p.stock === undefined).length;
+  document.getElementById("invTotal").textContent      = tot;
+  document.getElementById("invAgotados").textContent   = ag;
+  document.getElementById("invBajos").textContent      = bajo;
+  document.getElementById("invSinControl").textContent = sinC;
+  const alertas = productos.filter(p => { const s=Number(p.stock); return p.stock !== "" && p.stock !== null && !isNaN(s) && s<=5; });
+  const banner  = document.getElementById("alertaBanner");
   if (alertas.length > 0) {
-    banner.classList.add("show");
+    banner.classList.remove("hidden");
     document.getElementById("alertaItems").innerHTML = alertas.map(p =>
-      `${Number(p.stock) === 0 ? "🔴 AGOTADO" : "🟡 BAJO"}: ${p.nombre} ${p.tamano} (Stock: ${p.stock})`
-    ).join("<br>");
-  } else { banner.classList.remove("show"); }
+      `<div>${Number(p.stock)===0?"🔴 AGOTADO":"🟡 BAJO"}: ${p.nombre} ${p.tamano} — Stock: ${p.stock}</div>`
+    ).join("");
+  } else { banner.classList.add("hidden"); }
 }
 
 function poblarCatFilter() {
-  const cats = [...new Set(productos.map(p => String(p.categoria || "")))].sort();
-  const sel  = document.getElementById("invCat");
-  sel.innerHTML = '<option value="">Todas las categorías</option>' +
+  const cats = [...new Set(productos.map(p=>String(p.categoria||"")))].sort();
+  document.getElementById("invCat").innerHTML =
+    '<option value="">Todas las cats.</option>' +
     cats.map(c => `<option value="${c}">${c}</option>`).join("");
 }
 
 function getStockStatus(p) {
-  if (p.stock === "" || p.stock === null || p.stock === undefined) return "sin";
+  if (p.stock===""||p.stock===null||p.stock===undefined) return "sin";
   const s = Number(p.stock);
   if (isNaN(s)) return "sin";
-  if (s === 0) return "agotado";
-  if (s <= 5)  return "bajo";
+  if (s===0) return "agotado";
+  if (s<=5)  return "bajo";
   return "ok";
 }
 
+function stockPill(p) {
+  const st = getStockStatus(p);
+  const val = (p.stock !== "" && p.stock !== null && p.stock !== undefined) ? p.stock : "—";
+  const cls = {
+    agotado: "bg-red-900/50 text-red-300 border border-red-600/40",
+    bajo:    "bg-yellow-900/50 text-yellow-300 border border-yellow-600/40",
+    ok:      "bg-green-900/50 text-green-300 border border-green-600/40",
+    sin:     "bg-slate-700/50 text-slate-400 border border-slate-600/40",
+  }[st];
+  return `<span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${cls}">${val}</span>`;
+}
+
 function renderInventario() {
-  const q    = (document.getElementById("invSearch").value || "").toLowerCase();
-  const cat  = document.getElementById("invCat").value;
-  const est  = document.getElementById("invEstStock").value;
-  let lista  = productos.filter(p => {
-    if (q && !(String(p.nombre||"") + " " + String(p.tamano||"")).toLowerCase().includes(q)) return false;
+  const q   = (document.getElementById("invSearch").value||"").toLowerCase();
+  const cat = document.getElementById("invCat").value;
+  const est = document.getElementById("invEstStock").value;
+  const lista = productos.filter(p => {
+    if (q && !(String(p.nombre||"")+" "+String(p.tamano||"")).toLowerCase().includes(q)) return false;
     if (cat && String(p.categoria||"") !== cat) return false;
     if (est && getStockStatus(p) !== est) return false;
     return true;
   });
-  document.getElementById("invCount").textContent = lista.length !== productos.length ? `${lista.length} de ${productos.length}` : `${productos.length} productos`;
-  const pillMap = { agotado: "stock-out 🔴 Agotado", bajo: "stock-low 🟡 Bajo", ok: "stock-ok 🟢 OK", sin: "stock-none ⚪ Sin control" };
-  document.getElementById("invBody").innerHTML = lista.map(p => {
-    const status = getStockStatus(p);
-    const [pillClass, pillTxt] = (pillMap[status] || "stock-none ⚪").split(" ", 2).concat(["⚪ Sin control"]);
-    const stockDisplay = p.stock !== "" && p.stock !== null && p.stock !== undefined ? p.stock : "—";
-    const precioStr    = !isNaN(Number(p.precio)) ? fmt(Number(p.precio)) : "—";
+  document.getElementById("invCount").textContent = lista.length !== productos.length
+    ? `${lista.length} de ${productos.length}`
+    : `${productos.length} productos`;
+
+  const tbody = document.getElementById("invList");
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-16">📭 Sin productos</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map((p, idx) => {
+    const precio = !isNaN(Number(p.precio)) ? fmt(Number(p.precio)) : "—";
+    const st     = getStockStatus(p);
+    const stockActual = (p.stock !== "" && p.stock !== null && p.stock !== undefined) ? p.stock : "—";
+    const pillCls = {
+      agotado: "bg-red-900/50 text-red-300 border border-red-600/40",
+      bajo:    "bg-yellow-900/50 text-yellow-300 border border-yellow-600/40",
+      ok:      "bg-green-900/50 text-green-300 border border-green-600/40",
+      sin:     "bg-slate-700/50 text-slate-400 border border-slate-600/40",
+    }[st];
+    const rowBg = idx % 2 === 0 ? "" : "bg-slate-800/40";
     return `
-    <tr>
-      <td><strong style="font-size:.88rem">${p.nombre||""}</strong></td>
-      <td style="color:var(--muted);font-size:.82rem">${p.tamano||""}</td>
-      <td><span class="cat-badge">${p.categoria||""}</span></td>
-      <td style="font-family:'Syne',sans-serif;font-size:.88rem;color:var(--teal-l)">${precioStr}</td>
-      <td><span class="stock-pill ${status === "agotado" ? "stock-out" : status === "bajo" ? "stock-low" : status === "ok" ? "stock-ok" : "stock-none"}">${stockDisplay}</span></td>
-      <td>
-        <input class="stock-input" type="number" min="0" id="stockIn-${p.fila}"
-               placeholder="${p.stock !== "" ? p.stock : "vacío"}"
-               onkeydown="if(event.key==='Enter') guardarStock(${p.fila})">
+    <tr class="${rowBg} hover:bg-teal-900/10 border-b border-slate-800 transition group">
+      <!-- Producto -->
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-3">
+          <span class="text-xl flex-shrink-0 hidden sm:block">${p.emoji || "🧴"}</span>
+          <div class="min-w-0">
+            <div class="font-semibold text-sm text-white">${p.nombre||""}</div>
+            <div class="text-xs text-slate-400">${p.tamano||""}</div>
+          </div>
+        </div>
       </td>
-      <td>
-        <button class="btn-stock-save" id="btnStkSave-${p.fila}" onclick="guardarStock(${p.fila})">Guardar</button>
-        <span id="stkMsg-${p.fila}" class="stock-saved" style="display:none">✅</span>
+      <!-- Categoría -->
+      <td class="py-3 px-3 hidden sm:table-cell">
+        <span class="text-xs bg-slate-700 text-slate-300 rounded-full px-2.5 py-1">${p.categoria||""}</span>
+      </td>
+      <!-- Precio -->
+      <td class="py-3 px-3 text-right hidden md:table-cell">
+        <span class="text-sm font-semibold text-teal-300">${precio}</span>
+      </td>
+      <!-- Stock actual -->
+      <td class="py-3 px-3 text-center">
+        <span class="text-xs rounded-full px-3 py-1 font-bold ${pillCls}">${stockActual}</span>
+      </td>
+      <!-- Editar stock -->
+      <td class="py-3 px-3">
+        <div class="flex items-center justify-center gap-2">
+          <input id="stockIn-${p.fila}" type="number" min="0"
+                 placeholder="${stockActual !== "—" ? stockActual : "vacío"}"
+                 aria-label="Nuevo stock para ${p.nombre}"
+                 class="w-20 bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white text-center outline-none focus:border-teal-500 transition"
+                 onkeydown="if(event.key==='Enter') guardarStock(${p.fila})">
+          <button id="btnStkSave-${p.fila}" onclick="guardarStock(${p.fila})"
+                  class="bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition-all whitespace-nowrap">
+            Guardar
+          </button>
+          <span id="stkMsg-${p.fila}" class="text-xs text-green-400 hidden">✅</span>
+        </div>
       </td>
     </tr>`;
   }).join("");
 }
 
 async function guardarStock(fila) {
-  const input = document.getElementById("stockIn-" + fila);
+  const input = document.getElementById("stockIn-"    + fila);
   const btn   = document.getElementById("btnStkSave-" + fila);
-  const msg   = document.getElementById("stkMsg-" + fila);
+  const msg   = document.getElementById("stkMsg-"     + fila);
   if (!input || !btn) return;
-  const val   = input.value.trim();
+  const val = input.value.trim();
   btn.disabled = true; btn.textContent = "⏳";
   try {
-    const res  = await fetch(APPS_URL, { method: "POST", headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ accion: "actualizar_stock", clave: ADMIN_KEY, fila, stock: val === "" ? "" : Number(val) }) });
-    const data = await res.json();
+    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ accion:"actualizar_stock", clave:ADMIN_KEY, fila, stock: val===""?"":Number(val) }) }).then(r=>r.json());
     if (data.ok) {
-      // Actualizar local
-      const p = productos.find(x => x.fila === fila);
-      if (p) p.stock = val === "" ? "" : Number(val);
+      const p = productos.find(x=>x.fila===fila);
+      if (p) p.stock = val===""?"":Number(val);
       updateStatsInv();
       renderInventario();
       showToast("✅ Stock actualizado");
-    } else { showToast("❌ " + (data.error || "Error al guardar")); }
+    } else { showToast("❌ " + (data.error||"Error")); }
   } catch(e) { showToast("❌ Sin conexión"); }
   btn.disabled = false; btn.textContent = "Guardar";
 }
