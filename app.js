@@ -248,6 +248,7 @@ function onProductsLoaded() {
   buildCarousel();
   buildCats();
   renderProds();
+  loadResenas();
 }
 
 function simulateDelay(ms) {
@@ -373,9 +374,18 @@ function renderProds() {
       <div class="p-img-wrap">${prodThumb(p, "md")}</div>
       <div class="p-name">${p.name} ${p.size}</div>
       <div class="p-price">${fmt(p.price)}</div>
-      <button class="p-addbtn" ${agotado ? 'disabled' : `onclick="event.stopPropagation(); quickAdd(${p.id})"`}>
-        ${agotado ? 'Agotado' : '+ Agregar al carrito'}
-      </button>
+      <div class="p-card-actions">
+        <button class="p-addbtn" ${agotado ? 'disabled' : `onclick="event.stopPropagation(); quickAdd(${p.id})"`}>
+          ${agotado ? 'Agotado' : '+ Agregar'}
+        </button>
+        <button class="p-sharebtn" onclick="event.stopPropagation(); compartirProducto(${p.id})" title="Compartir">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </button>
+      </div>
     </div>`;
   }).join("");
 }
@@ -732,8 +742,10 @@ async function confirmOrder() {
   refreshCart();
   closeOrder();
   showToast("✅ ¡Pedido enviado por WhatsApp y guardado!");
-  // Mostrar modal de calificación 2 segundos después
-  setTimeout(() => openRating(lastOrderData.nombre, lastOrderData.telefono), 2000);
+  // Mostrar recibo digital
+  setTimeout(() => openRecibo(lastOrderData), 800);
+  // Mostrar calificación 6 segundos después (dando tiempo al recibo)
+  setTimeout(() => openRating(lastOrderData.nombre, lastOrderData.telefono), 6000);
 
   // Reset formulario
   ["fNombre","fTelefono","fCiudad","fDepto","fBarrio","fDir","fCasa","fConj","fNota"].forEach(id => { if ($(id)) $(id).value = ""; });
@@ -964,6 +976,172 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+
+/* ════════════════════════════════════════════════════════════
+   RESEÑAS PÚBLICAS
+═══════════════════════════════════════════════════════════ */
+async function loadResenas() {
+  const wrap = $("resenasWrap");
+  const stats = $("resenasStats");
+  if (!wrap) return;
+
+  // Solo cargar si no es modo demo
+  if (CONFIG.APPS_SCRIPT_URL === "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") return;
+
+  try {
+    const url  = `${CONFIG.APPS_SCRIPT_URL}?action=resenas&t=${Date.now()}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!data.ok || !data.resenas || !data.resenas.length) {
+      wrap.innerHTML = '<p class="resenas-empty">Aún no hay reseñas — ¡sé el primero!</p>';
+      return;
+    }
+
+    const resenas = data.resenas;
+    const avg     = resenas.reduce((s, r) => s + r.estrellas, 0) / resenas.length;
+    const starsStr = (n) => "★".repeat(Math.round(n)) + "☆".repeat(5 - Math.round(n));
+
+    // Mostrar stats
+    if (stats) {
+      stats.style.display = "flex";
+      $("resenaAvgNum").textContent   = avg.toFixed(1);
+      $("resenaAvgStars").textContent = starsStr(avg);
+      $("resenaAvgCount").textContent = `${resenas.length} reseña${resenas.length !== 1 ? "s" : ""}`;
+    }
+
+    // Mostrar máximo 6 reseñas con 4+ estrellas primero
+    const sorted = [...resenas]
+      .sort((a, b) => b.estrellas - a.estrellas || (b.comentario?.length || 0) - (a.comentario?.length || 0))
+      .slice(0, 6);
+
+    wrap.innerHTML = sorted.map(r => {
+      const fecha = r.fecha ? r.fecha.split(" ")[0] : "";
+      const stars = starsStr(r.estrellas);
+      const iniciales = (r.nombre || "Cliente")
+        .split(" ").slice(0, 2)
+        .map(w => w[0]?.toUpperCase() || "")
+        .join("") || "C";
+      return `
+      <div class="resena-card fi">
+        <div class="resena-header">
+          <div class="resena-avatar">${iniciales}</div>
+          <div>
+            <div class="resena-nombre">${r.nombre || "Cliente"}</div>
+            <div class="resena-fecha">${fecha}</div>
+          </div>
+          <div class="resena-stars">${stars}</div>
+        </div>
+        ${r.comentario ? `<p class="resena-texto">"${r.comentario}"</p>` : ""}
+      </div>`;
+    }).join("");
+
+  } catch(e) {
+    wrap.innerHTML = "";
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   RECIBO DIGITAL POST-PEDIDO
+═══════════════════════════════════════════════════════════ */
+let reciboData = null;
+
+function openRecibo(orderData) {
+  reciboData = orderData;
+  const body = $("reciboBody");
+  if (!body) return;
+
+  const total     = typeof orderData.total === "number" ? fmt(orderData.total) : orderData.total;
+  const shipping  = orderData.costo_envio > 0 ? fmt(orderData.costo_envio) : "A convenir";
+  const subtotalV = typeof orderData.subtotal === "number" ? fmt(orderData.subtotal) : "";
+  const desc      = orderData.descuento > 0 ? fmt(orderData.descuento) : null;
+  const fecha     = new Date().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+
+  const prodLines = (orderData.productos || "")
+    .split("\n").filter(l => l.trim())
+    .map(l => `<div class="recibo-prod-line">▪ ${l.trim()}</div>`)
+    .join("");
+
+  body.innerHTML = `
+    <div class="recibo-section">
+      <div class="recibo-row"><span>📅 Fecha</span><span>${fecha}</span></div>
+      <div class="recibo-row"><span>👤 Cliente</span><span>${orderData.nombre || ""}</span></div>
+      <div class="recibo-row"><span>📍 Dirección</span><span>${orderData.barrio || ""}, ${orderData.direccion || ""}</span></div>
+      <div class="recibo-row"><span>💳 Pago</span><span>${orderData.pago || ""}</span></div>
+      <div class="recibo-row"><span>🚚 Envío</span><span>${shipping}</span></div>
+    </div>
+    <div class="recibo-section">
+      <div class="recibo-prods-title">Productos</div>
+      <div class="recibo-prods">${prodLines}</div>
+    </div>
+    <div class="recibo-section recibo-totales">
+      ${subtotalV ? `<div class="recibo-row"><span>Subtotal</span><span>${subtotalV}</span></div>` : ""}
+      ${desc ? `<div class="recibo-row recibo-desc"><span>🏷️ Descuento (${orderData.cupon || ""})</span><span>− ${desc}</span></div>` : ""}
+      <div class="recibo-row recibo-total"><span><strong>Total a pagar</strong></span><span><strong>${total}</strong></span></div>
+    </div>
+  `;
+
+  $("reciboModal").classList.add("on");
+  $("overlay").classList.add("on");
+}
+
+function closeRecibo() {
+  $("reciboModal").classList.remove("on");
+  $("overlay").classList.remove("on");
+}
+
+function compartirRecibo() {
+  if (!reciboData) return;
+  const total = typeof reciboData.total === "number" ? fmt(reciboData.total) : reciboData.total;
+  const texto = `🧾 *Recibo — Limpieza RR*\n\n` +
+    `👤 ${reciboData.nombre || ""}\n` +
+    `📍 ${reciboData.barrio || ""}, ${reciboData.direccion || ""}\n` +
+    `💳 ${reciboData.pago || ""}\n\n` +
+    `${(reciboData.productos || "").split("\n").filter(l=>l.trim()).map(l=>"▪ "+l.trim()).join("\n")}\n\n` +
+    `💰 *Total: ${total}*`;
+
+  if (navigator.share) {
+    navigator.share({ title: "Recibo Limpieza RR", text: texto })
+      .catch(() => {});
+  } else {
+    navigator.clipboard.writeText(texto).then(() => showToast("📋 Recibo copiado"))
+      .catch(() => showToast("⚠️ No se pudo copiar"));
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   COMPARTIR PRODUCTO
+═══════════════════════════════════════════════════════════ */
+function compartirProducto(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const url   = window.location.origin + window.location.pathname + "#productos";
+  const texto = `🧴 *${p.name} ${p.size}* — ${fmt(p.price)}
+
+${p.desc}
+
+📦 Pide en Limpieza RR:
+${url}`;
+
+  // Intentar Web Share API (funciona en móvil)
+  if (navigator.share) {
+    navigator.share({
+      title: `${p.name} — Limpieza RR`,
+      text:  texto,
+      url:   url,
+    }).catch(() => {}); // Ignorar si el usuario cancela
+  } else {
+    // Fallback: copiar al portapapeles + toast
+    navigator.clipboard.writeText(texto).then(() => {
+      showToast("📋 ¡Texto del producto copiado!");
+    }).catch(() => {
+      // Último fallback: abrir WhatsApp
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    });
+  }
+}
+
 /* ════════════════════════════════════════════════════════════
    OVERLAY CLICK — actualizado con nuevos modales
 ═══════════════════════════════════════════════════════════ */
@@ -973,6 +1151,7 @@ function overlayClick() {
   if ($("ratingModal")?.classList.contains("on"))  { closeRating();  return; }
   if ($("historyModal")?.classList.contains("on")) { closeHistory(); return; }
   if ($("statusModal")?.classList.contains("on"))  { closeStatus();  return; }
+  if ($("reciboModal")?.classList.contains("on"))  { closeRecibo();  return; }
 }
 
 

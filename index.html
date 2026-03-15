@@ -3,12 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ══ GOOGLE ANALYTICS ══════════════════════════════════
+       1. Ve a analytics.google.com → crear cuenta
+       2. Crear propiedad → obtener tu ID (G-XXXXXXXXXX)
+       3. Reemplaza G-XXXXXXXXXX por tu ID real
+       Si no tienes GA, borra estas 4 líneas — no afecta el funcionamiento.
+  ════════════════════════════════════════════════════════ -->
+  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag("js", new Date());
+    gtag("config", "G-XXXXXXXXXX");
+  </script> -->
   <!-- Forzar recarga sin caché -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Limpieza RR – Productos de Aseo Premium</title>
   <meta name="description" content="Productos de aseo premium para tu hogar. Detergentes, fragancias, desengrasantes y más. Pedidos por WhatsApp con entrega en Bogotá.">
+
+  <!-- Open Graph — apariencia al compartir en WhatsApp, Facebook, etc. -->
+  <meta property="og:type"        content="website">
+  <meta property="og:site_name"   content="Limpieza RR">
+  <meta property="og:title"       content="Limpieza RR – Productos de Aseo Premium">
+  <meta property="og:description" content="Detergentes, fragancias, limpiapisos y más. Calidad profesional para tu hogar. Entrega a domicilio en Bogotá. ¡Pide por WhatsApp!">
+  <meta property="og:image"       content="">
+  <meta property="og:url"         content="https://mancho9510.github.io/Empresa-Limpieza-RR/">
+  <meta property="og:locale"      content="es_CO">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="Limpieza RR – Productos de Aseo Premium">
+  <meta name="twitter:description" content="Productos de aseo de calidad profesional para tu hogar. Entrega en Bogotá.">
+  <meta name="twitter:image"       content="https://limpiezarr.com/icons/icon-512.png">
+
+  <!-- SEO adicional -->
+  <meta name="keywords"  content="productos de aseo, limpieza, detergentes, limpiapisos, fragancias, Bogotá, Colombia, entrega a domicilio">
+  <meta name="author"    content="Limpieza RR">
+  <meta name="robots"    content="index, follow">
+  <link rel="canonical"  href="https://limpiezarr.com/">
+
+  <!-- Schema.org — SEO estructurado para Google -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "Limpieza RR",
+    "description": "Tienda de productos de aseo premium en Colombia. Detergentes, fragancias, limpiapisos y más con entrega en Bogotá.",
+    "url": "https://limpiezarr.com/",
+    "logo": "https://limpiezarr.com/icons/icon-512.png",
+    "image": "https://limpiezarr.com/icons/icon-512.png",
+    "telephone": "+573503443140",
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Bogotá",
+      "addressCountry": "CO"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "4.710989",
+      "longitude": "-74.072092"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        "opens": "08:00",
+        "closes": "18:00"
+      }
+    ],
+    "sameAs": [
+      "https://wa.me/573503443140"
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Productos de Aseo",
+      "itemListElement": [
+        { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Detergentes" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Limpiapisos" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Fragancias" } }
+      ]
+    }
+  }
+  </script>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -39,6 +119,7 @@
   <ul class="nav-links">
     <li><a href="#inicio">Inicio</a></li>
     <li><a href="#productos">Productos</a></li>
+    <li><a href="#resenas">Reseñas</a></li>
     <li><a href="#contacto">Contáctanos</a></li>
     <li><a href="#" onclick="openHistory(); return false;">Mis Pedidos</a></li>
     <li><a href="#" onclick="openStatus(); return false;">Rastrear</a></li>
@@ -157,6 +238,28 @@
   </div>
 </section>
 
+<!-- ══ RESEÑAS ══ -->
+<section id="resenas">
+  <div class="sec-hd fi">
+    <div class="sec-tag">⭐ Reseñas</div>
+    <h2 class="sec-title">Lo que dicen nuestros<br><em>clientes</em></h2>
+    <p class="sec-sub">Opiniones reales de quienes ya compraron con nosotros</p>
+  </div>
+  <div class="resenas-wrap fi" id="resenasWrap">
+    <!-- Se carga dinámicamente desde Sheets -->
+    <div class="resena-skeleton"></div>
+    <div class="resena-skeleton"></div>
+    <div class="resena-skeleton"></div>
+  </div>
+  <div class="resenas-stats fi" id="resenasStats" style="display:none">
+    <div class="resena-avg-wrap">
+      <div class="resena-avg-num" id="resenaAvgNum">—</div>
+      <div class="resena-avg-stars" id="resenaAvgStars"></div>
+      <div class="resena-avg-count" id="resenaAvgCount"></div>
+    </div>
+  </div>
+</section>
+
 <!-- ══ PRODUCTOS ══ -->
 <section id="productos">
   <div class="sec-hd fi">
@@ -228,6 +331,20 @@
   </div>
   <button class="pwa-btn-install" onclick="installPWA()">Instalar</button>
   <button class="pwa-btn-dismiss" onclick="dismissPWA()">✕</button>
+</div>
+
+<!-- ══ RECIBO POST-PEDIDO ══ -->
+<div class="recibo-modal" id="reciboModal">
+  <div class="recibo-inner">
+    <div class="recibo-check">✅</div>
+    <h2 class="recibo-title">¡Pedido confirmado!</h2>
+    <p class="recibo-sub">Tu pedido fue enviado por WhatsApp. Aquí tienes tu resumen:</p>
+    <div class="recibo-body" id="reciboBody"></div>
+    <div class="recibo-actions">
+      <button class="btn-primary" onclick="closeRecibo()">Seguir comprando</button>
+      <button class="btn-outline" onclick="compartirRecibo()">📤 Compartir recibo</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" onclick="overlayClick()"></div>

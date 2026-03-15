@@ -27,8 +27,8 @@ var CONFIG_WA = {
   // NOTA: Si el número no responde, visita callmebot.com para verificar
   //       el número actualizado — cambia ocasionalmente
   NUMERO:  "573503443140",   // Tu número con código de país, sin +
-  API_KEY: "https://api.callmebot.com/whatsapp.php?phone=573503443140&text=This+is+a+test&apikey=4942289",               // Tu API key de CallMeBot (dejar vacío = desactivado)
-  ACTIVO:  true,            // Cambiar a true cuando tengas la API key
+  API_KEY: "",               // Tu API key de CallMeBot (dejar vacío = desactivado)
+  ACTIVO:  false,            // Cambiar a true cuando tengas la API key
 };
 
 // Helper seguro para obtener el spreadsheet activo
@@ -372,6 +372,28 @@ function doGet(e) {
       // Guardar en caché por 5 minutos (300 segundos)
       try { cache.put(CACHE_KEY, JSON.stringify(resultado), 300); } catch(ce) {}
       return jsonResponse(resultado);
+    }
+
+    // ── Reseñas públicas ──────────────────────────────────
+    if (action === "resenas") {
+      var rSheet = ss.getSheetByName("Calificaciones");
+      if (!rSheet || rSheet.getLastRow() < 2) return jsonResponse({ ok: true, resenas: [] });
+      var rData = rSheet.getDataRange().getValues();
+      var rHdr  = rData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+      var rCOL  = {}; rHdr.forEach(function(h,i){ rCOL[h]=i; });
+      var resenas = rData.slice(1)
+        .filter(function(r){ return r[rCOL["estrellas"]] >= 4 && r[0] !== ""; })
+        .map(function(r){
+          return {
+            fecha:      String(r[rCOL["fecha"]]       || ""),
+            nombre:     String(r[rCOL["nombre"]]      || "Cliente").split(" ")[0],
+            estrellas:  Number(r[rCOL["estrellas"]]   || 5),
+            comentario: String(r[rCOL["comentario"]]  || ""),
+          };
+        })
+        .sort(function(a,b){ return b.estrellas - a.estrellas; })
+        .slice(0, 12);
+      return jsonResponse({ ok: true, resenas: resenas });
     }
 
     return jsonResponse({ ok: false, error: "Accion no reconocida: " + action });
