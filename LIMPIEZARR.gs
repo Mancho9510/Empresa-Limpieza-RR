@@ -120,6 +120,24 @@ function doGet(e) {
       return jsonResponse({ ok: true, pedidos: ultimos });
     }
 
+    // ── Admin: listar productos con stock ─────────────────
+    if (action === "admin_productos") {
+      var clave = e.parameter.clave || "";
+      if (clave !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+      var pSheet = ss.getSheetByName("Productos");
+      if (!pSheet) return jsonResponse({ ok: false, productos: [] });
+      var pData = pSheet.getDataRange().getValues();
+      var pHdr  = pData[0];
+      var pRows = pData.slice(1)
+        .filter(function(r) { return r[0] !== "" && r[0] !== null; })
+        .map(function(r, idx) {
+          var obj = { fila: idx + 2 };
+          pHdr.forEach(function(h, i) { obj[String(h).toLowerCase().trim()] = r[i]; });
+          return obj;
+        });
+      return jsonResponse({ ok: true, productos: pRows });
+    }
+
     // ── Admin: listar pedidos recientes ───────────────────
     if (action === "admin_pedidos") {
       var clave = e.parameter.clave || "";
@@ -174,6 +192,12 @@ function doPost(e) {
       var clave = body.clave || "";
       if (clave !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
       actualizarEstadoPedido(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_stock") {
+      var claveS = body.clave || "";
+      if (claveS !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarStockProducto(ss, body);
       return jsonResponse({ ok: true });
     }
     guardarPedido(ss, body);
@@ -497,4 +521,32 @@ function actualizarEstadoPedido(ss, body) {
   Logger.log("Estado actualizado fila " + fila + ": " + JSON.stringify({
     estado_envio: body.estado_envio, estado_pago: body.estado_pago
   }));
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR STOCK DESDE ADMIN
+   body: { accion, clave, fila, stock }
+────────────────────────────────────────────────────────────── */
+function actualizarStockProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+  var fila  = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+  var headers  = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var stkCol   = headers.map(function(h){ return String(h).toLowerCase().trim(); }).indexOf("stock") + 1;
+  if (!stkCol) return;
+  var nuevoStock = body.stock === "" ? "" : Number(body.stock);
+  sheet.getRange(fila, stkCol).setValue(nuevoStock);
+  // Colorear celda
+  var cell = sheet.getRange(fila, stkCol);
+  if (nuevoStock === "" || nuevoStock === null) {
+    cell.setBackground("#FFFFFF").setFontColor("#0F172A").setFontWeight("normal");
+  } else if (Number(nuevoStock) === 0) {
+    cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+  } else if (Number(nuevoStock) <= 5) {
+    cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+  } else {
+    cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal");
+  }
+  Logger.log("Stock actualizado fila " + fila + " = " + nuevoStock);
 }
