@@ -147,7 +147,7 @@
     <div class="px-4 pb-3 flex flex-col gap-2">
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="filterSearch" type="text" placeholder="🔍 Buscar nombre, teléfono, barrio..."
-               oninput="renderPedidos()"
+               oninput="onSearchPedidos()"
                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
         <div class="flex gap-2">
           <select id="filterPago" onchange="renderPedidos()" aria-label="Filtrar por estado de pago"
@@ -186,8 +186,23 @@
     </div>
 
     <!-- Lista de pedidos -->
-    <div id="pedidosWrap" class="flex-1 px-4 pb-6 space-y-2.5 overflow-y-auto">
+    <div id="pedidosWrap" class="flex-1 px-4 space-y-2.5 overflow-y-auto">
       <div class="text-center text-slate-500 py-16">⏳ Cargando pedidos...</div>
+    </div>
+    <!-- Paginación -->
+    <div id="paginacionWrap" class="hidden px-4 py-4 flex items-center justify-between gap-3 border-t border-slate-700 bg-slate-800/50 pb-24 sm:pb-4">
+      <button id="btnPagAnterior" onclick="cambiarPagina(-1)"
+              class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all">
+        ← Anterior
+      </button>
+      <div class="text-center">
+        <div id="paginaInfo" class="text-sm font-semibold text-white">Pág 1 de 1</div>
+        <div id="totalInfo"  class="text-xs text-slate-400 mt-0.5"></div>
+      </div>
+      <button id="btnPagSiguiente" onclick="cambiarPagina(1)"
+              class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all">
+        Siguiente →
+      </button>
     </div>
   </div>
 
@@ -424,9 +439,13 @@ const APPS_URL  = "https://script.google.com/macros/s/AKfycbwntGswrb4Omm-O9jiX3F
 const ADMIN_KEY = "LIMPIEZARR2025";
 
 /* ── ESTADO ── */
-let pedidos   = [];
-let productos = [];
-let tabActivo = "pedidos";
+let pedidos      = [];
+let productos    = [];
+let tabActivo    = "pedidos";
+let paginaActual = 1;
+let totalPaginas = 1;
+let totalPedidos = 0;
+let porPagina    = 50;
 
 /* ── LOGIN ── */
 function doLogin() {
@@ -512,11 +531,13 @@ function badgeEnvio(val) {
 /* ════════════════════════════════════════
    PEDIDOS
 ════════════════════════════════════════ */
-async function loadPedidos() {
+async function loadPedidos(pagina) {
+  if (pagina !== undefined) paginaActual = pagina;
   const wrap = document.getElementById("pedidosWrap");
-  wrap.innerHTML = '<div class="text-center text-slate-500 py-16 animate-pulse">⏳ Cargando pedidos...</div>';
+  wrap.innerHTML = '<div class="text-center text-slate-500 py-10 animate-pulse">⏳ Cargando pedidos...</div>';
   try {
-    const url = `${APPS_URL}?action=admin_pedidos&clave=${ADMIN_KEY}&t=${Date.now()}`;
+    const q   = (document.getElementById("filterSearch")?.value || "").trim();
+    const url = `${APPS_URL}?action=admin_pedidos&clave=${ADMIN_KEY}&pagina=${paginaActual}&por=${porPagina}${q ? "&q="+encodeURIComponent(q) : ""}&t=${Date.now()}`;
     let res;
     try {
       res = await fetch(url, { redirect: "follow" });
@@ -564,6 +585,14 @@ async function loadPedidos() {
       return;
     }
     pedidos = data.pedidos || [];
+    // Actualizar paginación
+    if (data.paginacion) {
+      paginaActual  = data.paginacion.pagina;
+      totalPaginas  = data.paginacion.totalPaginas;
+      totalPedidos  = data.paginacion.total;
+      porPagina     = data.paginacion.porPagina;
+      actualizarPaginacion();
+    }
     updateStatsPedidos();
     renderPedidos();
     showToast("✅ " + pedidos.length + " pedidos cargados");
@@ -845,12 +874,18 @@ function renderInventario() {
       sin:     "bg-slate-700/50 text-slate-400 border border-slate-600/40",
     }[st];
     const rowBg = idx % 2 === 0 ? "" : "bg-slate-800/40";
+    const imgSrc = p.imagen || "";
     return `
     <tr class="${rowBg} hover:bg-teal-900/10 border-b border-slate-800 transition group">
       <!-- Producto -->
       <td class="py-3 px-3">
         <div class="flex items-center gap-3">
-          <span class="text-xl flex-shrink-0 hidden sm:block">${p.emoji || "🧴"}</span>
+          <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-teal-900/40 flex items-center justify-center hidden sm:flex">
+            ${imgSrc
+              ? `<img src="${imgSrc}" alt="${p.nombre||''}" class="w-full h-full object-cover"
+                     onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\'text-xl\'>${p.emoji||'🧴'}</span>'">`
+              : `<span class="text-xl">${p.emoji||"🧴"}</span>`}
+          </div>
           <div class="min-w-0">
             <div class="font-semibold text-sm text-white">${p.nombre||""}</div>
             <div class="text-xs text-slate-400">${p.tamano||""}</div>
@@ -1154,6 +1189,39 @@ function exportarCSV() {
   link.click();
   URL.revokeObjectURL(url);
   showToast("✅ CSV exportado: " + lista.length + " pedidos");
+}
+
+/* ════════════════════════════════════════
+   PAGINACIÓN
+════════════════════════════════════════ */
+let searchTimer = null;
+function onSearchPedidos() {
+  clearTimeout(searchTimer);
+  // Debounce 500ms para no hacer petición en cada tecla
+  searchTimer = setTimeout(() => loadPedidos(1), 500);
+}
+
+function actualizarPaginacion() {
+  const wrap  = document.getElementById("paginacionWrap");
+  const info  = document.getElementById("paginaInfo");
+  const total = document.getElementById("totalInfo");
+  const prev  = document.getElementById("btnPagAnterior");
+  const next  = document.getElementById("btnPagSiguiente");
+  if (!wrap) return;
+  if (totalPaginas <= 1) { wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  info.textContent  = `Pág ${paginaActual} de ${totalPaginas}`;
+  total.textContent = `${totalPedidos} pedidos en total`;
+  prev.disabled = paginaActual <= 1;
+  next.disabled = paginaActual >= totalPaginas;
+}
+
+function cambiarPagina(delta) {
+  const nueva = paginaActual + delta;
+  if (nueva < 1 || nueva > totalPaginas) return;
+  loadPedidos(nueva);
+  // Scroll al tope de la lista
+  document.getElementById("pedidosWrap")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /* ── INIT ── */

@@ -19,9 +19,13 @@
 // ══════════════════════════════════════════════════════════
 var CONFIG_WA = {
   // Para activar notificaciones WhatsApp via CallMeBot:
-  // 1. Envía "I allow callmebot to send me messages" a +34 644 60 83 57 en WhatsApp
-  // 2. Recibirás tu API key
-  // 3. Pon tu número y API key aquí
+  // 1. Agrega el número +34 623 78 64 49 a tus contactos de WhatsApp
+  // 2. Envíale este mensaje exacto: "I allow callmebot to send me messages"
+  // 3. Recibirás tu API key en respuesta (puede tardar hasta 2 minutos)
+  //    Si no llega en 2 min, intenta de nuevo 24h después
+  // 4. Pon tu número y API key aquí y cambia ACTIVO a true
+  // NOTA: Si el número no responde, visita callmebot.com para verificar
+  //       el número actualizado — cambia ocasionalmente
   NUMERO:  "573503443140",   // Tu número con código de país, sin +
   API_KEY: "https://api.callmebot.com/whatsapp.php?phone=573503443140&text=This+is+a+test&apikey=4942289",               // Tu API key de CallMeBot (dejar vacío = desactivado)
   ACTIVO:  true,            // Cambiar a true cuando tengas la API key
@@ -146,6 +150,10 @@ function doGet(e) {
         .map(function(r, idx) {
           var obj = { fila: idx + 2 };
           pHdr.forEach(function(h, i) { obj[String(h).toLowerCase().trim()] = r[i]; });
+          // Convertir URLs de Drive para que sean imágenes directas
+          ["imagen","imagen2","imagen3"].forEach(function(key) {
+            if (obj[key]) obj[key] = sanitizeDriveUrl(String(obj[key]));
+          });
           return obj;
         });
       return jsonResponse({ ok: true, productos: pRows });
@@ -161,25 +169,54 @@ function doGet(e) {
       var aHdr  = aData[0];
       var aCOL  = {};
       aHdr.forEach(function(h, i) { aCOL[String(h).toLowerCase().trim()] = i; });
-      var todos = aData.slice(1)
-        .filter(function(r) { return r[0] !== "" && r[0] !== null; })
-        .map(function(r, idx) {
-          return {
-            fila:        idx + 2,
-            fecha:       String(r[aCOL["fecha"]]       || ""),
-            nombre:      String(r[aCOL["nombre"]]      || ""),
-            telefono:    String(r[aCOL["telefono"]]    || ""),
-            barrio:      String(r[aCOL["barrio"]]      || ""),
-            pago:        String(r[aCOL["pago"]]        || ""),
-            total:       Number(r[aCOL["total"]])       || 0,
-            estado_pago: String(r[aCOL["estado_pago"]] || "PENDIENTE"),
-            estado_envio:String(r[aCOL["estado_envio"]]|| "Recibido"),
-            productos:   String(r[aCOL["productos"]]   || ""),
-          };
-        })
-        .reverse() // más recientes primero
-        .slice(0, 50); // últimos 50
-      return jsonResponse({ ok: true, pedidos: todos });
+      var pagina   = Math.max(1, parseInt(e.parameter.pagina  || "1", 10));
+      var porPagina= Math.min(100, Math.max(10, parseInt(e.parameter.por || "50", 10)));
+      var busq     = String(e.parameter.q || "").toLowerCase();
+
+      var filaBase = 1; // para calcular fila real en sheet
+      var allRows  = aData.slice(1)
+        .filter(function(r) { return r[0] !== "" && r[0] !== null; });
+
+      var mapped = allRows.map(function(r, idx) {
+        return {
+          fila:        idx + 2,
+          fecha:       String(r[aCOL["fecha"]]       || ""),
+          nombre:      String(r[aCOL["nombre"]]      || ""),
+          telefono:    String(r[aCOL["telefono"]]    || ""),
+          barrio:      String(r[aCOL["barrio"]]      || ""),
+          ciudad:      String(r[aCOL["ciudad"]]      || ""),
+          direccion:   String(r[aCOL["direccion"]]   || ""),
+          casa:        String(r[aCOL["casa"]]        || ""),
+          pago:        String(r[aCOL["pago"]]        || ""),
+          zona_envio:  String(r[aCOL["zona_envio"]]  || ""),
+          total:       Number(r[aCOL["total"]])       || 0,
+          subtotal:    Number(r[aCOL["subtotal"]])    || 0,
+          costo_envio: Number(r[aCOL["costo_envio"]]) || 0,
+          cupon:       String(r[aCOL["cupon"]]       || ""),
+          descuento:   Number(r[aCOL["descuento"]])   || 0,
+          estado_pago: String(r[aCOL["estado_pago"]] || "PENDIENTE"),
+          estado_envio:String(r[aCOL["estado_envio"]]|| "Recibido"),
+          productos:   String(r[aCOL["productos"]]   || ""),
+          nota:        String(r[aCOL["nota"]]        || ""),
+        };
+      }).reverse(); // más recientes primero
+
+      // Filtro de búsqueda server-side si viene parámetro q
+      if (busq) {
+        mapped = mapped.filter(function(p) {
+          return (p.nombre + p.telefono + p.barrio + p.ciudad).toLowerCase().indexOf(busq) >= 0;
+        });
+      }
+
+      var total     = mapped.length;
+      var totalPags = Math.ceil(total / porPagina);
+      var inicio    = (pagina - 1) * porPagina;
+      var pedidos   = mapped.slice(inicio, inicio + porPagina);
+
+      return jsonResponse({
+        ok: true, pedidos: pedidos,
+        paginacion: { pagina: pagina, porPagina: porPagina, total: total, totalPaginas: totalPags }
+      });
     }
 
     // ── Admin: métricas del dashboard ─────────────────────
@@ -750,4 +787,49 @@ function actualizarStockProducto(ss, body) {
     cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal");
   }
   Logger.log("Stock actualizado fila " + fila + " = " + nuevoStock);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRIGGER DE TIEMPO — refrescar dashboard automáticamente
+   
+   Ejecutar UNA VEZ: instalarTriggerHorario()
+   Esto crea un trigger que invalida el caché cada hora,
+   para que el dashboard siempre tenga datos frescos.
+   
+   Para desactivar: desinstalarTriggerHorario()
+══════════════════════════════════════════════════════════════ */
+function invalidarCacheDashboard() {
+  try {
+    CacheService.getScriptCache().remove("admin_dashboard_v1");
+    Logger.log("Caché del dashboard invalidado automáticamente - " +
+      Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm"));
+  } catch(e) {
+    Logger.log("Error invalidando caché: " + e.message);
+  }
+}
+
+function instalarTriggerHorario() {
+  // Eliminar triggers existentes para evitar duplicados
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "invalidarCacheDashboard") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  // Crear trigger que corre cada hora
+  ScriptApp.newTrigger("invalidarCacheDashboard")
+    .timeBased()
+    .everyHours(1)
+    .create();
+  Logger.log("✅ Trigger horario instalado. El dashboard se actualizará cada hora.");
+}
+
+function desinstalarTriggerHorario() {
+  var count = 0;
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "invalidarCacheDashboard") {
+      ScriptApp.deleteTrigger(t);
+      count++;
+    }
+  });
+  Logger.log("Triggers eliminados: " + count);
 }
