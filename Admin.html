@@ -144,28 +144,45 @@
     </div>
 
     <!-- Filtros pedidos -->
-    <div class="px-4 pb-3 flex flex-col sm:flex-row gap-2">
-      <input id="filterSearch" type="text" placeholder="🔍 Buscar nombre, teléfono, barrio..."
-             oninput="renderPedidos()"
-             class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
-      <div class="flex gap-2">
-        <select id="filterPago" onchange="renderPedidos()" aria-label="Filtrar por estado de pago"
-                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
-          <option value="">Todos los pagos</option>
-          <option value="PENDIENTE">Pendiente</option>
-          <option value="PAGADO">Pagado</option>
-          <option value="CONTRA ENTREGA">Contra entrega</option>
-        </select>
-        <select id="filterEnvio" onchange="renderPedidos()" aria-label="Filtrar por estado de envío"
-                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
-          <option value="">Todo envío</option>
-          <option value="Recibido">Recibido</option>
-          <option value="En preparación">En prep.</option>
-          <option value="En camino">En camino</option>
-          <option value="Entregado">Entregado</option>
-        </select>
+    <div class="px-4 pb-3 flex flex-col gap-2">
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="filterSearch" type="text" placeholder="🔍 Buscar nombre, teléfono, barrio..."
+               oninput="renderPedidos()"
+               class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
+        <div class="flex gap-2">
+          <select id="filterPago" onchange="renderPedidos()" aria-label="Filtrar por estado de pago"
+                  class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+            <option value="">Todos los pagos</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="PAGADO">Pagado</option>
+            <option value="CONTRA ENTREGA">Contra entrega</option>
+          </select>
+          <select id="filterEnvio" onchange="renderPedidos()" aria-label="Filtrar por estado de envío"
+                  class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-teal-500 transition">
+            <option value="">Todo envío</option>
+            <option value="Recibido">Recibido</option>
+            <option value="En preparación">En prep.</option>
+            <option value="En camino">En camino</option>
+            <option value="Entregado">Entregado</option>
+          </select>
+        </div>
       </div>
-      <span id="filterCount" class="text-xs text-slate-500 self-center whitespace-nowrap"></span>
+      <!-- Filtro fecha + acciones -->
+      <div class="flex flex-wrap gap-2 items-center">
+        <input id="filterFechaDesde" type="date" onchange="renderPedidos()" aria-label="Fecha desde"
+               class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
+        <span class="text-slate-500 text-xs">hasta</span>
+        <input id="filterFechaHasta" type="date" onchange="renderPedidos()" aria-label="Fecha hasta"
+               class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
+        <button onclick="limpiarFiltros()" class="text-xs text-slate-400 hover:text-white underline transition">Limpiar</button>
+        <div class="ml-auto flex gap-2">
+          <span id="filterCount" class="text-xs text-slate-500 self-center whitespace-nowrap"></span>
+          <button onclick="exportarCSV()"
+                  class="flex items-center gap-1.5 bg-slate-700 hover:bg-green-700 border border-slate-600 hover:border-green-600 text-slate-300 hover:text-white rounded-lg px-3 py-2 text-xs font-semibold transition-all">
+            📥 Exportar CSV
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Lista de pedidos -->
@@ -573,10 +590,24 @@ function renderPedidos() {
   const q    = (document.getElementById("filterSearch").value || "").toLowerCase();
   const fP   = document.getElementById("filterPago").value;
   const fE   = document.getElementById("filterEnvio").value;
+  const fDesde = document.getElementById("filterFechaDesde")?.value || "";
+  const fHasta = document.getElementById("filterFechaHasta")?.value || "";
+  const ahora  = new Date();
+  const ayer24 = new Date(ahora.getTime() - 24*60*60*1000);
+
   const lista = pedidos.filter(p => {
     if (q && ![(p.nombre||""),(String(p.telefono)||""),(p.barrio||"")].join(" ").toLowerCase().includes(q)) return false;
     if (fP && (p.estado_pago||"").toUpperCase() !== fP.toUpperCase()) return false;
     if (fE && (p.estado_envio||"") !== fE) return false;
+    if (fDesde || fHasta) {
+      try {
+        const fp = new Date(String(p.fecha||""));
+        if (!isNaN(fp.getTime())) {
+          if (fDesde && fp < new Date(fDesde)) return false;
+          if (fHasta && fp > new Date(fHasta + "T23:59:59")) return false;
+        }
+      } catch(e) {}
+    }
     return true;
   });
   document.getElementById("filterCount").textContent = lista.length !== pedidos.length ? `${lista.length}/${pedidos.length}` : `${pedidos.length}`;
@@ -1057,6 +1088,72 @@ function renderDashboard(d) {
       <span class="text-xs font-bold text-slate-300 w-16 text-right flex-shrink-0">${e.val} (${pct}%)</span>
     </div>`;
   }).join("");
+}
+
+/* ════════════════════════════════════════
+   UTILIDADES PEDIDOS
+════════════════════════════════════════ */
+// Badge NUEVO si el pedido tiene menos de 24h
+function isNuevo(fechaStr) {
+  try {
+    const fd = new Date(String(fechaStr||""));
+    if (isNaN(fd.getTime())) return false;
+    return (Date.now() - fd.getTime()) < 24 * 60 * 60 * 1000;
+  } catch(e) { return false; }
+}
+
+function limpiarFiltros() {
+  const ids = ["filterSearch","filterPago","filterEnvio","filterFechaDesde","filterFechaHasta"];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  renderPedidos();
+}
+
+function exportarCSV() {
+  const fDesde = document.getElementById("filterFechaDesde")?.value || "";
+  const fHasta = document.getElementById("filterFechaHasta")?.value || "";
+  const fP     = document.getElementById("filterPago")?.value || "";
+  const fE     = document.getElementById("filterEnvio")?.value || "";
+  const q      = (document.getElementById("filterSearch")?.value || "").toLowerCase();
+
+  // Usar los mismos filtros activos
+  const lista = pedidos.filter(p => {
+    if (q && ![(p.nombre||""),(String(p.telefono)||""),(p.barrio||"")].join(" ").toLowerCase().includes(q)) return false;
+    if (fP && (p.estado_pago||"").toUpperCase() !== fP.toUpperCase()) return false;
+    if (fE && (p.estado_envio||"") !== fE) return false;
+    if (fDesde || fHasta) {
+      try {
+        const fp = new Date(String(p.fecha||""));
+        if (!isNaN(fp.getTime())) {
+          if (fDesde && fp < new Date(fDesde)) return false;
+          if (fHasta && fp > new Date(fHasta + "T23:59:59")) return false;
+        }
+      } catch(e) {}
+    }
+    return true;
+  });
+
+  if (!lista.length) { showToast("⚠️ Sin pedidos para exportar"); return; }
+
+  const cols = ["fecha","nombre","telefono","barrio","pago","zona_envio","total","estado_pago","estado_envio","productos"];
+  const header = cols.join(",");
+  const rows   = lista.map(p =>
+    cols.map(col => {
+      const val = String(p[col] || "").replace(/"/g, "'").replace(/\n/g, " | ");
+      return '"' + val + '"';
+    }).join(",")
+  );
+  const nl  = "\n";
+  const bom = "\uFEFF";
+  const csv = bom + header + nl + rows.join(nl); // BOM para Excel
+  const blob    = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url     = URL.createObjectURL(blob);
+  const link    = document.createElement("a");
+  const fecha   = new Date().toISOString().slice(0,10);
+  link.href     = url;
+  link.download = "pedidos_LimpiezaRR_" + fecha + ".csv";
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast("✅ CSV exportado: " + lista.length + " pedidos");
 }
 
 /* ── INIT ── */

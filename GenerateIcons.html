@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generar íconos PWA — Limpieza RR</title>
+  <style>
+    body { font-family: sans-serif; background: #0F172A; color: #F1F5F9; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 20px; padding: 20px; }
+    h1   { font-size: 1.4rem; color: #14B8A6; }
+    p    { color: #94A3B8; font-size: .9rem; text-align: center; max-width: 400px; }
+    .previews { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; justify-content: center; }
+    canvas { border-radius: 22%; box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+    .btn {
+      background: #0D9488; color: #fff; border: none; border-radius: 10px;
+      padding: 12px 28px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s;
+    }
+    .btn:hover { background: #0F766E; }
+    .label { text-align: center; margin-top: 6px; font-size: .8rem; color: #94A3B8; }
+    .step  { background: #1E293B; border: 1px solid #334155; border-radius: 14px; padding: 20px 28px; max-width: 480px; width: 100%; }
+    .step h3 { color: #14B8A6; margin-bottom: 8px; }
+    .step li { color: #94A3B8; font-size: .88rem; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>🖼️ Generador de íconos PWA — Limpieza RR</h1>
+  <p>Abre este archivo en el navegador, presiona el botón y se descargarán los íconos automáticamente.</p>
+
+  <div class="previews">
+    <div>
+      <canvas id="c192" width="192" height="192"></canvas>
+      <div class="label">icon-192.png</div>
+    </div>
+    <div>
+      <canvas id="c512" width="512" height="512"></canvas>
+      <div class="label">icon-512.png</div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="descargarIconos()">⬇️ Descargar ambos íconos</button>
+
+  <div class="step">
+    <h3>Cómo instalar los íconos:</h3>
+    <ol>
+      <li>Presiona el botón de arriba — se descargan 2 archivos PNG</li>
+      <li>Crea la carpeta <code>icons/</code> en tu repositorio</li>
+      <li>Sube <code>icon-192.png</code> y <code>icon-512.png</code> a esa carpeta</li>
+      <li>¡Listo! La PWA ya tendrá íconos en móviles</li>
+    </ol>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const ctx  = canvas.getContext("2d");
+      const s    = canvas.width;
+      const r    = s * 0.5;
+
+      // Fondo círculo teal
+      ctx.beginPath();
+      ctx.arc(r, r, r, 0, Math.PI * 2);
+      const grad = ctx.createRadialGradient(r * 0.7, r * 0.6, 0, r, r, r);
+      grad.addColorStop(0, "#14B8A6");
+      grad.addColorStop(1, "#0F766E");
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Gota de agua
+      const cx = r, cy = r * 0.95;
+      const dropH = s * 0.52, dropW = s * 0.32;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - dropH * 0.52);
+      ctx.bezierCurveTo(cx + dropW * 0.1, cy - dropH * 0.3,
+                        cx + dropW * 0.5, cy,
+                        cx,               cy + dropH * 0.48);
+      ctx.bezierCurveTo(cx - dropW * 0.5, cy,
+                        cx - dropW * 0.1, cy - dropH * 0.3,
+                        cx,               cy - dropH * 0.52);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fill();
+
+      // Reflejo en la gota
+      ctx.beginPath();
+      ctx.ellipse(cx - dropW * 0.12, cy - dropH * 0.08, dropW * 0.1, dropH * 0.15, -0.4, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.fill();
+
+      // Texto RR
+      ctx.font = `bold ${s * 0.185}px Arial Black, sans-serif`;
+      ctx.fillStyle = "#0F766E";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("RR", cx, cy + dropH * 0.07);
+
+      // Burbujas decorativas
+      const bubbles = [
+        { x: r * 0.3,  y: r * 0.38, r: r * 0.09 },
+        { x: r * 1.7,  y: r * 0.28, r: r * 0.065 },
+        { x: r * 1.73, y: r * 1.34, r: r * 0.115 },
+      ];
+      bubbles.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.fill();
+      });
+    }
+
+    // Dibujar previews al cargar
+    drawIcon(document.getElementById("c192"));
+    drawIcon(document.getElementById("c512"));
+
+    function descargarIconos() {
+      ["192", "512"].forEach(sz => {
+        const canvas = document.getElementById("c" + sz);
+        const link   = document.createElement("a");
+        link.download = "icon-" + sz + ".png";
+        link.href     = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
