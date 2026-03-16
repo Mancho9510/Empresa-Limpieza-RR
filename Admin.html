@@ -114,6 +114,10 @@
             class="tab-btn flex items-center gap-2 px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
       📊 <span>Dashboard</span>
     </button>
+    <button id="tab-rentabilidad" onclick="switchTab('rentabilidad')"
+            class="tab-btn flex items-center gap-2 px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+      💰 <span>Rentabilidad</span>
+    </button>
   </div>
 
   <!-- ── PANEL PEDIDOS ── -->
@@ -264,7 +268,9 @@
           <tr class="border-b border-slate-700">
             <th class="text-left text-xs font-bold text-slate-400 tracking-wider py-3 px-3">PRODUCTO</th>
             <th class="text-left text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden sm:table-cell">CATEGORÍA</th>
-            <th class="text-right text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden md:table-cell">PRECIO</th>
+            <th class="text-right text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden md:table-cell">PRECIO VENTA</th>
+            <th class="text-right text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden lg:table-cell">COSTO</th>
+            <th class="text-center text-xs font-bold text-slate-400 tracking-wider py-3 px-3 hidden lg:table-cell">GANANCIA</th>
             <th class="text-center text-xs font-bold text-slate-400 tracking-wider py-3 px-3">STOCK</th>
             <th class="text-center text-xs font-bold text-slate-400 tracking-wider py-3 px-3">ACTUALIZAR</th>
           </tr>
@@ -404,6 +410,129 @@
     </div>
   </div>
 
+  <!-- ══ PANEL RENTABILIDAD ══ -->
+  <div id="panel-rentabilidad" class="tab-panel hidden flex-1 flex-col">
+    <div class="p-4 space-y-4 overflow-y-auto pb-24 sm:pb-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 class="font-display font-extrabold text-lg text-white">💰 Rentabilidad</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Basada en los costos ingresados en Inventario</p>
+        </div>
+        <button onclick="loadRentabilidad(true)"
+                class="text-xs bg-teal-700/40 hover:bg-teal-600/60 border border-teal-600/40 text-teal-300 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+          Actualizar
+        </button>
+      </div>
+
+      <!-- Estado carga -->
+      <div id="rentLoading" class="text-center text-slate-500 py-16 animate-pulse">⏳ Calculando rentabilidad...</div>
+
+      <!-- Contenido -->
+      <div id="rentContent" class="hidden space-y-4">
+
+        <!-- Alerta sin costos -->
+        <div id="rentAlertaSinCosto" class="hidden bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-4">
+          <div class="text-yellow-400 font-semibold text-sm">⚠️ Tienes <span id="rentNumSinCosto">0</span> productos sin costo ingresado</div>
+          <p class="text-yellow-300/70 text-xs mt-1">Ve a la pestaña <strong>Inventario</strong>, busca el producto y usa el botón amarillo <strong>"Costo"</strong> para ingresar tu precio de compra.</p>
+        </div>
+
+        <!-- KPIs principales -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-gradient-to-br from-green-900/50 to-green-800/30 border border-green-700/40 rounded-2xl p-4 text-center">
+            <div class="text-xs text-green-300/80 font-semibold tracking-wide mb-1">MARGEN PROMEDIO</div>
+            <div id="rentAvgGan" class="font-display font-extrabold text-3xl text-white">—</div>
+            <div class="text-xs text-green-300/60 mt-0.5">sobre costo</div>
+          </div>
+          <div class="bg-gradient-to-br from-teal-900/50 to-teal-800/30 border border-teal-700/40 rounded-2xl p-4 text-center">
+            <div class="text-xs text-teal-300/80 font-semibold tracking-wide mb-1">GANANCIA REAL</div>
+            <div id="rentGanReal" class="font-display font-extrabold text-2xl text-white">—</div>
+            <div class="text-xs text-teal-300/60 mt-0.5">en ventas realizadas</div>
+          </div>
+        </div>
+
+        <!-- KPIs secundarios -->
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-500 font-semibold mb-1">CON COSTO</div>
+            <div id="rentConCosto" class="font-display font-bold text-xl text-teal-400">—</div>
+            <div class="text-xs text-slate-500">productos</div>
+          </div>
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-500 font-semibold mb-1">SIN COSTO</div>
+            <div id="rentSinCosto" class="font-display font-bold text-xl text-yellow-400">—</div>
+            <div class="text-xs text-slate-500">pendientes</div>
+          </div>
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-500 font-semibold mb-1">INVERSIÓN</div>
+            <div id="rentInversion" class="font-display font-bold text-lg text-slate-300">—</div>
+            <div class="text-xs text-slate-500">en stock</div>
+          </div>
+        </div>
+
+        <!-- Cómo calcular — guía rápida -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+          <div class="text-xs text-slate-400 font-semibold tracking-wide mb-3">📐 CÓMO SE CALCULA</div>
+          <div class="space-y-2 text-xs text-slate-400">
+            <div class="flex items-start gap-2">
+              <span class="text-teal-400 font-bold flex-shrink-0">Ganancia %</span>
+              <span>= ((Precio venta − Costo) / Costo) × 100</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-teal-400 font-bold flex-shrink-0">Ejemplo</span>
+              <span>Vendes a $6.500, te costó $3.500 → ((6.500−3.500)/3.500)×100 = <strong class="text-green-400">85.7%</strong></span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-teal-400 font-bold flex-shrink-0">Colores</span>
+              <span><span class="text-red-400">🔴 &lt;10%</span> · <span class="text-yellow-400">🟡 10–30%</span> · <span class="text-green-400">🟢 &gt;30%</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top más rentables -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-xs text-slate-400 font-semibold tracking-wide">🏆 MÁS RENTABLES</div>
+            <div class="text-xs text-slate-600">Top 5 por % margen</div>
+          </div>
+          <div id="rentTopRent" class="space-y-2"></div>
+        </div>
+
+        <!-- Tabla completa de todos los productos -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div class="text-xs text-slate-400 font-semibold tracking-wide">📋 TODOS LOS PRODUCTOS</div>
+            <input id="rentSearch" type="text" placeholder="Buscar..." oninput="filtrarRentabilidad()"
+                   class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-teal-500 transition w-40">
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-700">
+                  <th class="text-left font-bold text-slate-400 py-2 px-2">Producto</th>
+                  <th class="text-right font-bold text-slate-400 py-2 px-2">Venta</th>
+                  <th class="text-right font-bold text-slate-400 py-2 px-2">Costo</th>
+                  <th class="text-right font-bold text-slate-400 py-2 px-2">Ganancia/ud</th>
+                  <th class="text-center font-bold text-slate-400 py-2 px-2">Margen</th>
+                </tr>
+              </thead>
+              <tbody id="rentTabla"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Menos rentables — atención -->
+        <div class="bg-slate-800 border border-yellow-700/30 rounded-2xl p-4">
+          <div class="text-xs text-yellow-400/80 font-semibold tracking-wide mb-3">⚠️ MENOR MARGEN — considera ajustar precios</div>
+          <div id="rentMenosRent" class="space-y-2"></div>
+        </div>
+
+      </div><!-- /rentContent -->
+    </div>
+  </div>
+
   <!-- NAV BOTTOM (mobile) -->
   <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-800/95 backdrop-blur border-t border-slate-700 flex pb-safe">
     <button onclick="switchTab('pedidos')" id="nav-pedidos"
@@ -420,6 +549,11 @@
             class="flex-1 flex flex-col items-center py-3 gap-0.5 text-slate-400 transition">
       <span class="text-xl">📊</span>
       <span class="text-xs font-semibold">Dashboard</span>
+    </button>
+    <button onclick="switchTab('rentabilidad')" id="nav-rentabilidad"
+            class="flex-1 flex flex-col items-center py-3 gap-0.5 text-slate-400 transition">
+      <span class="text-xl">💰</span>
+      <span class="text-xs font-semibold">Ganancias</span>
     </button>
   </nav>
 
@@ -486,8 +620,9 @@ function switchTab(tab) {
   const activePanel = document.getElementById("panel-" + tab);
   activePanel.classList.remove("hidden");
   activePanel.classList.add("flex");
-  // Cargar dashboard al primera vez que se abre
-  if (tab === "dashboard" && !dashData) loadDashboard();
+  // Cargar datos al primera vez que se abre la pestaña
+  if (tab === "dashboard"     && !dashData)   loadDashboard();
+  if (tab === "rentabilidad"  && !rentData)   loadRentabilidad();
   // Nav bottom
   document.querySelectorAll("[id^='nav-']").forEach(b => {
     b.classList.remove("text-teal-400");
@@ -859,12 +994,26 @@ function renderInventario() {
 
   const tbody = document.getElementById("invList");
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-16">📭 Sin productos</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-16">📭 Sin productos</td></tr>';
     return;
   }
 
   tbody.innerHTML = lista.map((p, idx) => {
-    const precio = !isNaN(Number(p.precio)) ? fmt(Number(p.precio)) : "—";
+    const precioV = !isNaN(Number(p.precio)) ? fmt(Number(p.precio)) : "—";
+    const costoV  = (p.costo && Number(p.costo) > 0) ? fmt(Number(p.costo)) : "—";
+    const ganPct  = p.ganancia_calc !== null && p.ganancia_calc !== undefined
+      ? p.ganancia_calc : null;
+    const ganPesos= p.ganancia_pesos !== null && p.ganancia_pesos !== undefined
+      ? p.ganancia_pesos : null;
+
+    // Color del % de ganancia
+    let ganClass = "text-slate-400", ganBg = "bg-slate-700/40";
+    if (ganPct !== null) {
+      if (ganPct < 10)      { ganClass = "text-red-300";    ganBg = "bg-red-900/40"; }
+      else if (ganPct < 30) { ganClass = "text-yellow-300"; ganBg = "bg-yellow-900/40"; }
+      else                  { ganClass = "text-green-300";  ganBg = "bg-green-900/40"; }
+    }
+
     const st     = getStockStatus(p);
     const stockActual = (p.stock !== "" && p.stock !== null && p.stock !== undefined) ? p.stock : "—";
     const pillCls = {
@@ -896,9 +1045,22 @@ function renderInventario() {
       <td class="py-3 px-3 hidden sm:table-cell">
         <span class="text-xs bg-slate-700 text-slate-300 rounded-full px-2.5 py-1">${p.categoria||""}</span>
       </td>
-      <!-- Precio -->
+      <!-- Precio venta -->
       <td class="py-3 px-3 text-right hidden md:table-cell">
-        <span class="text-sm font-semibold text-teal-300">${precio}</span>
+        <span class="text-sm font-semibold text-teal-300">${precioV}</span>
+      </td>
+      <!-- Costo -->
+      <td class="py-3 px-3 text-right hidden lg:table-cell">
+        <span class="text-sm text-slate-300">${costoV}</span>
+      </td>
+      <!-- Ganancia -->
+      <td class="py-3 px-3 text-center hidden lg:table-cell">
+        ${ganPct !== null
+          ? `<div>
+               <span class="text-xs font-bold rounded-full px-2.5 py-1 ${ganBg} ${ganClass}">${ganPct}%</span>
+               <div class="text-xs text-slate-500 mt-0.5">${ganPesos !== null ? fmt(ganPesos) : ""} / ud</div>
+             </div>`
+          : `<span class="text-xs text-slate-600">Sin costo</span>`}
       </td>
       <!-- Stock actual -->
       <td class="py-3 px-3 text-center">
@@ -914,13 +1076,52 @@ function renderInventario() {
                  onkeydown="if(event.key==='Enter') guardarStock(${p.fila})">
           <button id="btnStkSave-${p.fila}" onclick="guardarStock(${p.fila})"
                   class="bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition-all whitespace-nowrap">
-            Guardar
+            Stock
           </button>
           <span id="stkMsg-${p.fila}" class="text-xs text-green-400 hidden">✅</span>
+        </div>
+        <!-- Editar costo -->
+        <div class="flex items-center gap-1 mt-1.5">
+          <input id="costoIn-${p.fila}" type="number" min="0"
+                 placeholder="${p.costo && Number(p.costo) > 0 ? p.costo : "costo"}"
+                 aria-label="Costo para ${p.nombre}"
+                 class="w-20 bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-xs text-white text-center outline-none focus:border-yellow-500 transition"
+                 onkeydown="if(event.key==='Enter') guardarCosto(${p.fila})">
+          <button onclick="guardarCosto(${p.fila})"
+                  class="bg-yellow-600 hover:bg-yellow-700 active:scale-95 text-white text-xs font-bold rounded-lg px-2 py-1.5 transition-all whitespace-nowrap">
+            Costo
+          </button>
         </div>
       </td>
     </tr>`;
   }).join("");
+}
+
+async function guardarCosto(fila) {
+  const input = document.getElementById("costoIn-" + fila);
+  const btn   = input ? input.nextElementSibling : null;
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val || isNaN(Number(val))) { showToast("⚠️ Ingresa un costo válido"); return; }
+  if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+  try {
+    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ accion:"actualizar_costo", clave:ADMIN_KEY, fila, costo: Number(val) }) }).then(r=>r.json());
+    if (data.ok) {
+      const p = productos.find(x=>x.fila===fila);
+      if (p) {
+        p.costo = Number(val);
+        if (p.precio && Number(p.precio) > 0) {
+          p.ganancia_calc  = Math.round(((Number(p.precio) - p.costo) / p.costo) * 100 * 10) / 10;
+          p.ganancia_pesos = Number(p.precio) - p.costo;
+        }
+      }
+      updateStatsInv();
+      renderInventario();
+      showToast("✅ Costo actualizado");
+    } else { showToast("❌ " + (data.error||"Error")); }
+  } catch(e) { showToast("❌ Sin conexión"); }
+  if (btn) { btn.disabled = false; btn.textContent = "Costo"; }
 }
 
 async function guardarStock(fila) {
@@ -969,6 +1170,7 @@ async function loadDashboard() {
     renderDashboard(data);
     loading.classList.add("hidden");
     content.classList.remove("hidden");
+    // Rentabilidad tiene su propia pestaña — no se carga aquí
     // Mostrar metadatos
     const meta = document.getElementById("dashMeta");
     if (meta) {
@@ -1222,6 +1424,151 @@ function cambiarPagina(delta) {
   loadPedidos(nueva);
   // Scroll al tope de la lista
   document.getElementById("pedidosWrap")?.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ════════════════════════════════════════
+   RENTABILIDAD
+════════════════════════════════════════ */
+let rentData = null;
+let rentTodos = [];
+
+async function loadRentabilidad(forceRefresh) {
+  const loading = document.getElementById("rentLoading");
+  const content = document.getElementById("rentContent");
+  if (!loading) return; // panel no está en DOM aún
+  loading.classList.remove("hidden"); loading.classList.add("animate-pulse");
+  content?.classList.add("hidden");
+  try {
+    const url  = `${APPS_URL}?action=admin_rentabilidad&clave=${ADMIN_KEY}${forceRefresh?"&refresh=1":""}&t=${Date.now()}`;
+    const res  = await fetch(url, { redirect:"follow" });
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch(e) {
+      loading.textContent = "⚠️ Error al cargar datos de rentabilidad";
+      loading.classList.remove("animate-pulse"); return;
+    }
+    if (!data.ok) { loading.textContent = "❌ " + data.error; loading.classList.remove("animate-pulse"); return; }
+    rentData  = data;
+    rentTodos = data.todos || [];
+    renderRentabilidad(data);
+    loading.classList.add("hidden");
+    content?.classList.remove("hidden");
+  } catch(err) {
+    loading.textContent = "⚠️ " + err.message;
+    loading.classList.remove("animate-pulse");
+  }
+}
+
+function filtrarRentabilidad() {
+  const q = (document.getElementById("rentSearch")?.value || "").toLowerCase();
+  renderTablaRent(q ? rentTodos.filter(p =>
+    (p.nombre + " " + p.tamano + " " + p.categoria).toLowerCase().includes(q)
+  ) : rentTodos);
+}
+
+function renderTablaRent(lista) {
+  const tbody = document.getElementById("rentTabla");
+  if (!tbody) return;
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-8">Sin resultados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map((p, i) => {
+    const hasData  = p.costo > 0 && p.precio > 0;
+    const pct      = p.ganancia_calc;
+    const ganPesos = p.ganancia_pesos;
+    const colorPct = !hasData ? "text-slate-600"
+      : pct >= 30 ? "text-green-400" : pct >= 10 ? "text-yellow-400" : "text-red-400";
+    const bgRow    = i % 2 === 0 ? "" : "bg-slate-800/30";
+    return `
+    <tr class="${bgRow} hover:bg-teal-900/10 border-b border-slate-800/60">
+      <td class="py-2 px-2">
+        <div class="font-semibold text-white">${p.nombre}</div>
+        <div class="text-slate-500">${p.tamano} · ${p.categoria}</div>
+      </td>
+      <td class="py-2 px-2 text-right text-teal-300">${p.precio > 0 ? fmt(p.precio) : "—"}</td>
+      <td class="py-2 px-2 text-right text-slate-300">${p.costo > 0 ? fmt(p.costo) : '<span class="text-yellow-600">Sin costo</span>'}</td>
+      <td class="py-2 px-2 text-right ${colorPct} font-semibold">${ganPesos !== null ? fmt(ganPesos) : "—"}</td>
+      <td class="py-2 px-2 text-center">
+        ${hasData
+          ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${colorPct.replace('text-','bg-').replace('-400','-900/50')} ${colorPct}">${pct.toFixed(1)}%</span>`
+          : '<span class="text-slate-600 text-xs">—</span>'}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function renderRentabilidad(d) {
+  const r = d.resumen;
+
+  // KPIs pestaña rentabilidad
+  const avgColor = r.avgGanPct >= 30 ? "text-green-400" : r.avgGanPct >= 10 ? "text-yellow-400" : r.avgGanPct > 0 ? "text-red-400" : "text-slate-400";
+  const avgEl = document.getElementById("rentAvgGan");
+  if (avgEl) { avgEl.textContent = r.avgGanPct > 0 ? r.avgGanPct.toFixed(1) + "%" : "—"; avgEl.className = avgEl.className.replace(/text-\w+-\d+/g,"") + " " + avgColor; }
+  const ganEl = document.getElementById("rentGanReal");
+  if (ganEl) ganEl.textContent = r.gananciaReal > 0 ? fmt(r.gananciaReal) : "—";
+  const ccEl = document.getElementById("rentConCosto");
+  if (ccEl) ccEl.textContent = r.conCosto;
+  const scEl = document.getElementById("rentSinCosto");
+  if (scEl) scEl.textContent = r.sinCosto;
+  const invEl = document.getElementById("rentInversion");
+  if (invEl) invEl.textContent = r.totalInversion > 0 ? fmt(r.totalInversion) : "—";
+
+  // Alerta sin costo
+  const alertaEl = document.getElementById("rentAlertaSinCosto");
+  const numScEl  = document.getElementById("rentNumSinCosto");
+  if (alertaEl && r.sinCosto > 0) {
+    alertaEl.classList.remove("hidden");
+    if (numScEl) numScEl.textContent = r.sinCosto;
+  } else if (alertaEl) { alertaEl.classList.add("hidden"); }
+
+  // Top rentables
+  const topEl = document.getElementById("rentTopRent");
+  if (topEl) {
+    const medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
+    topEl.innerHTML = d.topRentables.length
+      ? d.topRentables.map((p, i) => {
+          const pct   = p.ganancia_pct;
+          const color = pct >= 30 ? "text-green-400" : pct >= 10 ? "text-yellow-400" : "text-red-400";
+          const bgBadge = pct >= 30 ? "bg-green-900/40" : pct >= 10 ? "bg-yellow-900/40" : "bg-red-900/40";
+          return `
+          <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/50 last:border-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-base flex-shrink-0">${medals[i]||"▪"}</span>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-white truncate">${p.nombre}</div>
+                <div class="text-xs text-slate-500">${p.tamano} · ${p.categoria}</div>
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+              <span class="text-xs font-bold rounded-full px-2.5 py-0.5 ${bgBadge} ${color}">${pct.toFixed(1)}%</span>
+              <span class="text-xs text-slate-500">${fmt(p.precio)} − ${fmt(p.costo)} = ${fmt(p.ganancia_pesos)}/ud</span>
+            </div>
+          </div>`;
+        }).join("")
+      : '<div class="text-xs text-slate-500 py-4 text-center">Ingresa costos en Inventario para ver el ranking</div>';
+  }
+
+  // Tabla completa
+  renderTablaRent(d.todos || []);
+
+  // Menos rentables
+  const menosEl = document.getElementById("rentMenosRent");
+  if (menosEl) {
+    menosEl.innerHTML = d.menosRentables.length
+      ? d.menosRentables.map(p => {
+          const pct   = p.ganancia_pct;
+          const color = pct < 10 ? "text-red-400" : "text-yellow-400";
+          return `
+          <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-700/50 last:border-0">
+            <div class="min-w-0">
+              <div class="text-sm text-white truncate">${p.nombre} ${p.tamano}</div>
+              <div class="text-xs text-slate-500">Vendes ${fmt(p.precio)} · Te cuesta ${fmt(p.costo)}</div>
+            </div>
+            <span class="text-sm font-bold flex-shrink-0 ${color}">${pct.toFixed(1)}%</span>
+          </div>`;
+        }).join("")
+      : '<div class="text-xs text-slate-500 py-2">Sin datos disponibles</div>';
+  }
 }
 
 /* ── INIT ── */

@@ -150,10 +150,20 @@ function doGet(e) {
         .map(function(r, idx) {
           var obj = { fila: idx + 2 };
           pHdr.forEach(function(h, i) { obj[String(h).toLowerCase().trim()] = r[i]; });
-          // Convertir URLs de Drive para que sean imágenes directas
+          // Convertir URLs de Drive para imágenes directas
           ["imagen","imagen2","imagen3"].forEach(function(key) {
             if (obj[key]) obj[key] = sanitizeDriveUrl(String(obj[key]));
           });
+          // Calcular ganancia en tiempo real si no está guardada
+          var precio = Number(obj["precio"]) || 0;
+          var costo  = Number(obj["costo"])  || 0;
+          if (precio > 0 && costo > 0) {
+            obj["ganancia_calc"] = Math.round(((precio - costo) / costo) * 100 * 10) / 10;
+            obj["ganancia_pesos"]= precio - costo;
+          } else {
+            obj["ganancia_calc"]  = null;
+            obj["ganancia_pesos"] = null;
+          }
           return obj;
         });
       return jsonResponse({ ok: true, productos: pRows });
@@ -396,6 +406,94 @@ function doGet(e) {
       return jsonResponse({ ok: true, resenas: resenas });
     }
 
+    // ── Rentabilidad para dashboard ──────────────────────
+    if (action === "admin_rentabilidad") {
+      var clave = e.parameter.clave || "";
+      if (clave !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+      var prodSheet = ss.getSheetByName("Productos");
+      var pedSheet  = ss.getSheetByName("Pedidos");
+      if (!prodSheet) return jsonResponse({ ok: false, error: "Sin hoja Productos" });
+
+      var pData = prodSheet.getDataRange().getValues();
+      var pH    = pData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+      var PC = {}; pH.forEach(function(h,i){ PC[h]=i; });
+
+      var productos = pData.slice(1).filter(function(r){ return r[0] !== ""; }).map(function(r){
+        var precio   = Number(r[PC["precio"]])       || 0;
+        var costo    = Number(r[PC["costo"]])        || 0;
+        var ganPct   = (precio > 0 && costo > 0) ? Math.round(((precio-costo)/costo)*100*10)/10 : null;
+        var ganPesos = (precio > 0 && costo > 0) ? precio - costo : null;
+        return {
+          nombre:       String(r[PC["nombre"]]    || ""),
+          tamano:       String(r[PC["tamano"]]    || ""),
+          categoria:    String(r[PC["categoria"]] || ""),
+          precio:       precio,
+          costo:        costo,
+          ganancia_pct: ganPct,
+          ganancia_pesos: ganPesos,
+          stock:        r[PC["stock"]] !== undefined ? r[PC["stock"]] : "",
+        };
+      });
+
+      // Métricas globales de rentabilidad
+      var conCosto   = productos.filter(function(p){ return p.costo > 0 && p.precio > 0; });
+      var sinCosto   = productos.filter(function(p){ return !p.costo || p.costo <= 0; }).length;
+      var avgGanPct  = 0, totalInversion = 0, totalGanPesos = 0;
+
+      if (conCosto.length > 0) {
+        avgGanPct     = Math.round(conCosto.reduce(function(s,p){ return s + p.ganancia_pct; }, 0) / conCosto.length * 10) / 10;
+        totalInversion= conCosto.reduce(function(s,p){
+          var stk = Number(p.stock) || 0;
+          return s + (p.costo * stk);
+        }, 0);
+        totalGanPesos = conCosto.reduce(function(s,p){ return s + p.ganancia_pesos; }, 0);
+      }
+
+      // Top más rentables y menos rentables
+      var ordenados  = conCosto.slice().sort(function(a,b){ return b.ganancia_pct - a.ganancia_pct; });
+      var topRentables = ordenados.slice(0,5);
+      var menosRentables = ordenados.slice(-3).reverse();
+
+      // Ganancia real (ventas * margen) desde pedidos
+      var gananciaReal = 0;
+      if (pedSheet && pedSheet.getLastRow() > 1) {
+        var pedData = pedSheet.getDataRange().getValues();
+        var pedH    = pedData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+        var pedPC   = {}; pedH.forEach(function(h,i){ pedPC[h]=i; });
+
+        pedData.slice(1).filter(function(r){ return r[0] !== ""; }).forEach(function(r){
+          var prodsStr = String(r[pedPC["productos"]] || "");
+          prodsStr.split("").forEach(function(linea){
+            var cantMatch = linea.match(/Cant[^0-9]*([0-9]+)/i);
+            if (!cantMatch) return;
+            var cant = parseInt(cantMatch[1], 10);
+            var nomTam = linea.split("|")[0].trim().toLowerCase();
+            conCosto.forEach(function(p){
+              var clave = (p.nombre + " " + p.tamano).trim().toLowerCase();
+              if (clave === nomTam && p.ganancia_pesos) {
+                gananciaReal += p.ganancia_pesos * cant;
+              }
+            });
+          });
+        });
+      }
+
+      return jsonResponse({
+        ok: true,
+        resumen: {
+          totalProductos:   productos.length,
+          conCosto:         conCosto.length,
+          sinCosto:         sinCosto,
+          avgGanPct:        avgGanPct,
+          totalInversion:   totalInversion,
+          gananciaReal:     gananciaReal,
+        },
+        topRentables:     topRentables,
+        menosRentables:   menosRentables,
+        todos:            productos,
+      });
+    }
+
     return jsonResponse({ ok: false, error: "Accion no reconocida: " + action });
 
   } catch(err) {
@@ -425,6 +523,12 @@ function doPost(e) {
       var claveS = body.clave || "";
       if (claveS !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
       actualizarStockProducto(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_costo") {
+      var claveC = body.clave || "";
+      if (claveC !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarCostoProducto(ss, body);
       return jsonResponse({ ok: true });
     }
     guardarPedido(ss, body);
@@ -728,7 +832,7 @@ function notificarWA(body) {
   if (!CONFIG_WA.ACTIVO || !CONFIG_WA.API_KEY) return;
   var total   = body.total ? "$ " + Number(body.total).toLocaleString("es-CO") : "A convenir";
   var mensaje =
-    "NUEVO PEDIDO - Limpieza RR" +
+    "NUEVO PEDIDO - Limpieza RR /n" +
     "Cliente: " + (body.nombre || "") + "" +
     "Tel: "     + (body.telefono || "") + "" +
     "Barrio: "  + (body.barrio || "") + "" +
@@ -781,6 +885,42 @@ function actualizarEstadoPedido(ss, body) {
   Logger.log("Estado actualizado fila " + fila + ": " + JSON.stringify({
     estado_envio: body.estado_envio, estado_pago: body.estado_pago
   }));
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR COSTO DESDE ADMIN
+   body: { accion, clave, fila, costo }
+────────────────────────────────────────────────────────────── */
+function actualizarCostoProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+  var fila  = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+
+  var headers    = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
+  var costoCol   = hLower.indexOf("costo")        + 1;
+  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
+  var precioCol  = hLower.indexOf("precio")       + 1;
+  if (!costoCol) return;
+
+  var nuevoCosto = Number(body.costo);
+  sheet.getRange(fila, costoCol).setValue(nuevoCosto);
+
+  // Recalcular ganancia automáticamente si hay precio
+  if (gananciaCol && precioCol) {
+    var precio = Number(sheet.getRange(fila, precioCol).getValue());
+    if (precio > 0 && nuevoCosto > 0) {
+      var ganancia = Math.round(((precio - nuevoCosto) / nuevoCosto) * 100 * 10) / 10;
+      var ganCell  = sheet.getRange(fila, gananciaCol);
+      ganCell.setValue(ganancia);
+      ganCell.setNumberFormat("0.0"%"");
+      if (ganancia < 10)      { ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold"); }
+      else if (ganancia < 30) { ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold"); }
+      else                    { ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal"); }
+    }
+  }
+  Logger.log("Costo actualizado fila " + fila + " = " + nuevoCosto);
 }
 
 /* ──────────────────────────────────────────────────────────────

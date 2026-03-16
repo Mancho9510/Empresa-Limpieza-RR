@@ -20,7 +20,7 @@ function populateProductos(forzar) {
 
   sheet.clearContents();
 
-  const headers = ["id","nombre","tamano","precio","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
+  const headers = ["id","nombre","tamano","precio","costo","ganancia_pct","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
   sheet.appendRow(headers);
 
   const hdr = sheet.getRange(1, 1, 1, headers.length);
@@ -29,6 +29,8 @@ function populateProductos(forzar) {
   // Columna imagen en amarillo para que sea fácil de identificar
   sheet.getRange(1, 9, 1, 1).setBackground("#FFF176").setFontColor("#5F4000");
   // Notas en columnas imagen y stock
+  sheet.getRange(1, 5).setNote("COSTO: Precio al que compraste el producto. Se usa para calcular ganancia.");
+  sheet.getRange(1, 6).setNote("GANANCIA %: Se calcula con calcularGanancias(). Formula: ((precio-costo)/costo)*100");
   sheet.getRange(1, 10).setNote("imagen2: segunda foto del producto (URL Drive o externa)");
   sheet.getRange(1, 11).setNote("imagen3: tercera foto del producto (URL Drive o externa)");
   sheet.getRange(1, 12).setNote(
@@ -48,50 +50,50 @@ function populateProductos(forzar) {
   );
 
   const rows = [
-    [1,"Cera Autobrillante Envase","1 Kg",16000,"Ceras",false,"✨","Cera autobrillante de alta calidad para pisos. Brinda proteccion y brillo duradero.","","","",""],
-    [2,"Cera Autobrillante Galon","4 Kg",46333.68,"Ceras",false,"✨","Presentacion galon para uso intensivo. Ideal para negocios o grandes superficies.","","","",""],
-    [3,"Detergente Textil Galon","4 Kg",26743.72,"Detergentes",false,"🧺","Potente formula para ropa de todo tipo. Elimina manchas dificiles.","","","",""],
-    [4,"Desengrasante Multiusos Linea Hogar Envase","1 Kg",10700,"Detergentes",true,"🧽","Desengrasante multiusos para cocinas, banos y superficies.","","","",""],
-    [5,"Desengrasante Multiusos Linea Hogar Galon","4 Kg",37300,"Detergentes",false,"🧽","Presentacion galon del desengrasante multiusos. Rendimiento profesional.","","","",""],
-    [6,"Detergente Textil","1 Kg",16000,"Detergentes",false,"🧺","Detergente textil ideal para lavado a mano y maquina.","","","",""],
-    [7,"Detergente Textil","2 Kg",15000,"Detergentes",true,"🧺","Presentacion de 2 Kg perfecta para familias. Formula concentrada.","","","",""],
-    [8,"Fragancia Irresistible Dude","100 ml",38034.99,"Fragancias",false,"🌸","Fragancia masculina intensa y seductora. Notas amaderadas con toques frescos.","","","",""],
-    [9,"Fragancia Golden Gladiator","100 ml",36459.43,"Fragancias",false,"🌸","Fragancia poderosa con notas doradas y especiadas.","","","",""],
-    [10,"Fragancia Happiness","100 ml",49004.21,"Fragancias",false,"🌸","Fragancia alegre y fresca que evoca momentos de felicidad.","","","",""],
-    [11,"Fragancia Bad Girl Gone Good","100 ml",52195.74,"Fragancias",false,"🌸","Fragancia audaz y sofisticada. Combinacion de dulzura y misterio.","","","",""],
-    [12,"Fragancia Luxury Amber","100 ml",36341.97,"Fragancias",false,"🌸","Esencia ambar con notas calidas y lujosas.","","","",""],
-    [13,"Fragancia Sublime","100 ml",36341.97,"Fragancias",false,"🌸","Fragancia delicada con notas florales de elegancia incomparable.","","","",""],
-    [14,"Fragancia Millonaire","100 ml",57093.81,"Fragancias",false,"🌸","La fragancia mas lujosa de la coleccion. Opulenta y exclusiva.","","","",""],
-    [15,"Fragancia Kingdom","100 ml",36459.43,"Fragancias",false,"🌸","Majestuosa fragancia con caracter y personalidad propia.","","","",""],
-    [16,"Fragancia Aquaman","100 ml",47108.35,"Fragancias",false,"🌸","Fragancia acuatica y refrescante. Evoca la frescura del oceano.","","","",""],
-    [17,"Fragancia Fanning","100 ml",33665.10,"Fragancias",false,"🌸","Esencia ligera y versatil. Perfecta para uso diario.","","","",""],
-    [18,"Fragancia Pomelo & Granada","100 ml",29750,"Fragancias",false,"🌸","Combinacion frutal vibrante de pomelo y granada.","","","",""],
-    [19,"Fragancia Perfume Marine","100 ml",29750,"Fragancias",false,"🌸","Fragancia marina limpia y fresca con notas acuaticas.","","","",""],
-    [20,"Fragancia Pastel Dream","100 ml",29750,"Fragancias",false,"🌸","Dulce y sonadora. Notas pastel suaves y romanticas.","","","",""],
-    [21,"Fragancia Shine Alight","100 ml",29750,"Fragancias",false,"🌸","Fragancia luminosa y positiva como un rayo de sol.","","","",""],
-    [22,"Fragancia The Boss Perfume","100 ml",35700,"Fragancias",false,"🌸","Para el verdadero lider. Fragancia poderosa y dominante.","","","",""],
-    [23,"Fragancia LG Silverhill","100 ml",29750,"Fragancias",false,"🌸","Fragancia plateada y sofisticada. Fresca y con personalidad.","","","",""],
-    [24,"Fragancia Platinum","100 ml",29750,"Fragancias",false,"🌸","La pureza del platino en fragancia. Elegante y atemporal.","","","",""],
-    [25,"Gel Antibacterial Para Manos Galon","3.5 Kg",35590.89,"Antibacteriales",false,"🤲","Gel antibacterial de gran rendimiento. Elimina 99.9% de germenes.","","","",""],
-    [26,"Gel Antibacterial Para Manos","500 gr",7735,"Antibacteriales",false,"🤲","Gel antibacterial personal. Formula suave con el cutis.","","","",""],
-    [27,"Gel Antibacterial Para Manos","1000 gr",14280,"Antibacteriales",false,"🤲","Presentacion familiar de gel antibacterial protector.","","","",""],
-    [28,"Jabon Antibacterial Para Manos Galon","4 Kg",28560,"Antibacteriales",false,"🧼","Jabon liquido antibacterial en galon para dispensadores.","","","",""],
-    [29,"Jabon Antibacterial Para Manos","500 gr",6584.27,"Antibacteriales",false,"🧼","Jabon antibacterial economico y eficaz para manos.","","","",""],
-    [30,"Jabon Antibacterial Para Manos","1000 gr",11971.40,"Antibacteriales",false,"🧼","Jabon liquido antibacterial familiar. Limpia y cuida.","","","",""],
-    [31,"Lavaloza Liquido Galon","4 Kg",31953.28,"Lavaloza",false,"🍽️","Lavaloza concentrado. Elimina la grasa de utensilios con facilidad.","","","",""],
-    [32,"Lavaloza Liquido Envase","500 gr",6000,"Lavaloza",false,"🍽️","Presentacion individual de lavaloza. Deja ollas brillantes.","","","",""],
-    [33,"Lavaloza Liquido Envase","1000 gr",10000,"Lavaloza",false,"🍽️","Presentacion de 1 Kg de lavaloza. Excelente rendimiento familiar.","","","",""],
-    [34,"Limpiapisos Encanto Tropical Envase","1 Kg",9000,"Limpiapisos",true,"🌿","Limpiapisos tropical. Limpia y desinfecta dejando olor fresco.","","","",""],
-    [35,"Limpiapisos Encanto Tropical Galon","4 Kg",24370.43,"Limpiapisos",false,"🌿","Galon limpiapisos tropical. Rendimiento profesional.","","","",""],
-    [36,"Limpiapisos Encanto Tropical Envase","500 gr",6500,"Limpiapisos",true,"🌿","Presentacion pequena del limpiapisos. Practica y economica.","","","",""],
-    [37,"Limpiapisos Encanto Tropical Envase","1000 gr",11000,"Limpiapisos",true,"🌿","Tamano familiar limpiapisos tropical. Aroma duradero.","","","",""],
-    [38,"Limpia Vidrios Envase","500 gr",5500,"Limpia Vidrios",false,"🪟","Limpiador de vidrios sin rayas. Deja superficies cristalinas.","","","",""],
-    [39,"Limpia Vidrios Envase","1 Kg",8000,"Limpia Vidrios",true,"🪟","1 Kg limpia vidrios. Formula antivaho de claridad total.","","","",""],
-    [40,"Limpia Vidrios Galon","4 Kg",27370,"Limpia Vidrios",false,"🪟","Galon limpia vidrios. Ideal para edificios y comercios.","","","",""],
-    [41,"Oxigeno Activo","1 Kg",12500,"Otros",true,"💧","Blanqueador de oxigeno activo. Sin cloro, cuida colores.","","","",""],
-    [42,"Suavizante Galon","4 Kg",21420,"Otros",false,"🌺","Suavizante textil de larga duracion. Ropa suave y fragante.","","","",""],
-    [43,"Suavizante Galon","1000 gr",10000,"Otros",false,"🌺","Suavizante 1 Kg. Cuida fibras y perfuma la ropa.","","","",""],
-    [44,"Suavizante Galon","2000 gr",17000,"Otros",true,"🌺","Suavizante 2 Kg familiar. Fragancia duradera y economico.","","","",""],
+    [1,"Cera Autobrillante Envase","1 Kg",16000,"","","Ceras",false,"✨","Cera autobrillante de alta calidad para pisos. Brinda proteccion y brillo duradero.","","","",""],
+    [2,"Cera Autobrillante Galon","4 Kg",46333.68,"","","Ceras",false,"✨","Presentacion galon para uso intensivo. Ideal para negocios o grandes superficies.","","","",""],
+    [3,"Detergente Textil Galon","4 Kg",26743.72,"","","Detergentes",false,"🧺","Potente formula para ropa de todo tipo. Elimina manchas dificiles.","","","",""],
+    [4,"Desengrasante Multiusos Linea Hogar Envase","1 Kg",10700,"","","Detergentes",true,"🧽","Desengrasante multiusos para cocinas, banos y superficies.","","","",""],
+    [5,"Desengrasante Multiusos Linea Hogar Galon","4 Kg",37300,"","","Detergentes",false,"🧽","Presentacion galon del desengrasante multiusos. Rendimiento profesional.","","","",""],
+    [6,"Detergente Textil","1 Kg",16000,"","","Detergentes",false,"🧺","Detergente textil ideal para lavado a mano y maquina.","","","",""],
+    [7,"Detergente Textil","2 Kg",15000,"","","Detergentes",true,"🧺","Presentacion de 2 Kg perfecta para familias. Formula concentrada.","","","",""],
+    [8,"Fragancia Irresistible Dude","100 ml",38034.99,"","","Fragancias",false,"🌸","Fragancia masculina intensa y seductora. Notas amaderadas con toques frescos.","","","",""],
+    [9,"Fragancia Golden Gladiator","100 ml",36459.43,"","","Fragancias",false,"🌸","Fragancia poderosa con notas doradas y especiadas.","","","",""],
+    [10,"Fragancia Happiness","100 ml",49004.21,"","","Fragancias",false,"🌸","Fragancia alegre y fresca que evoca momentos de felicidad.","","","",""],
+    [11,"Fragancia Bad Girl Gone Good","100 ml",52195.74,"","","Fragancias",false,"🌸","Fragancia audaz y sofisticada. Combinacion de dulzura y misterio.","","","",""],
+    [12,"Fragancia Luxury Amber","100 ml",36341.97,"","","Fragancias",false,"🌸","Esencia ambar con notas calidas y lujosas.","","","",""],
+    [13,"Fragancia Sublime","100 ml",36341.97,"","","Fragancias",false,"🌸","Fragancia delicada con notas florales de elegancia incomparable.","","","",""],
+    [14,"Fragancia Millonaire","100 ml",57093.81,"","","Fragancias",false,"🌸","La fragancia mas lujosa de la coleccion. Opulenta y exclusiva.","","","",""],
+    [15,"Fragancia Kingdom","100 ml",36459.43,"","","Fragancias",false,"🌸","Majestuosa fragancia con caracter y personalidad propia.","","","",""],
+    [16,"Fragancia Aquaman","100 ml",47108.35,"","","Fragancias",false,"🌸","Fragancia acuatica y refrescante. Evoca la frescura del oceano.","","","",""],
+    [17,"Fragancia Fanning","100 ml",33665.10,"","","Fragancias",false,"🌸","Esencia ligera y versatil. Perfecta para uso diario.","","","",""],
+    [18,"Fragancia Pomelo & Granada","100 ml",29750,"","","Fragancias",false,"🌸","Combinacion frutal vibrante de pomelo y granada.","","","",""],
+    [19,"Fragancia Perfume Marine","100 ml",29750,"","","Fragancias",false,"🌸","Fragancia marina limpia y fresca con notas acuaticas.","","","",""],
+    [20,"Fragancia Pastel Dream","100 ml",29750,"","","Fragancias",false,"🌸","Dulce y sonadora. Notas pastel suaves y romanticas.","","","",""],
+    [21,"Fragancia Shine Alight","100 ml",29750,"","","Fragancias",false,"🌸","Fragancia luminosa y positiva como un rayo de sol.","","","",""],
+    [22,"Fragancia The Boss Perfume","100 ml",35700,"","","Fragancias",false,"🌸","Para el verdadero lider. Fragancia poderosa y dominante.","","","",""],
+    [23,"Fragancia LG Silverhill","100 ml",29750,"","","Fragancias",false,"🌸","Fragancia plateada y sofisticada. Fresca y con personalidad.","","","",""],
+    [24,"Fragancia Platinum","100 ml",29750,"","","Fragancias",false,"🌸","La pureza del platino en fragancia. Elegante y atemporal.","","","",""],
+    [25,"Gel Antibacterial Para Manos Galon","3.5 Kg",35590.89,"","","Antibacteriales",false,"🤲","Gel antibacterial de gran rendimiento. Elimina 99.9% de germenes.","","","",""],
+    [26,"Gel Antibacterial Para Manos","500 gr",7735,"","","Antibacteriales",false,"🤲","Gel antibacterial personal. Formula suave con el cutis.","","","",""],
+    [27,"Gel Antibacterial Para Manos","1000 gr",14280,"","","Antibacteriales",false,"🤲","Presentacion familiar de gel antibacterial protector.","","","",""],
+    [28,"Jabon Antibacterial Para Manos Galon","4 Kg",28560,"","","Antibacteriales",false,"🧼","Jabon liquido antibacterial en galon para dispensadores.","","","",""],
+    [29,"Jabon Antibacterial Para Manos","500 gr",6584.27,"","","Antibacteriales",false,"🧼","Jabon antibacterial economico y eficaz para manos.","","","",""],
+    [30,"Jabon Antibacterial Para Manos","1000 gr",11971.40,"","","Antibacteriales",false,"🧼","Jabon liquido antibacterial familiar. Limpia y cuida.","","","",""],
+    [31,"Lavaloza Liquido Galon","4 Kg",31953.28,"","","Lavaloza",false,"🍽️","Lavaloza concentrado. Elimina la grasa de utensilios con facilidad.","","","",""],
+    [32,"Lavaloza Liquido Envase","500 gr",6000,"","","Lavaloza",false,"🍽️","Presentacion individual de lavaloza. Deja ollas brillantes.","","","",""],
+    [33,"Lavaloza Liquido Envase","1000 gr",10000,"","","Lavaloza",false,"🍽️","Presentacion de 1 Kg de lavaloza. Excelente rendimiento familiar.","","","",""],
+    [34,"Limpiapisos Encanto Tropical Envase","1 Kg",9000,"","","Limpiapisos",true,"🌿","Limpiapisos tropical. Limpia y desinfecta dejando olor fresco.","","","",""],
+    [35,"Limpiapisos Encanto Tropical Galon","4 Kg",24370.43,"","","Limpiapisos",false,"🌿","Galon limpiapisos tropical. Rendimiento profesional.","","","",""],
+    [36,"Limpiapisos Encanto Tropical Envase","500 gr",6500,"","","Limpiapisos",true,"🌿","Presentacion pequena del limpiapisos. Practica y economica.","","","",""],
+    [37,"Limpiapisos Encanto Tropical Envase","1000 gr",11000,"","","Limpiapisos",true,"🌿","Tamano familiar limpiapisos tropical. Aroma duradero.","","","",""],
+    [38,"Limpia Vidrios Envase","500 gr",5500,"","","Limpia Vidrios",false,"🪟","Limpiador de vidrios sin rayas. Deja superficies cristalinas.","","","",""],
+    [39,"Limpia Vidrios Envase","1 Kg",8000,"","","Limpia Vidrios",true,"🪟","1 Kg limpia vidrios. Formula antivaho de claridad total.","","","",""],
+    [40,"Limpia Vidrios Galon","4 Kg",27370,"","","Limpia Vidrios",false,"🪟","Galon limpia vidrios. Ideal para edificios y comercios.","","","",""],
+    [41,"Oxigeno Activo","1 Kg",12500,"","","Otros",true,"💧","Blanqueador de oxigeno activo. Sin cloro, cuida colores.","","","",""],
+    [42,"Suavizante Galon","4 Kg",21420,"","","Otros",false,"🌺","Suavizante textil de larga duracion. Ropa suave y fragante.","","","",""],
+    [43,"Suavizante Galon","1000 gr",10000,"","","Otros",false,"🌺","Suavizante 1 Kg. Cuida fibras y perfuma la ropa.","","","",""],
+    [44,"Suavizante Galon","2000 gr",17000,"","","Otros",true,"🌺","Suavizante 2 Kg familiar. Fragancia duradera y economico.","","","",""],
   ];
 
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
@@ -149,4 +151,87 @@ function resetearProductos() {
   Logger.log("Iniciando reset de productos...");
   populateProductos(true);
   Logger.log("Hoja Productos recreada con los 44 productos originales.");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CALCULAR GANANCIA
+   Ejecutar para actualizar columna ganancia_pct en todos los
+   productos que tengan precio y costo definidos.
+══════════════════════════════════════════════════════════════ */
+function calcularGanancias() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var precioIdx   = headers.indexOf("precio")       + 1;
+  var costoIdx    = headers.indexOf("costo")        + 1;
+  var gananciaIdx = headers.indexOf("ganancia_pct") + 1;
+
+  if (!costoIdx || !gananciaIdx) {
+    Logger.log("ERROR: Columnas costo o ganancia_pct no encontradas en la hoja Productos.");
+    return;
+  }
+
+  var actualizados = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    var precio = Number(data[i][precioIdx - 1]);
+    var costo  = Number(data[i][costoIdx  - 1]);
+    if (!precio || !costo || costo <= 0) continue;
+
+    var ganancia = Math.round(((precio - costo) / costo) * 100 * 10) / 10;
+    var cell = sheet.getRange(i + 1, gananciaIdx);
+    cell.setValue(ganancia);
+    cell.setNumberFormat("0.0"%"");
+
+    if (ganancia < 10)      { cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold"); }
+    else if (ganancia < 30) { cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold"); }
+    else                    { cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal"); }
+    actualizados++;
+  }
+  Logger.log("OK: " + actualizados + " productos con ganancia actualizada.");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AGREGAR COLUMNAS COSTO Y GANANCIA_PCT
+   Ejecutar UNA VEZ si la hoja Productos ya existia antes
+   de agregar estas columnas (no borra datos).
+══════════════════════════════════════════════════════════════ */
+function agregarColumnasCostoGanancia() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var precioCol = headers.indexOf("precio") + 1;
+  if (precioCol === 0) { Logger.log("Columna precio no encontrada"); return; }
+
+  // Insertar columnas después de precio si no existen
+  if (headers.indexOf("costo") < 0) {
+    sheet.insertColumnAfter(precioCol);
+    sheet.getRange(1, precioCol + 1).setValue("costo");
+    sheet.getRange(1, precioCol + 1)
+      .setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
+    Logger.log("Columna 'costo' insertada.");
+  }
+
+  // Recargar headers
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function(h) { return String(h).toLowerCase().trim(); });
+  var costoCol = headers.indexOf("costo") + 1;
+
+  if (headers.indexOf("ganancia_pct") < 0) {
+    sheet.insertColumnAfter(costoCol);
+    sheet.getRange(1, costoCol + 1).setValue("ganancia_pct");
+    sheet.getRange(1, costoCol + 1)
+      .setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
+    Logger.log("Columna 'ganancia_pct' insertada.");
+  }
+
+  sheet.autoResizeColumns(1, sheet.getLastColumn());
+  Logger.log("Listo. Ahora ejecuta calcularGanancias() para poblar los valores.");
 }
