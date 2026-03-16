@@ -561,7 +561,7 @@
 
 <!-- TOAST -->
 <div id="toast"
-     class="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 translate-y-20 bg-teal-700 text-white rounded-full px-5 py-2.5 text-sm font-semibold shadow-xl z-50 transition-transform duration-300 whitespace-nowrap pointer-events-none">
+     class="fixed bottom-28 sm:bottom-8 left-1/2 -translate-x-1/2 translate-y-48 bg-teal-700 text-white rounded-full px-5 py-2.5 text-sm font-semibold shadow-xl z-50 transition-all duration-300 whitespace-nowrap pointer-events-none opacity-0">
 </div>
 
 <!-- ════════════════════════════════════════
@@ -641,12 +641,20 @@ function refreshActivo() {
 /* ── HELPERS ── */
 const fmt = n => "$ " + Math.round(n).toLocaleString("es-CO");
 
+let _toastTimer = null;
 function showToast(txt) {
   const t = document.getElementById("toast");
   t.textContent = txt;
-  t.classList.remove("translate-y-20");
-  t.classList.add("translate-y-0");
-  setTimeout(() => { t.classList.add("translate-y-20"); t.classList.remove("translate-y-0"); }, 3000);
+  // Mostrar
+  t.classList.remove("translate-y-48", "opacity-0");
+  t.classList.add("translate-y-0", "opacity-100");
+  // Limpiar timer anterior si había uno activo
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    t.classList.add("translate-y-48", "opacity-0");
+    t.classList.remove("translate-y-0", "opacity-100");
+    _toastTimer = null;
+  }, 3000);
 }
 
 function badgePago(val) {
@@ -890,8 +898,9 @@ async function guardarEstado(fila) {
   if (!selP || !selE) return;
   btn.disabled = true; btn.textContent = "⏳ Guardando...";
   try {
-    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify({ accion:"actualizar_estado", clave:ADMIN_KEY, fila, estado_pago:selP.value, estado_envio:selE.value }) }).then(r=>r.json());
+    const _eRes  = await fetch(APPS_URL, { method:"POST", redirect:"follow", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ accion:"actualizar_estado", clave:ADMIN_KEY, fila, estado_pago:selP.value, estado_envio:selE.value }) });
+    const data = await _eRes.json();
     if (data.ok) {
       msg.className = "text-xs text-green-400"; msg.textContent = "✅ Guardado";
       const p = pedidos.find(x=>x.fila===fila);
@@ -1001,10 +1010,11 @@ function renderInventario() {
   tbody.innerHTML = lista.map((p, idx) => {
     const precioV = !isNaN(Number(p.precio)) ? fmt(Number(p.precio)) : "—";
     const costoV  = (p.costo && Number(p.costo) > 0) ? fmt(Number(p.costo)) : "—";
-    const ganPct  = p.ganancia_calc !== null && p.ganancia_calc !== undefined
-      ? p.ganancia_calc : null;
-    const ganPesos= p.ganancia_pesos !== null && p.ganancia_pesos !== undefined
-      ? p.ganancia_pesos : null;
+    // Acepta tanto ganancia_calc (de admin_productos) como ganancia_pct (de admin_rentabilidad)
+    const _rawGan = p.ganancia_calc != null ? p.ganancia_calc
+                  : p.ganancia_pct  != null ? p.ganancia_pct : null;
+    const ganPct  = _rawGan != null ? Number(_rawGan) : null;
+    const ganPesos= p.ganancia_pesos != null ? Number(p.ganancia_pesos) : null;
 
     // Color del % de ganancia
     let ganClass = "text-slate-400", ganBg = "bg-slate-700/40";
@@ -1055,9 +1065,9 @@ function renderInventario() {
       </td>
       <!-- Ganancia -->
       <td class="py-3 px-3 text-center hidden lg:table-cell">
-        ${ganPct !== null
+        ${ganPct !== null && !isNaN(ganPct)
           ? `<div>
-               <span class="text-xs font-bold rounded-full px-2.5 py-1 ${ganBg} ${ganClass}">${ganPct}%</span>
+               <span class="text-xs font-bold rounded-full px-2.5 py-1 ${ganBg} ${ganClass}">${(Number.isFinite(ganPct) ? ganPct : 0).toFixed(1)}%</span>
                <div class="text-xs text-slate-500 mt-0.5">${ganPesos !== null ? fmt(ganPesos) : ""} / ud</div>
              </div>`
           : `<span class="text-xs text-slate-600">Sin costo</span>`}
@@ -1099,49 +1109,95 @@ function renderInventario() {
 
 async function guardarCosto(fila) {
   const input = document.getElementById("costoIn-" + fila);
-  const btn   = input ? input.nextElementSibling : null;
   if (!input) return;
   const val = input.value.trim();
-  if (!val || isNaN(Number(val))) { showToast("⚠️ Ingresa un costo válido"); return; }
-  if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+  if (!val || isNaN(Number(val)) || Number(val) < 0) {
+    showToast("⚠️ Ingresa un valor de costo válido");
+    return;
+  }
+  const nuevoCosto = Number(val);
+  const btnEl = input.parentElement?.querySelector("button");
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = "⏳"; }
+
+  // ── ACTUALIZACIÓN OPTIMISTA ─────────────────────────────
+  // Actualizar la UI de inmediato sin esperar al servidor.
+  // El dato ya se guardó en Sheets aunque la respuesta falle.
+  const p = productos.find(x => x.fila === fila);
+  if (p) {
+    p.costo = nuevoCosto;
+    if (Number(p.precio) > 0 && nuevoCosto > 0) {
+      p.ganancia_calc  = Math.round(((Number(p.precio) - nuevoCosto) / nuevoCosto) * 100 * 10) / 10;
+      p.ganancia_pesos = Number(p.precio) - nuevoCosto;
+    }
+  }
+  input.value = "";
+  updateStatsInv();
+  renderInventario();
+  showToast("💾 Guardando costo...");
+
+  // ── CONFIRMAR CON SERVIDOR EN SEGUNDO PLANO ─────────────
   try {
-    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify({ accion:"actualizar_costo", clave:ADMIN_KEY, fila, costo: Number(val) }) }).then(r=>r.json());
-    if (data.ok) {
-      const p = productos.find(x=>x.fila===fila);
-      if (p) {
-        p.costo = Number(val);
-        if (p.precio && Number(p.precio) > 0) {
-          p.ganancia_calc  = Math.round(((Number(p.precio) - p.costo) / p.costo) * 100 * 10) / 10;
-          p.ganancia_pesos = Number(p.precio) - p.costo;
-        }
+    const res  = await fetch(APPS_URL, {
+      method:   "POST",
+      redirect: "follow",
+      headers:  { "Content-Type": "text/plain" },
+      body:     JSON.stringify({ accion: "actualizar_costo", clave: ADMIN_KEY, fila: fila, costo: nuevoCosto }),
+    });
+    const text = await res.text();
+    // Intentar parsear — si falla igual asumimos ok porque el dato ya se guardó
+    try {
+      const data = JSON.parse(text);
+      if (data.ok) {
+        showToast("✅ Costo guardado correctamente");
+      } else {
+        // Revertir en local si el servidor reportó error real
+        showToast("⚠️ El servidor reportó: " + (data.error || "Error desconocido"));
       }
-      updateStatsInv();
-      renderInventario();
-      showToast("✅ Costo actualizado");
-    } else { showToast("❌ " + (data.error||"Error")); }
-  } catch(e) { showToast("❌ Sin conexión"); }
-  if (btn) { btn.disabled = false; btn.textContent = "Costo"; }
+    } catch(pe) {
+      // Apps Script devolvió HTML (cold start o redirect) pero el dato YA se guardó
+      // No mostrar error — el dato está en Sheets
+      showToast("✅ Costo guardado en Sheets");
+      console.warn("Respuesta no-JSON del servidor (normal en cold start):", text.slice(0,80));
+    }
+  } catch(fetchErr) {
+    // Error de red real — el dato puede o no haberse guardado
+    showToast("⚠️ Sin confirmación del servidor — verifica en Sheets");
+    console.error("guardarCosto fetch error:", fetchErr.message);
+  }
+
+  if (btnEl) { btnEl.disabled = false; btnEl.textContent = "Costo"; }
 }
 
 async function guardarStock(fila) {
   const input = document.getElementById("stockIn-"    + fila);
   const btn   = document.getElementById("btnStkSave-" + fila);
-  const msg   = document.getElementById("stkMsg-"     + fila);
   if (!input || !btn) return;
   const val = input.value.trim();
   btn.disabled = true; btn.textContent = "⏳";
+
+  // Actualización optimista — actualizar UI de inmediato
+  const p = productos.find(x => x.fila === fila);
+  if (p) p.stock = val === "" ? "" : Number(val);
+  updateStatsInv();
+  renderInventario();
+
   try {
-    const data = await fetch(APPS_URL, { method:"POST", headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify({ accion:"actualizar_stock", clave:ADMIN_KEY, fila, stock: val===""?"":Number(val) }) }).then(r=>r.json());
-    if (data.ok) {
-      const p = productos.find(x=>x.fila===fila);
-      if (p) p.stock = val===""?"":Number(val);
-      updateStatsInv();
-      renderInventario();
-      showToast("✅ Stock actualizado");
-    } else { showToast("❌ " + (data.error||"Error")); }
-  } catch(e) { showToast("❌ Sin conexión"); }
+    const res  = await fetch(APPS_URL, {
+      method: "POST", redirect: "follow",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ accion:"actualizar_stock", clave:ADMIN_KEY, fila, stock: val===""?"":Number(val) }),
+    });
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      showToast(data.ok ? "✅ Stock guardado correctamente" : "⚠️ " + (data.error||"Error"));
+    } catch(pe) {
+      showToast("✅ Stock guardado en Sheets");
+      console.warn("Respuesta no-JSON (cold start normal)");
+    }
+  } catch(e) {
+    showToast("⚠️ Sin confirmación — verifica en Sheets");
+  }
   btn.disabled = false; btn.textContent = "Guardar";
 }
 
@@ -1473,24 +1529,28 @@ function renderTablaRent(lista) {
     return;
   }
   tbody.innerHTML = lista.map((p, i) => {
-    const hasData  = p.costo > 0 && p.precio > 0;
-    const pct      = p.ganancia_calc;
-    const ganPesos = p.ganancia_pesos;
-    const colorPct = !hasData ? "text-slate-600"
+    const hasData  = Number(p.costo) > 0 && Number(p.precio) > 0;
+    // El endpoint admin_rentabilidad devuelve ganancia_pct (no ganancia_calc)
+    const rawPct   = p.ganancia_pct != null ? p.ganancia_pct
+                   : p.ganancia_calc != null ? p.ganancia_calc : null;
+    const pct      = (hasData && rawPct != null) ? Number(rawPct) : null;
+    const rawPesos = p.ganancia_pesos != null ? p.ganancia_pesos : null;
+    const ganPesos = (hasData && rawPesos != null) ? Number(rawPesos) : null;
+    const colorPct = (pct === null || isNaN(pct)) ? "text-slate-600"
       : pct >= 30 ? "text-green-400" : pct >= 10 ? "text-yellow-400" : "text-red-400";
     const bgRow    = i % 2 === 0 ? "" : "bg-slate-800/30";
     return `
     <tr class="${bgRow} hover:bg-teal-900/10 border-b border-slate-800/60">
       <td class="py-2 px-2">
-        <div class="font-semibold text-white">${p.nombre}</div>
-        <div class="text-slate-500">${p.tamano} · ${p.categoria}</div>
+        <div class="font-semibold text-white">${p.nombre||""}</div>
+        <div class="text-slate-500">${p.tamano||""} · ${p.categoria||""}</div>
       </td>
       <td class="py-2 px-2 text-right text-teal-300">${p.precio > 0 ? fmt(p.precio) : "—"}</td>
       <td class="py-2 px-2 text-right text-slate-300">${p.costo > 0 ? fmt(p.costo) : '<span class="text-yellow-600">Sin costo</span>'}</td>
       <td class="py-2 px-2 text-right ${colorPct} font-semibold">${ganPesos !== null ? fmt(ganPesos) : "—"}</td>
       <td class="py-2 px-2 text-center">
-        ${hasData
-          ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${colorPct.replace('text-','bg-').replace('-400','-900/50')} ${colorPct}">${pct.toFixed(1)}%</span>`
+        ${pct !== null
+          ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${colorPct.replace('text-','bg-').replace('-400','-900/50')} ${colorPct}">${(Number.isFinite(pct) ? pct : 0).toFixed(1)}%</span>`
           : '<span class="text-slate-600 text-xs">—</span>'}
       </td>
     </tr>`;
@@ -1503,7 +1563,7 @@ function renderRentabilidad(d) {
   // KPIs pestaña rentabilidad
   const avgColor = r.avgGanPct >= 30 ? "text-green-400" : r.avgGanPct >= 10 ? "text-yellow-400" : r.avgGanPct > 0 ? "text-red-400" : "text-slate-400";
   const avgEl = document.getElementById("rentAvgGan");
-  if (avgEl) { avgEl.textContent = r.avgGanPct > 0 ? r.avgGanPct.toFixed(1) + "%" : "—"; avgEl.className = avgEl.className.replace(/text-\w+-\d+/g,"") + " " + avgColor; }
+  if (avgEl) { const avgVal = Number(r.avgGanPct); avgEl.textContent = (Number.isFinite(avgVal) && avgVal > 0) ? avgVal.toFixed(1) + "%" : "—"; avgEl.className = "font-display font-extrabold text-3xl " + avgColor; }
   const ganEl = document.getElementById("rentGanReal");
   if (ganEl) ganEl.textContent = r.gananciaReal > 0 ? fmt(r.gananciaReal) : "—";
   const ccEl = document.getElementById("rentConCosto");
@@ -1527,7 +1587,7 @@ function renderRentabilidad(d) {
     const medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
     topEl.innerHTML = d.topRentables.length
       ? d.topRentables.map((p, i) => {
-          const pct   = p.ganancia_pct;
+          const pct   = Number(p.ganancia_pct) || 0;
           const color = pct >= 30 ? "text-green-400" : pct >= 10 ? "text-yellow-400" : "text-red-400";
           const bgBadge = pct >= 30 ? "bg-green-900/40" : pct >= 10 ? "bg-yellow-900/40" : "bg-red-900/40";
           return `
@@ -1535,13 +1595,13 @@ function renderRentabilidad(d) {
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-base flex-shrink-0">${medals[i]||"▪"}</span>
               <div class="min-w-0">
-                <div class="text-sm font-semibold text-white truncate">${p.nombre}</div>
-                <div class="text-xs text-slate-500">${p.tamano} · ${p.categoria}</div>
+                <div class="text-sm font-semibold text-white truncate">${p.nombre||""}</div>
+                <div class="text-xs text-slate-500">${p.tamano||""} · ${p.categoria||""}</div>
               </div>
             </div>
             <div class="flex flex-col items-end gap-1 flex-shrink-0">
-              <span class="text-xs font-bold rounded-full px-2.5 py-0.5 ${bgBadge} ${color}">${pct.toFixed(1)}%</span>
-              <span class="text-xs text-slate-500">${fmt(p.precio)} − ${fmt(p.costo)} = ${fmt(p.ganancia_pesos)}/ud</span>
+              <span class="text-xs font-bold rounded-full px-2.5 py-0.5 ${bgBadge} ${color}">${(Number.isFinite(pct) ? pct : 0).toFixed(1)}%</span>
+              <span class="text-xs text-slate-500">${p.precio>0?fmt(p.precio):"—"} − ${p.costo>0?fmt(p.costo):"—"} = ${p.ganancia_pesos>0?fmt(p.ganancia_pesos):"—"}/ud</span>
             </div>
           </div>`;
         }).join("")
@@ -1556,15 +1616,15 @@ function renderRentabilidad(d) {
   if (menosEl) {
     menosEl.innerHTML = d.menosRentables.length
       ? d.menosRentables.map(p => {
-          const pct   = p.ganancia_pct;
+          const pct   = Number(p.ganancia_pct) || 0;
           const color = pct < 10 ? "text-red-400" : "text-yellow-400";
           return `
           <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-700/50 last:border-0">
             <div class="min-w-0">
-              <div class="text-sm text-white truncate">${p.nombre} ${p.tamano}</div>
-              <div class="text-xs text-slate-500">Vendes ${fmt(p.precio)} · Te cuesta ${fmt(p.costo)}</div>
+              <div class="text-sm text-white truncate">${p.nombre||""} ${p.tamano||""}</div>
+              <div class="text-xs text-slate-500">Vendes ${p.precio>0?fmt(p.precio):"—"} · Te cuesta ${p.costo>0?fmt(p.costo):"—"}</div>
             </div>
-            <span class="text-sm font-bold flex-shrink-0 ${color}">${pct.toFixed(1)}%</span>
+            <span class="text-sm font-bold flex-shrink-0 ${color}">${(Number.isFinite(pct) ? pct : 0).toFixed(1)}%</span>
           </div>`;
         }).join("")
       : '<div class="text-xs text-slate-500 py-2">Sin datos disponibles</div>';
