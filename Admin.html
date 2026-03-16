@@ -194,7 +194,7 @@
       <div class="text-center text-slate-500 py-16">⏳ Cargando pedidos...</div>
     </div>
     <!-- Paginación -->
-    <div id="paginacionWrap" class="hidden px-4 py-4 flex items-center justify-between gap-3 border-t border-slate-700 bg-slate-800/50 pb-24 sm:pb-4">
+    <div id="paginacionWrap" class="hidden px-4 py-4 items-center justify-between gap-3 border-t border-slate-700 bg-slate-800/50 pb-24 sm:pb-4">
       <button id="btnPagAnterior" onclick="cambiarPagina(-1)"
               class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all">
         ← Anterior
@@ -437,6 +437,113 @@
         <div id="rentAlertaSinCosto" class="hidden bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-4">
           <div class="text-yellow-400 font-semibold text-sm">⚠️ Tienes <span id="rentNumSinCosto">0</span> productos sin costo ingresado</div>
           <p class="text-yellow-300/70 text-xs mt-1">Ve a la pestaña <strong>Inventario</strong>, busca el producto y usa el botón amarillo <strong>"Costo"</strong> para ingresar tu precio de compra.</p>
+        </div>
+
+        <!-- ══ CALCULADORA DE PRECIO ══ -->
+        <div class="bg-slate-800 border border-teal-700/40 rounded-2xl p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-lg">🧮</span>
+            <div class="text-sm font-bold text-white">Calculadora de precio de venta</div>
+          </div>
+
+          <!-- Modo 1: por producto -->
+          <div class="mb-3">
+            <div class="text-xs text-slate-400 font-semibold tracking-wide mb-2">Por producto</div>
+            <div class="flex flex-wrap gap-2 items-end">
+              <div class="flex flex-col gap-1 flex-1 min-w-[100px]">
+                <label class="text-xs text-slate-500">Seleccionar</label>
+                <select id="calcProd" onchange="onCalcProdChange()" aria-label="Seleccionar producto para calcular precio"
+                        class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
+                  <option value="">— Elegir producto —</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1 w-24">
+                <label class="text-xs text-slate-500">Costo ($)</label>
+                <input id="calcCosto" type="number" min="0" placeholder="0"
+                       oninput="calcularPrecio()"
+                       class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white text-center outline-none focus:border-teal-500 transition">
+              </div>
+              <div class="flex flex-col gap-1 w-24">
+                <label class="text-xs text-slate-500">Margen %</label>
+                <input id="calcMargen" type="number" min="0" max="1000" placeholder="50"
+                       oninput="calcularPrecio()"
+                       class="bg-slate-700 border border-yellow-600/60 rounded-lg px-3 py-2 text-sm text-white text-center outline-none focus:border-yellow-500 transition">
+              </div>
+              <div class="flex flex-col gap-1 w-28">
+                <label class="text-xs text-slate-500">Precio sugerido</label>
+                <div id="calcResultado"
+                     class="bg-teal-900/40 border border-teal-600/60 rounded-lg px-3 py-2 text-sm font-bold text-teal-300 text-center min-h-[38px] flex items-center justify-center">
+                  —
+                </div>
+              </div>
+            </div>
+
+            <!-- Resultado detallado -->
+            <div id="calcDetalle" class="hidden mt-3 bg-slate-900/50 rounded-xl p-3 grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="text-center">
+                <div class="text-xs text-slate-500 mb-1">Costo</div>
+                <div id="calcDetCosto" class="text-sm font-bold text-slate-300">—</div>
+              </div>
+              <div class="text-center">
+                <div class="text-xs text-slate-500 mb-1">Ganancia/ud</div>
+                <div id="calcDetGan" class="text-sm font-bold text-green-400">—</div>
+              </div>
+              <div class="text-center">
+                <div class="text-xs text-slate-500 mb-1">Precio sugerido</div>
+                <div id="calcDetPrecio" class="text-sm font-bold text-teal-300">—</div>
+              </div>
+              <div class="text-center">
+                <div class="text-xs text-slate-500 mb-1">Precio actual</div>
+                <div id="calcDetActual" class="text-sm font-bold text-slate-400">—</div>
+              </div>
+            </div>
+
+            <!-- Botón aplicar precio -->
+            <div id="calcAcciones" class="hidden mt-3 gap-2 flex-wrap">
+              <button onclick="aplicarPrecioSugerido()"
+                      class="bg-teal-600 hover:bg-teal-700 active:scale-95 text-white text-xs font-bold rounded-lg px-4 py-2 transition-all">
+                ✅ Aplicar este precio al producto
+              </button>
+              <button onclick="copiarPrecio()"
+                      class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg px-4 py-2 transition-all">
+                📋 Copiar precio
+              </button>
+            </div>
+          </div>
+
+          <!-- Modo 2: calcular masivamente con un margen -->
+          <div class="border-t border-slate-700 pt-3 mt-1">
+            <div class="text-xs text-slate-400 font-semibold tracking-wide mb-2">Aplicar margen a todos los productos</div>
+            <div class="flex flex-wrap gap-2 items-end">
+              <div class="flex flex-col gap-1 w-28">
+                <label class="text-xs text-slate-500">Margen % para todos</label>
+                <input id="calcMargenGlobal" type="number" min="0" max="1000" placeholder="50" value="50"
+                       oninput="calcularPreviewMasivo()"
+                       class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white text-center outline-none focus:border-yellow-500 transition">
+              </div>
+              <button onclick="calcularPreviewMasivo()"
+                      class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg px-4 py-2 transition-all">
+                👁️ Vista previa
+              </button>
+            </div>
+            <div id="calcMasivoWrap" class="hidden mt-3">
+              <div class="text-xs text-slate-500 mb-2">Vista previa de precios sugeridos (sin costo = sin cambio):</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-700">
+                      <th class="text-left font-bold text-slate-400 py-2 px-2">Producto</th>
+                      <th class="text-right font-bold text-slate-400 py-2 px-2">Costo</th>
+                      <th class="text-right font-bold text-slate-400 py-2 px-2">Precio actual</th>
+                      <th class="text-right font-bold text-teal-400 py-2 px-2">Precio sugerido</th>
+                      <th class="text-center font-bold text-slate-400 py-2 px-2">Diferencia</th>
+                    </tr>
+                  </thead>
+                  <tbody id="calcMasivoTabla"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- KPIs principales -->
@@ -1466,8 +1573,9 @@ function actualizarPaginacion() {
   const prev  = document.getElementById("btnPagAnterior");
   const next  = document.getElementById("btnPagSiguiente");
   if (!wrap) return;
-  if (totalPaginas <= 1) { wrap.classList.add("hidden"); return; }
+  if (totalPaginas <= 1) { wrap.classList.add("hidden"); wrap.classList.remove("flex"); return; }
   wrap.classList.remove("hidden");
+  wrap.classList.add("flex");
   info.textContent  = `Pág ${paginaActual} de ${totalPaginas}`;
   total.textContent = `${totalPedidos} pedidos en total`;
   prev.disabled = paginaActual <= 1;
@@ -1610,6 +1718,8 @@ function renderRentabilidad(d) {
 
   // Tabla completa
   renderTablaRent(d.todos || []);
+  // Poblar selector de la calculadora
+  setTimeout(poblarCalcProductos, 50);
 
   // Menos rentables
   const menosEl = document.getElementById("rentMenosRent");
@@ -1629,6 +1739,180 @@ function renderRentabilidad(d) {
         }).join("")
       : '<div class="text-xs text-slate-500 py-2">Sin datos disponibles</div>';
   }
+}
+
+/* ════════════════════════════════════════
+   CALCULADORA DE PRECIOS
+════════════════════════════════════════ */
+let _calcFilaActual = null;
+
+// Poblar selector de productos con los que tienen costo
+function poblarCalcProductos() {
+  const sel = document.getElementById("calcProd");
+  if (!sel || !rentTodos.length) return;
+  const conCosto = rentTodos.filter(p => Number(p.costo) > 0);
+  sel.innerHTML = '<option value="">— Elegir producto —</option>' +
+    conCosto.map(p =>
+      `<option value="${p.fila}" data-costo="${p.costo}" data-precio="${p.precio}">
+        ${p.nombre} ${p.tamano} (costo: ${fmt(p.costo)})
+      </option>`
+    ).join("");
+}
+
+// Al seleccionar un producto, rellenar el costo automáticamente
+function onCalcProdChange() {
+  const sel   = document.getElementById("calcProd");
+  const opt   = sel?.options[sel.selectedIndex];
+  const costo = opt?.dataset?.costo;
+  const inp   = document.getElementById("calcCosto");
+  if (inp && costo) inp.value = costo;
+  _calcFilaActual = sel?.value || null;
+  calcularPrecio();
+}
+
+function calcularPrecio() {
+  const costo  = Number(document.getElementById("calcCosto")?.value)  || 0;
+  const margen = Number(document.getElementById("calcMargen")?.value) || 0;
+  const resEl  = document.getElementById("calcResultado");
+  const detEl  = document.getElementById("calcDetalle");
+  const accEl  = document.getElementById("calcAcciones");
+
+  if (!costo || !margen || costo <= 0 || margen <= 0) {
+    if (resEl) resEl.textContent = "—";
+    detEl?.classList.add("hidden"); detEl?.classList.remove("grid");
+    accEl?.classList.add("hidden"); accEl?.classList.remove("flex");
+    return;
+  }
+
+  const precioSugerido = Math.ceil(costo * (1 + margen / 100));
+  const gananciaUd     = precioSugerido - costo;
+
+  // Mostrar resultado principal
+  if (resEl) resEl.textContent = fmt(precioSugerido);
+
+  // Precio actual del producto seleccionado
+  const sel        = document.getElementById("calcProd");
+  const opt        = sel?.options[sel?.selectedIndex];
+  const precioActual = Number(opt?.dataset?.precio) || 0;
+
+  // Detalles
+  const dcosto  = document.getElementById("calcDetCosto");
+  const dgan    = document.getElementById("calcDetGan");
+  const dprecio = document.getElementById("calcDetPrecio");
+  const dactual = document.getElementById("calcDetActual");
+  if (dcosto)  dcosto.textContent  = fmt(costo);
+  if (dgan)    dgan.textContent    = fmt(gananciaUd);
+  if (dprecio) dprecio.textContent = fmt(precioSugerido);
+  if (dactual) {
+    if (precioActual > 0) {
+      const diff = precioSugerido - precioActual;
+      dactual.textContent = fmt(precioActual) + (diff !== 0 ? (diff > 0 ? " (↑" : " (↓") + fmt(Math.abs(diff)) + ")" : " ✓");
+      dactual.className = diff > 0 ? "text-sm font-bold text-yellow-400"
+                        : diff < 0 ? "text-sm font-bold text-red-400"
+                        : "text-sm font-bold text-green-400";
+    } else {
+      dactual.textContent = "Sin precio";
+    }
+  }
+
+  detEl?.classList.remove("hidden"); detEl?.classList.add("grid");
+  if (_calcFilaActual) { accEl?.classList.remove("hidden"); accEl?.classList.add("flex"); }
+  else { accEl?.classList.add("hidden"); accEl?.classList.remove("flex"); }
+}
+
+// Aplicar el precio sugerido al producto en Sheets
+async function aplicarPrecioSugerido() {
+  const fila   = _calcFilaActual;
+  const costo  = Number(document.getElementById("calcCosto")?.value)  || 0;
+  const margen = Number(document.getElementById("calcMargen")?.value) || 0;
+  if (!fila || !costo || !margen) return;
+
+  const precio = Math.ceil(costo * (1 + margen / 100));
+  const btn    = document.querySelector("[onclick='aplicarPrecioSugerido()']");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Aplicando..."; }
+
+  // Actualizar local
+  const p = rentTodos.find(x => String(x.fila) === String(fila));
+  if (p) {
+    p.precio        = precio;
+    p.ganancia_pct  = margen;
+    p.ganancia_pesos= precio - costo;
+  }
+  // También en productos (inventario)
+  const p2 = productos.find(x => String(x.fila) === String(fila));
+  if (p2) {
+    p2.precio       = precio;
+    p2.ganancia_calc = margen;
+    p2.ganancia_pesos= precio - costo;
+  }
+
+  try {
+    const res  = await fetch(APPS_URL, {
+      method: "POST", redirect: "follow",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ accion: "actualizar_precio", clave: ADMIN_KEY, fila: Number(fila), precio: precio }),
+    });
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      showToast(data.ok ? "✅ Precio " + fmt(precio) + " aplicado" : "⚠️ " + (data.error||"Error"));
+    } catch(e) {
+      showToast("✅ Precio " + fmt(precio) + " guardado en Sheets");
+    }
+    // Refrescar selector
+    if (document.getElementById("calcProd")) poblarCalcProductos();
+    renderTablaRent(rentTodos);
+  } catch(e) {
+    showToast("⚠️ Sin confirmación — verifica en Sheets");
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "✅ Aplicar este precio al producto"; }
+}
+
+function copiarPrecio() {
+  const costo  = Number(document.getElementById("calcCosto")?.value)  || 0;
+  const margen = Number(document.getElementById("calcMargen")?.value) || 0;
+  if (!costo || !margen) return;
+  const precio = Math.ceil(costo * (1 + margen / 100));
+  navigator.clipboard.writeText(String(precio))
+    .then(() => showToast("📋 Precio " + fmt(precio) + " copiado"))
+    .catch(() => showToast("Precio sugerido: " + fmt(precio)));
+}
+
+// Vista previa masiva
+function calcularPreviewMasivo() {
+  const margen = Number(document.getElementById("calcMargenGlobal")?.value) || 0;
+  const wrap   = document.getElementById("calcMasivoWrap");
+  const tbody  = document.getElementById("calcMasivoTabla");
+  if (!margen || !tbody) return;
+
+  const conCosto = rentTodos.filter(p => Number(p.costo) > 0);
+  if (!conCosto.length) {
+    wrap?.classList.remove("hidden");
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-4">No hay productos con costo ingresado</td></tr>';
+    return;
+  }
+
+  wrap?.classList.remove("hidden");
+  tbody.innerHTML = conCosto.map((p, i) => {
+    const sugerido = Math.ceil(Number(p.costo) * (1 + margen / 100));
+    const actual   = Number(p.precio) || 0;
+    const diff     = sugerido - actual;
+    const diffStr  = diff === 0 ? '<span class="text-green-400">Sin cambio</span>'
+                   : diff > 0   ? `<span class="text-yellow-400">+${fmt(diff)}</span>`
+                                : `<span class="text-red-400">${fmt(diff)}</span>`;
+    const bg = i % 2 === 0 ? "" : "bg-slate-800/30";
+    return `
+    <tr class="${bg} border-b border-slate-800/60">
+      <td class="py-2 px-2">
+        <div class="font-semibold text-white">${p.nombre}</div>
+        <div class="text-slate-500">${p.tamano}</div>
+      </td>
+      <td class="py-2 px-2 text-right text-slate-400">${fmt(p.costo)}</td>
+      <td class="py-2 px-2 text-right text-slate-300">${actual > 0 ? fmt(actual) : "—"}</td>
+      <td class="py-2 px-2 text-right font-bold text-teal-300">${fmt(sugerido)}</td>
+      <td class="py-2 px-2 text-center">${diffStr}</td>
+    </tr>`;
+  }).join("");
 }
 
 /* ── INIT ── */

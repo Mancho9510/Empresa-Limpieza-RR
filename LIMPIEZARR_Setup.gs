@@ -184,7 +184,6 @@ function calcularGanancias() {
     var ganancia = Math.round(((precio - costo) / costo) * 100 * 10) / 10;
     var cell = sheet.getRange(i + 1, gananciaIdx);
     cell.setValue(ganancia);
-    cell.setNumberFormat("0.0"%"");
 
     if (ganancia < 10)      { cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold"); }
     else if (ganancia < 30) { cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold"); }
@@ -234,4 +233,129 @@ function agregarColumnasCostoGanancia() {
 
   sheet.autoResizeColumns(1, sheet.getLastColumn());
   Logger.log("Listo. Ahora ejecuta calcularGanancias() para poblar los valores.");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CALCULAR PRECIOS CON MARGEN — para usar desde Sheets
+   
+   Cómo usar:
+   1. Ejecuta esta función desde el editor de Apps Script
+   2. Te pedirá el % de margen deseado
+   3. Calcula el precio sugerido para cada producto con costo
+   4. Lo escribe en la columna "precio_sugerido" (la crea si no existe)
+   5. NO modifica la columna "precio" — solo sugiere
+   
+   Para APLICAR los precios sugeridos: usa aplicarPreciosSugeridos()
+══════════════════════════════════════════════════════════════ */
+// ─── AJUSTA EL MARGEN AQUÍ antes de ejecutar ───────────
+var MARGEN_DESEADO = 80; // porcentaje (ej: 80 = 80%)
+// ────────────────────────────────────────────────────────
+
+function calcularPreciosConMargen() {
+  var margen = MARGEN_DESEADO;
+
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var costoIdx  = headers.indexOf("costo")  + 1;
+  var precioIdx = headers.indexOf("precio") + 1;
+  if (!costoIdx) { Logger.log("Columna costo no encontrada"); return; }
+
+  // Buscar o crear columna precio_sugerido
+  var sugIdx = headers.indexOf("precio_sugerido") + 1;
+  if (!sugIdx) {
+    sheet.insertColumnAfter(sheet.getLastColumn());
+    sugIdx = sheet.getLastColumn();
+    var hdrCell = sheet.getRange(1, sugIdx);
+    hdrCell.setValue("precio_sugerido");
+    hdrCell.setFontWeight("bold").setBackground("#FEF9C3").setFontColor("#854D0E");
+    hdrCell.setNote("Precio sugerido calculado con margen de " + margen + "% Formula: Costo × (1 + margen/100) NO modifica el precio real");
+  }
+
+  var actualizados = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    var costo  = Number(data[i][costoIdx - 1]);
+    var precio = Number(data[i][precioIdx - 1]);
+    if (!costo || costo <= 0) continue;
+
+    var sugerido = Math.ceil(costo * (1 + margen / 100));
+    var cell     = sheet.getRange(i + 1, sugIdx);
+    cell.setValue(sugerido);
+    cell.setNumberFormat("$ #,##0");
+
+    // Color según diferencia con precio actual
+    if (precio > 0) {
+      var diff = sugerido - precio;
+      if (Math.abs(diff) < 100)      cell.setBackground("#DCFCE7").setFontColor("#166534"); // ok
+      else if (diff > 0)             cell.setBackground("#FEF9C3").setFontColor("#854D0E"); // sube
+      else                           cell.setBackground("#FEE2E2").setFontColor("#991B1B"); // baja
+    } else {
+      cell.setBackground("#F0FDF9");
+    }
+    actualizados++;
+  }
+
+  sheet.autoResizeColumns(sugIdx, 1);
+  Logger.log("Precios sugeridos calculados con margen " + margen + "% para " + actualizados + " productos.");
+  if (ui) {
+    ui.alert("✅ Listo Precios sugeridos calculados con " + margen + "% de margen para " + actualizados + " productos. Revisa la columna 'precio_sugerido' en la hoja Productos. Si quieres aplicar esos precios al precio real, ejecuta aplicarPreciosSugeridos()");
+}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   APLICAR PRECIOS SUGERIDOS AL PRECIO REAL
+   ⚠️ ESTA ACCIÓN MODIFICA LA COLUMNA "precio"
+   Ejecutar calcularPreciosConMargen() primero para revisar.
+══════════════════════════════════════════════════════════════ */
+function aplicarPreciosSugeridos() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var precioIdx  = headers.indexOf("precio")          + 1;
+  var sugIdx     = headers.indexOf("precio_sugerido") + 1;
+  var ganIdx     = headers.indexOf("ganancia_pct")    + 1;
+  var costoIdx   = headers.indexOf("costo")           + 1;
+
+  if (!sugIdx) {
+    Logger.log("No hay columna precio_sugerido. Ejecuta calcularPreciosConMargen() primero.");
+    return;
+  }
+
+    // Ejecuta calcularPreciosConMargen() primero para revisar los precios.
+
+  var aplicados = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    var sugerido = Number(data[i][sugIdx - 1]);
+    if (!sugerido || sugerido <= 0) continue;
+
+    // Actualizar precio
+    sheet.getRange(i + 1, precioIdx).setValue(sugerido)
+      .setNumberFormat("$ #,##0").setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+
+    // Recalcular ganancia
+    if (ganIdx && costoIdx) {
+      var costo = Number(data[i][costoIdx - 1]);
+      if (costo > 0) {
+        var ganancia = Math.round(((sugerido - costo) / costo) * 100 * 10) / 10;
+        var ganCell  = sheet.getRange(i + 1, ganIdx);
+        ganCell.clearFormat();
+        ganCell.setValue(ganancia + "%");
+        ganCell.setBackground(ganancia >= 30 ? "#DCFCE7" : ganancia >= 10 ? "#FEF9C3" : "#FEE2E2")
+               .setFontColor(ganancia >= 30 ? "#166534" : ganancia >= 10 ? "#854D0E" : "#991B1B")
+               .setFontWeight("bold");
+      }
+    }
+    aplicados++;
+  }
+  Logger.log("✅ Precios aplicados: " + aplicados + " productos actualizados en la columna precio.");
 }

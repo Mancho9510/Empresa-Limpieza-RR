@@ -463,7 +463,7 @@ function doGet(e) {
 
         pedData.slice(1).filter(function(r){ return r[0] !== ""; }).forEach(function(r){
           var prodsStr = String(r[pedPC["productos"]] || "");
-          prodsStr.split("").forEach(function(linea){
+          prodsStr.split("/n").forEach(function(linea){
             var cantMatch = linea.match(/Cant[^0-9]*([0-9]+)/i);
             if (!cantMatch) return;
             var cant = parseInt(cantMatch[1], 10);
@@ -529,6 +529,12 @@ function doPost(e) {
       var claveC = body.clave || "";
       if (claveC !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
       actualizarCostoProducto(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_precio") {
+      var claveP = body.clave || "";
+      if (claveP !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarPrecioProducto(ss, body);
       return jsonResponse({ ok: true });
     }
     guardarPedido(ss, body);
@@ -833,11 +839,11 @@ function notificarWA(body) {
   var total   = body.total ? "$ " + Number(body.total).toLocaleString("es-CO") : "A convenir";
   var mensaje =
     "NUEVO PEDIDO - Limpieza RR /n" +
-    "Cliente: " + (body.nombre || "") + "" +
-    "Tel: "     + (body.telefono || "") + "" +
-    "Barrio: "  + (body.barrio || "") + "" +
-    "Pago: "    + (body.pago || "") + "" +
-    "Total: "   + total + "" +
+    "Cliente: " + (body.nombre || "") + "/n" +
+    "Tel: "     + (body.telefono || "") + "/n" +
+    "Barrio: "  + (body.barrio || "") + "/n" +
+    "Pago: "    + (body.pago || "") + "/n" +
+    "Total: "   + total + "/n" +
     "Zona: "    + (body.zona_envio || "");
   var url = "https://api.callmebot.com/whatsapp.php" +
     "?phone="   + CONFIG_WA.NUMERO +
@@ -913,11 +919,15 @@ function actualizarCostoProducto(ss, body) {
     if (precio > 0 && nuevoCosto > 0) {
       var ganancia = Math.round(((precio - nuevoCosto) / nuevoCosto) * 100 * 10) / 10;
       var ganCell  = sheet.getRange(fila, gananciaCol);
-      ganCell.setValue(ganancia);
-      ganCell.setNumberFormat("0.0"%"");
-      if (ganancia < 10)      { ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold"); }
-      else if (ganancia < 30) { ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold"); }
-      else                    { ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal"); }
+      ganCell.clearFormat();
+      ganCell.setValue(ganancia + "%");
+      if (ganancia < 10) {
+        ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+      } else if (ganancia < 30) {
+        ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      } else {
+        ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+      }
     }
   }
   Logger.log("Costo actualizado fila " + fila + " = " + nuevoCosto);
@@ -994,4 +1004,48 @@ function desinstalarTriggerHorario() {
     }
   });
   Logger.log("Triggers eliminados: " + count);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR PRECIO DESDE ADMIN (calculadora de rentabilidad)
+   body: { accion, clave, fila, precio }
+────────────────────────────────────────────────────────────── */
+function actualizarPrecioProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+
+  var headers    = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
+  var precioCol  = hLower.indexOf("precio")       + 1;
+  var costoCol   = hLower.indexOf("costo")        + 1;
+  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
+  if (!precioCol) return;
+
+  var nuevoPrecio = Number(body.precio);
+  sheet.getRange(fila, precioCol).setValue(nuevoPrecio);
+
+  // Resaltar en verde la celda del precio actualizado
+  sheet.getRange(fila, precioCol)
+    .setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+
+  // Recalcular ganancia si hay costo
+  if (gananciaCol && costoCol) {
+    var costo = Number(sheet.getRange(fila, costoCol).getValue());
+    if (costo > 0 && nuevoPrecio > 0) {
+      var ganancia = Math.round(((nuevoPrecio - costo) / costo) * 100 * 10) / 10;
+      var ganCell  = sheet.getRange(fila, gananciaCol);
+      ganCell.clearFormat();
+      ganCell.setValue(ganancia + "%");
+      if (ganancia < 10) {
+        ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+      } else if (ganancia < 30) {
+        ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      } else {
+        ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+      }
+    }
+  }
+  Logger.log("Precio actualizado fila " + fila + " = " + nuevoPrecio);
 }
