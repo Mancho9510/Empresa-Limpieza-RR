@@ -27,8 +27,8 @@ var CONFIG_WA = {
   // NOTA: Si el número no responde, visita callmebot.com para verificar
   //       el número actualizado — cambia ocasionalmente
   NUMERO:  "573503443140",   // Tu número con código de país, sin +
-  API_KEY: "",               // Tu API key de CallMeBot (dejar vacío = desactivado)
-  ACTIVO:  false,            // Cambiar a true cuando tengas la API key
+  API_KEY: "https://api.callmebot.com/whatsapp.php?phone=573503443140&text=This+is+a+test&apikey=4942289",               // Tu API key de CallMeBot (dejar vacío = desactivado)
+  ACTIVO:  true,            // Cambiar a true cuando tengas la API key
 };
 
 // Helper seguro para obtener el spreadsheet activo
