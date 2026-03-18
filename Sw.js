@@ -10,11 +10,14 @@ const CACHE_TIMEOUT = 5000; // ms antes de usar caché si la red tarda
 // Assets que se cachean al instalar
 const PRECACHE = [
   "./index.html",
-  "./admin.html",
-  "./styles.css",
-  "./app.js",
+  "./Admin.html",
+  "./assets/css/styles.css",
+  "./assets/js/app.js",
+  "./admin/api.js",
+  "./admin/admin.ui.js",
+  "./admin/admin.logic.js",
   "./manifest.json",
-  "./generate_icons.html",
+  "./tools/GenerateIcons.html",
 ];
 
 /* ── Instalación: pre-cachear assets estáticos ── */

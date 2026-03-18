@@ -12,7 +12,8 @@
 
 /* ─── ⚙️  CONFIGURACIÓN ──────────────────────────────────── */
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwntGswrb4Omm-O9jiX3FW0Lukjn5i-Zmcsrk2hf7seqGJbXvMvaI8xO2mt2oqgBhyczQ/exec",
+  // Cambia esta URL cuando vayas a apuntar la tienda a otro deployment de Apps Script.
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycby-dGGJrYSeWPHPscyzIP5ndwA519NZzRpJHSh7TFylsQIooLzRL0qS4Ge2CxNy6CHo/exec",
   WA_NUMBER:       "573503443140",
   AUTOPLAY_MS:     4200,
   PAY_NUMBER:      "3203346819",   // Número Nequi / Breb / Daviplata

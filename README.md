@@ -8,31 +8,41 @@ Plataforma completa de catálogo y ventas para **Limpieza RR**, empresa colombia
 
 ```
 limpieza-rr/
-├── index.html              # Tienda web (página principal del cliente)
-├── admin.html              # Panel de administración (Tailwind CSS, mobile-first)
-├── styles.css              # Estilos completos de la tienda
-├── app.js                  # Lógica completa del frontend (~1.100 líneas)
-├── manifest.json           # Configuración PWA
-├── sw.js                   # Service Worker — caché offline v2
-├── generate_icons.html     # Generador de íconos PWA (abrir una sola vez)
-├── icons/
-│   ├── icon-192.png        # Ícono PWA — generar con generate_icons.html
-│   └── icon-512.png        # Ícono PWA — generar con generate_icons.html
-├── LIMPIEZARR.gs           # Apps Script — API principal (doGet / doPost)
-├── LIMPIEZARR_Setup.gs     # Apps Script — Poblar 44 productos iniciales
-├── LIMPIEZARR_Admin.gs     # Apps Script — Inicializar hojas, backups, reparaciones
-├── LIMPIEZARR_Formato.gs   # Apps Script — Auto-formato de tablas y colores
-├── LIMPIEZARR_Dashboard.gs # Apps Script — Dashboard, cupones, email, calificaciones
-└── README.md               # Este archivo
+├── index.html              # Entry point tienda web
+├── Admin.html              # Entry point panel admin
+├── manifest.json           # Web manifest PWA
+├── Sw.js                   # Service Worker PWA (debe quedarse en raíz)
+├── assets/
+│   ├── css/
+│   │   └── styles.css      # Estilos de la tienda
+│   └── js/
+│       └── app.js          # Lógica del storefront
+├── admin/
+│   ├── api.js              # Capa de acceso al Apps Script
+│   ├── admin.logic.js      # Estado y controladores del admin
+│   ├── admin.ui.js         # Renderizadores del admin
+│   └── legacy/
+│       └── admin.js        # Versión anterior / demo
+├── apps-script/
+│   ├── LIMPIEZARR.gs
+│   ├── LIMPIEZARR_Setup.gs
+│   ├── LIMPIEZARR_Admin.gs
+│   ├── LIMPIEZARR_Clientes.gs
+│   ├── LIMPIEZARR_Proveedores.gs
+│   ├── LIMPIEZARR_Formato.gs
+│   └── LIMPIEZARR_Dashboard.gs
+├── tools/
+│   └── GenerateIcons.html  # Generador de íconos PWA
+└── README.md
 ```
 
-> ⚠️ El archivo `appsscript.gs` en la raíz es la versión monolítica anterior — **ignorar**, usar únicamente los 5 archivos `LIMPIEZARR_*.gs`.
+> Los entrypoints públicos siguen en raíz para no romper despliegues actuales. La lógica y los scripts de soporte ya viven en carpetas separadas.
 
 ---
 
 ## ✨ Funcionalidades completas
 
-### 🛒 Tienda (`index.html` + `app.js`)
+### 🛒 Tienda (`index.html` + `assets/js/app.js`)
 
 | Función | Descripción |
 |---|---|
@@ -56,7 +66,7 @@ limpieza-rr/
 | **Diseño responsivo** | Móvil, tablet y escritorio — compatible con todos los navegadores modernos |
 | **Animaciones** | Fade-in con IntersectionObserver, carrusel animado, skeletons de carga |
 
-### 🖥️ Panel Admin (`admin.html`) — Tailwind CSS, mobile-first
+### 🖥️ Panel Admin (`Admin.html` + `admin/`) — Tailwind CSS, mobile-first
 
 **URL:** `https://tuusuario.github.io/repo/admin.html`  
 **Clave de acceso:** `LIMPIEZARR2025`
@@ -233,7 +243,7 @@ En tu Google Sheet: **Extensiones → Apps Script**. Crea 5 archivos con estos n
 
 ### Paso 4 — Pegar la URL en los archivos web
 
-En `app.js` (bloque `CONFIG` al inicio):
+En `assets/js/app.js` (bloque `CONFIG` al inicio):
 ```javascript
 const CONFIG = {
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/TU_ID/exec",
@@ -244,10 +254,12 @@ const CONFIG = {
 };
 ```
 
-En `admin.html` (constante al inicio del script):
+En `admin/api.js`:
 ```javascript
-const APPS_URL  = "https://script.google.com/macros/s/TU_ID/exec";
-const ADMIN_KEY = "LIMPIEZARR2025";
+const ADMIN_CONFIG = {
+  APPS_URL: "https://script.google.com/macros/s/TU_ID/exec",
+  ADMIN_KEY: "LIMPIEZARR2025"
+};
 ```
 
 ### Paso 5 — Republicar tras cualquier cambio en `.gs`
@@ -430,20 +442,20 @@ setupCompleto()             → Crea Cupones + genera Dashboard (parte del setup
 
 | Qué cambiar | Archivo | Cómo |
 |---|---|---|
-| Número de WhatsApp del negocio | `app.js` | `CONFIG.WA_NUMBER` |
-| URL del Apps Script | `app.js` y `admin.html` | `CONFIG.APPS_SCRIPT_URL` / `APPS_URL` |
-| Clave del panel admin | `admin.html` y `LIMPIEZARR.gs` | `ADMIN_KEY` / `"LIMPIEZARR2025"` |
-| Número WhatsApp notificaciones | `LIMPIEZARR.gs` | `CONFIG_WA.NUMERO` |
-| Velocidad del carrusel | `app.js` | `CONFIG.AUTOPLAY_MS` (milisegundos) |
-| Colores principales del sitio | `styles.css` | Bloque `:root` (variables CSS) |
+| Número de WhatsApp del negocio | `assets/js/app.js` | `CONFIG.WA_NUMBER` |
+| URL del Apps Script | `assets/js/app.js` y `admin/api.js` | `CONFIG.APPS_SCRIPT_URL` / `ADMIN_CONFIG.APPS_URL` |
+| Clave del panel admin | `admin/api.js` y `apps-script/LIMPIEZARR.gs` | `ADMIN_CONFIG.ADMIN_KEY` / `"LIMPIEZARR2025"` |
+| Número WhatsApp notificaciones | `apps-script/LIMPIEZARR.gs` | `CONFIG_WA.NUMERO` |
+| Velocidad del carrusel | `assets/js/app.js` | `CONFIG.AUTOPLAY_MS` (milisegundos) |
+| Colores principales del sitio | `assets/css/styles.css` | Bloque `:root` (variables CSS) |
 | Logo SVG | `index.html` | Elemento `<svg>` dentro de `.logo` |
 | Nombre del negocio | `index.html` | `.logo-text` y etiqueta `<title>` |
-| Datos de transferencia | `app.js` | `CONFIG.PAY_NUMBER` y `CONFIG.PAY_HOLDER` |
-| Umbral de stock bajo | `LIMPIEZARR.gs` | `descontarStock()` → condición `nuevoStock <= 5` |
-| Clasificación VIP | `LIMPIEZARR.gs` | `clasificarCliente()` |
-| Pedidos por página en admin | `admin.html` | Constante `porPagina` |
-| TTL del caché de productos | `app.js` | Constante `CACHE_TTL` |
-| TTL del caché del dashboard | `LIMPIEZARR.gs` | `cache.put(CACHE_KEY, ..., 300)` — segundos |
+| Datos de transferencia | `assets/js/app.js` | `CONFIG.PAY_NUMBER` y `CONFIG.PAY_HOLDER` |
+| Umbral de stock bajo | `apps-script/LIMPIEZARR.gs` | `descontarStock()` → condición `nuevoStock <= 5` |
+| Clasificación VIP | `apps-script/LIMPIEZARR.gs` | `clasificarCliente()` |
+| Pedidos por página en admin | `admin/admin.logic.js` | Constante `porPagina` |
+| TTL del caché de productos | `assets/js/app.js` | Constante `CACHE_TTL` |
+| TTL del caché del dashboard | `apps-script/LIMPIEZARR.gs` | `cache.put(CACHE_KEY, ..., 300)` — segundos |
 
 ---
 
@@ -471,7 +483,7 @@ setupCompleto()             → Crea Cupones + genera Dashboard (parte del setup
 
 Los archivos `manifest.json` y `sw.js` (v2) ya están configurados. El Service Worker cachea:
 
-- `index.html`, `admin.html`, `styles.css`, `app.js`, `manifest.json`, `generate_icons.html`
+- `index.html`, `Admin.html`, `assets/css/styles.css`, `assets/js/app.js`, `tools/GenerateIcons.html`
 - Google Fonts (caché persistente)
 - Imágenes de productos de Google Drive (caché con actualización en background)
 

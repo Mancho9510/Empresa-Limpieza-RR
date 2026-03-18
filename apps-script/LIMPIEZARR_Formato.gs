@@ -113,6 +113,8 @@ function formatearTodo() {
   formatearComoTabla("Productos");
   formatearComoTabla("Pedidos");
   formatearComoTabla("Clientes");
+  formatearComoTabla("Proveedores");
+  formatearComoTabla("Cupones");
   Logger.log("=== Todas las tablas formateadas ===");
 }
 
@@ -147,7 +149,7 @@ function onEditar(e) {
   if (!e) return;
   const nombreHoja = e.range.getSheet().getName();
   // Solo formatear las hojas principales, no los backups
-  if (["Productos", "Pedidos", "Clientes"].includes(nombreHoja)) {
+  if (["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones", "Calificaciones"].includes(nombreHoja)) {
     formatearComoTabla(nombreHoja);
   }
 }
@@ -209,15 +211,14 @@ function repararColumnasPedidos() {
 ────────────────────────────────────────────────────────────── */
 function verificarEstructura() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const hojas = ["Productos", "Pedidos", "Clientes"];
+  const hojas = ["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones"];
 
   const esperado = {
-    "Productos": ["id","nombre","tamano","precio","categoria","destacado","emoji","descripcion","imagen"],
-    "Pedidos":   ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
-                  "casa","conjunto","nota","pago","zona_envio","costo_envio","subtotal","total",
-                  "estado_pago","productos"],
-    "Clientes":  ["primera_compra","ultima_compra","nombre","telefono","ciudad",
-                  "barrio","direccion","total_pedidos","total_gastado","tipo"],
+    "Productos": PRODUCTOS_HEADERS,
+    "Pedidos":   PEDIDOS_HEADERS,
+    "Clientes":  CLIENTES_HEADERS,
+    "Proveedores": PROVEEDORES_HEADERS,
+    "Cupones": CUPONES_HEADERS,
   };
 
   hojas.forEach(nombre => {
@@ -245,7 +246,7 @@ function verificarEstructura() {
 /* ══════════════════════════════════════════════════════════════
    CALIFICACIONES
 ══════════════════════════════════════════════════════════════ */
-function guardarCalificacion(ss, body) {
+function guardarCalificacion_formato_legacy(ss, body) {
   let sheet = ss.getSheetByName("Calificaciones");
   if (!sheet) {
     sheet = ss.insertSheet("Calificaciones");
@@ -266,7 +267,7 @@ function guardarCalificacion(ss, body) {
 /* ══════════════════════════════════════════════════════════════
    CUPONES — incrementar uso
 ══════════════════════════════════════════════════════════════ */
-function incrementarUsoCupon(ss, code) {
+function incrementarUsoCupon_formato_legacy(ss, code) {
   const sheet = ss.getSheetByName("Cupones");
   if (!sheet) return;
   const data    = sheet.getDataRange().getValues();
@@ -285,7 +286,7 @@ function incrementarUsoCupon(ss, code) {
 /* ══════════════════════════════════════════════════════════════
    NOTIFICACIÓN EMAIL al recibir pedido
 ══════════════════════════════════════════════════════════════ */
-function notificarPedido(body) {
+function notificarPedido_formato_legacy(body) {
   try {
     const email   = Session.getActiveUser().getEmail();
     if (!email) return;

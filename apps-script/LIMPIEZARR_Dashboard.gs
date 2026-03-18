@@ -14,6 +14,26 @@ function refrescarDashboard() {
   Logger.log("Dashboard actualizado correctamente.");
 }
 
+function getDashboardSheet(ss) {
+  var dashboard = ss.getSheetByName("Dashboard");
+  var legacy = ss.getSheetByName("Resumen");
+
+  if (dashboard) return dashboard;
+  if (legacy) {
+    legacy.setName("Dashboard");
+    return legacy;
+  }
+
+  dashboard = ss.insertSheet("Dashboard");
+  ss.setActiveSheet(dashboard);
+  ss.moveActiveSheet(1);
+  return dashboard;
+}
+
+function inicializarDashboard() {
+  actualizarDashboard(SpreadsheetApp.getActiveSpreadsheet());
+}
+
 /* ──────────────────────────────────────────────────────────────
    DASHBOARD COMPLETO
 ────────────────────────────────────────────────────────────── */
@@ -21,8 +41,7 @@ function actualizarDashboard(ss) {
   try {
     if (!ss) { Logger.log("ERROR: ss undefined"); return; }
 
-    var dash = ss.getSheetByName("Resumen");
-    if (!dash) { dash = ss.insertSheet("Resumen"); ss.setActiveSheet(dash); ss.moveActiveSheet(1); }
+    var dash = getDashboardSheet(ss);
     dash.clearContents();
     dash.clearFormats();
 
@@ -79,8 +98,8 @@ function actualizarDashboard(ss) {
 
       // Fechas
       try {
-        var fd = (rawFecha instanceof Date) ? rawFecha : new Date(String(rawFecha));
-        if (!isNaN(fd.getTime())) {
+        var fd = parseLimpiezaDate(rawFecha);
+        if (fd && !isNaN(fd.getTime())) {
           var fD = Number(Utilities.formatDate(fd, "America/Bogota", "d"));
           var fM = Number(Utilities.formatDate(fd, "America/Bogota", "M"));
           var fA = Number(Utilities.formatDate(fd, "America/Bogota", "yyyy"));
@@ -444,7 +463,8 @@ function validarCupon(code) {
   if (String(found[COL["activo"]]).toLowerCase()!=="true") return null;
   var uses=Number(found[COL["usos_actuales"]])||0, maxU=found[COL["usos_maximos"]]!==""?Number(found[COL["usos_maximos"]]):Infinity;
   if (uses>=maxU) return null;
-  if (found[COL["vencimiento"]] && new Date(found[COL["vencimiento"]])<new Date()) return null;
+  var vencimiento = parseLimpiezaDate(found[COL["vencimiento"]]);
+  if (vencimiento && vencimiento < new Date()) return null;
   return { type: String(found[COL["tipo"]]||"pct"), value: Number(found[COL["valor"]]||0), label: String(found[COL["descripcion"]]||code) };
 }
 
@@ -467,16 +487,31 @@ function incrementarUsoCupon(ss, code) {
 /* ──────────────────────────────────────────────────────────────
    CALIFICACIONES
 ────────────────────────────────────────────────────────────── */
+function inicializarCalificaciones() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Calificaciones");
+  if (!sheet) sheet = ss.insertSheet("Calificaciones");
+  asegurarEncabezados(sheet, CALIFICACIONES_HEADERS);
+  aplicarEstiloBasicoEncabezado(sheet, "#F59E0B", "#FFFFFF");
+  ponerNotaPorEncabezado(sheet, "estrellas", "Valor de 1 a 5 para medir la satisfaccion del cliente.");
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Calificaciones");
+  sheet.autoResizeColumns(1, sheet.getLastColumn());
+  Logger.log("OK: hoja Calificaciones lista.");
+}
+
 function guardarCalificacion(ss, body) {
   var sheet = ss.getSheetByName("Calificaciones");
-  if (!sheet) {
-    sheet = ss.insertSheet("Calificaciones");
-    var h = ["fecha","nombre","telefono","estrellas","comentario"];
-    sheet.appendRow(h);
-    sheet.getRange(1,1,1,h.length).setFontWeight("bold").setBackground("#F59E0B").setFontColor("#fff");
-    sheet.setFrozenRows(1);
+  if (!sheet || sheet.getLastColumn() === 0) {
+    inicializarCalificaciones();
+    sheet = ss.getSheetByName("Calificaciones");
   }
-  sheet.appendRow([new Date().toLocaleString("es-CO"), body.nombre||"", body.telefono||"", body.estrellas||0, body.comentario||""]);
+  appendRowByHeaders(sheet, {
+    fecha: new Date().toLocaleString("es-CO"),
+    nombre: body.nombre || "",
+    telefono: typeof normalizarTelefono === "function" ? normalizarTelefono(body.telefono || "") : String(body.telefono || ""),
+    estrellas: body.estrellas || 0,
+    comentario: body.comentario || ""
+  });
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -485,15 +520,17 @@ function guardarCalificacion(ss, body) {
 function inicializarCupones() {
   var ss=SpreadsheetApp.getActiveSpreadsheet(), sheet=ss.getSheetByName("Cupones");
   if (!sheet) sheet=ss.insertSheet("Cupones");
-  if (sheet.getLastRow()===0){
-    var h=["codigo","descripcion","tipo","valor","usos_maximos","usos_actuales","vencimiento","activo"];
-    sheet.appendRow(h);
-    sheet.getRange(1,1,1,h.length).setFontWeight("bold").setBackground("#F59E0B").setFontColor("#fff");
+  asegurarEncabezados(sheet, CUPONES_HEADERS);
+  if (sheet.getLastRow() <= 1){
+    sheet.getRange(1,1,1,sheet.getLastColumn()).setFontWeight("bold").setBackground("#F59E0B").setFontColor("#fff");
     sheet.appendRow(["BIENVENIDO","10% descuento bienvenida","pct",10,"",0,"",true]);
     sheet.appendRow(["PROMO5K","Descuento fijo $5.000","fixed",5000,100,0,"",true]);
     sheet.appendRow(["VIP20","20% clientes VIP","pct",20,50,0,"",true]);
-    sheet.setFrozenRows(1); sheet.autoResizeColumns(1,h.length);
   }
+  aplicarEstiloBasicoEncabezado(sheet, "#F59E0B", "#FFFFFF");
+  aplicarFormatoMonedaPorEncabezado(sheet, ["valor"]);
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Cupones");
+  sheet.autoResizeColumns(1, sheet.getLastColumn());
   Logger.log("OK: hoja Cupones lista.");
 }
 
@@ -501,7 +538,6 @@ function inicializarCupones() {
    SETUP COMPLETO v2
 ────────────────────────────────────────────────────────────── */
 function setupCompleto() {
-  inicializarCupones();
-  actualizarDashboard(SpreadsheetApp.getActiveSpreadsheet());
-  Logger.log("=== Setup v2 completo ===");
+  configuracionInicial();
+  Logger.log("=== Setup v2 completo desde configuracionInicial() ===");
 }

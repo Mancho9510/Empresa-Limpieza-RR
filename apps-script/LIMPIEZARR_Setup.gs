@@ -4,6 +4,136 @@
    Todas las funciones son accesibles desde LIMPIEZARR.gs.
 ═══════════════════════════════════════════════════════════ */
 
+var PRODUCTOS_HEADERS = ["id","nombre","tamano","precio","costo","ganancia_pct","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
+var PEDIDOS_HEADERS = ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion","casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio","subtotal","total","estado_pago","estado_envio","productos"];
+var CLIENTES_HEADERS = ["primera_compra","ultima_compra","nombre","telefono","ciudad","barrio","direccion","total_pedidos","total_gastado","tipo"];
+var PROVEEDORES_HEADERS = ["nombre","contacto_nombre","telefono","email","productos","direccion","nota","fecha_registro","activo"];
+var CUPONES_HEADERS = ["codigo","descripcion","tipo","valor","usos_maximos","usos_actuales","vencimiento","activo"];
+var CALIFICACIONES_HEADERS = ["fecha","nombre","telefono","estrellas","comentario"];
+
+function normalizarHeader(value) {
+  return String(value || "").toLowerCase().trim();
+}
+
+function obtenerCabeceras(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (!lastCol) return { headers: [], map: {} };
+
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map = {};
+  headers.forEach(function(header, index) {
+    map[normalizarHeader(header)] = index + 1;
+  });
+  return { headers: headers, map: map };
+}
+
+function asegurarEncabezados(sheet, headers) {
+  if (sheet.getLastRow() === 0 || sheet.getLastColumn() === 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    return true;
+  }
+
+  let info = obtenerCabeceras(sheet);
+  let changed = false;
+  headers.forEach(function(header) {
+    if (info.map[normalizarHeader(header)]) return;
+    sheet.insertColumnAfter(sheet.getLastColumn());
+    sheet.getRange(1, sheet.getLastColumn()).setValue(header);
+    info = obtenerCabeceras(sheet);
+    changed = true;
+  });
+  return changed;
+}
+
+function appendRowByHeaders(sheet, data) {
+  const info = obtenerCabeceras(sheet);
+  if (!info.headers.length) throw new Error("La hoja " + sheet.getName() + " no tiene encabezados");
+
+  const row = info.headers.map(function(header) {
+    const key = normalizarHeader(header);
+    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : "";
+  });
+
+  sheet.appendRow(row);
+  return sheet.getLastRow();
+}
+
+function updateRowByHeaders(sheet, rowNum, data) {
+  const info = obtenerCabeceras(sheet);
+  Object.keys(data).forEach(function(key) {
+    const col = info.map[normalizarHeader(key)];
+    if (col) sheet.getRange(rowNum, col).setValue(data[key]);
+  });
+}
+
+function aplicarEstiloBasicoEncabezado(sheet, bg, fg) {
+  const lastCol = sheet.getLastColumn();
+  if (!lastCol) return;
+  sheet.getRange(1, 1, 1, lastCol)
+    .setFontWeight("bold")
+    .setBackground(bg)
+    .setFontColor(fg)
+    .setHorizontalAlignment("center");
+  sheet.setFrozenRows(1);
+}
+
+function aplicarFormatoMonedaPorEncabezado(sheet, headers) {
+  const info = obtenerCabeceras(sheet);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  headers.forEach(function(header) {
+    const col = info.map[normalizarHeader(header)];
+    if (!col) return;
+    sheet.getRange(2, col, lastRow - 1, 1).setNumberFormat("$ #,##0.00");
+  });
+}
+
+function ponerNotaPorEncabezado(sheet, headerName, note) {
+  const info = obtenerCabeceras(sheet);
+  const col = info.map[normalizarHeader(headerName)];
+  if (col) sheet.getRange(1, col).setNote(note);
+}
+
+function obtenerUiSegura() {
+  try {
+    return SpreadsheetApp.getUi();
+  } catch (err) {
+    return null;
+  }
+}
+
+function actualizarCategoriaSuavizantes() {
+  const ss = getSS();
+  const sheet = ss.getSheetByName("Productos");
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+
+  const info = obtenerCabeceras(sheet);
+  const nombreCol = info.map["nombre"];
+  const categoriaCol = info.map["categoria"];
+  if (!nombreCol || !categoriaCol) return 0;
+
+  const lastRow = sheet.getLastRow();
+  const nombres = sheet.getRange(2, nombreCol, lastRow - 1, 1).getValues();
+  const categorias = sheet.getRange(2, categoriaCol, lastRow - 1, 1).getValues();
+  let cambios = 0;
+
+  for (let i = 0; i < nombres.length; i++) {
+    const nombre = String(nombres[i][0] || "").toLowerCase();
+    if (!nombre.includes("suavizante")) continue;
+    if (String(categorias[i][0] || "") === "Suavizante") continue;
+    categorias[i][0] = "Suavizante";
+    cambios++;
+  }
+
+  if (cambios > 0) {
+    sheet.getRange(2, categoriaCol, categorias.length, 1).setValues(categorias);
+  }
+
+  Logger.log("Suavizantes normalizados: " + cambios);
+  return cambios;
+}
+
 function populateProductos(forzar) {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Productos");
@@ -11,35 +141,40 @@ function populateProductos(forzar) {
 
   // PROTECCION: si ya hay datos y no se fuerza, no borrar nada
   if (!forzar && sheet.getLastRow() > 1) {
+    asegurarEncabezados(sheet, PRODUCTOS_HEADERS);
+    aplicarEstiloBasicoEncabezado(sheet, "#0F766E", "#FFFFFF");
+    aplicarFormatoMonedaPorEncabezado(sheet, ["precio", "costo", "precio_sugerido"]);
+    if (typeof formatearComoTabla === "function") formatearComoTabla("Productos");
+    actualizarCategoriaSuavizantes();
     Logger.log(
       "ADVERTENCIA: La hoja Productos ya tiene " + (sheet.getLastRow() - 1) + " filas. " +
-      "Para recrearla ejecuta resetearProductos()"
+      "Se conservaron los datos y se valido el esquema."
     );
     return;
   }
 
-  sheet.clearContents();
+  sheet.clear();
 
-  const headers = ["id","nombre","tamano","precio","costo","ganancia_pct","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
+  const headers = PRODUCTOS_HEADERS;
   sheet.appendRow(headers);
 
   const hdr = sheet.getRange(1, 1, 1, headers.length);
   hdr.setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
 
   // Columna imagen en amarillo para que sea fácil de identificar
-  sheet.getRange(1, 9, 1, 1).setBackground("#FFF176").setFontColor("#5F4000");
+  sheet.getRange(1, 11, 1, 1).setBackground("#FFF176").setFontColor("#5F4000");
   // Notas en columnas imagen y stock
   sheet.getRange(1, 5).setNote("COSTO: Precio al que compraste el producto. Se usa para calcular ganancia.");
   sheet.getRange(1, 6).setNote("GANANCIA %: Se calcula con calcularGanancias(). Formula: ((precio-costo)/costo)*100");
-  sheet.getRange(1, 10).setNote("imagen2: segunda foto del producto (URL Drive o externa)");
-  sheet.getRange(1, 11).setNote("imagen3: tercera foto del producto (URL Drive o externa)");
-  sheet.getRange(1, 12).setNote(
+  sheet.getRange(1, 12).setNote("imagen2: segunda foto del producto (URL Drive o externa)");
+  sheet.getRange(1, 13).setNote("imagen3: tercera foto del producto (URL Drive o externa)");
+  sheet.getRange(1, 14).setNote(
     "STOCK:\n" +
     "- Vacío = sin control de inventario\n" +
     "- 0 = agotado (no se puede comprar)\n" +
     "- Número = unidades disponibles"
   );
-  sheet.getRange(1, 9).setNote(
+  sheet.getRange(1, 11).setNote(
     "COMO AGREGAR IMAGEN:\n\n" +
     "1. Sube la foto a Google Drive\n" +
     "2. Click derecho sobre el archivo\n" +
@@ -96,10 +231,18 @@ function populateProductos(forzar) {
     [44,"Suavizante Galon","2000 gr",17000,"","","Otros",true,"🌺","Suavizante 2 Kg familiar. Fragancia duradera y economico.","","","",""],
   ];
 
+  rows.forEach(function(row) {
+    if (String(row[1] || "").toLowerCase().indexOf("suavizante") >= 0) {
+      row[6] = "Suavizante";
+    }
+  });
+
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   sheet.autoResizeColumns(1, headers.length);
   sheet.setFrozenRows(1);
-  sheet.getRange(2, 4, rows.length, 1).setNumberFormat("$ #,##0.00");
+  aplicarFormatoMonedaPorEncabezado(sheet, ["precio", "costo", "precio_sugerido"]);
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Productos");
+  actualizarCategoriaSuavizantes();
 
   Logger.log("OK: " + rows.length + " productos sincronizados.");
 }
@@ -253,6 +396,7 @@ var MARGEN_DESEADO = 80; // porcentaje (ej: 80 = 80%)
 
 function calcularPreciosConMargen() {
   var margen = MARGEN_DESEADO;
+  var ui     = obtenerUiSegura();
 
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Productos");

@@ -161,16 +161,10 @@ function inicializarPedidos() {
   let sheet = ss.getSheetByName("Pedidos");
   if (!sheet) sheet = ss.insertSheet("Pedidos");
 
-  if (sheet.getLastRow() === 0) {
-    const h = ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
-               "casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio",
-               "subtotal","total","estado_pago","estado_envio","productos"];
-    sheet.appendRow(h);
-    sheet.getRange(1,1,1,h.length).setFontWeight("bold").setBackground("#0D9488").setFontColor("#fff");
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, h.length);
-    sheet.getRange(2,13,1000,3).setNumberFormat("$ #,##0.00");
-  }
+  asegurarEncabezados(sheet, PEDIDOS_HEADERS);
+  aplicarEstiloBasicoEncabezado(sheet, "#0D9488", "#FFFFFF");
+  aplicarFormatoMonedaPorEncabezado(sheet, ["descuento", "costo_envio", "subtotal", "total"]);
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Pedidos");
   Logger.log('OK: hoja "Pedidos" lista.');
 }
 
@@ -182,37 +176,44 @@ function inicializarClientes() {
   let sheet = ss.getSheetByName("Clientes");
   if (!sheet) sheet = ss.insertSheet("Clientes");
 
-  if (sheet.getLastRow() === 0) {
-    const h = ["primera_compra","ultima_compra","nombre","telefono","ciudad",
-               "barrio","direccion","total_pedidos","total_gastado","tipo"];
-    sheet.appendRow(h);
-    sheet.getRange(1,1,1,h.length).setFontWeight("bold").setBackground("#14B8A6").setFontColor("#fff");
-    sheet.setFrozenRows(1);
-    sheet.autoResizeColumns(1, h.length);
-    sheet.getRange(2,9,1000,1).setNumberFormat("$ #,##0.00");
-    sheet.getRange(1,10).setNote(
-      "Clasificacion automatica:\n" +
-      "Nuevo      = 1 pedido\n" +
-      "Recurrente = 2+ pedidos o $150.000+\n" +
-      "VIP        = 10+ pedidos o $500.000+"
-    );
-  }
+  asegurarEncabezados(sheet, CLIENTES_HEADERS);
+  aplicarEstiloBasicoEncabezado(sheet, "#14B8A6", "#FFFFFF");
+  aplicarFormatoMonedaPorEncabezado(sheet, ["total_gastado"]);
+  ponerNotaPorEncabezado(sheet, "tipo",
+    "Clasificacion automatica:\n" +
+    "Nuevo      = 1 pedido\n" +
+    "Recurrente = 2+ pedidos o $150.000+\n" +
+    "VIP        = 10+ pedidos o $500.000+"
+  );
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Clientes");
   Logger.log('OK: hoja "Clientes" lista.');
+}
+
+function inicializarProveedores() {
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Proveedores");
+  if (!sheet) sheet = ss.insertSheet("Proveedores");
+
+  asegurarEncabezados(sheet, PROVEEDORES_HEADERS);
+  aplicarEstiloBasicoEncabezado(sheet, "#0F766E", "#FFFFFF");
+  if (typeof formatearComoTabla === "function") formatearComoTabla("Proveedores");
+  Logger.log('OK: hoja "Proveedores" lista.');
 }
 
 /* ══════════════════════════════════════════════════════════════
    BACKUP MANUAL — ejecutar antes de cualquier cambio grande
-   Crea copias de seguridad de las 3 hojas con fecha y hora
+   Crea copias de seguridad de las hojas principales con fecha y hora
 ══════════════════════════════════════════════════════════════ */
 function hacerBackup() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
   const fecha   = Utilities.formatDate(new Date(), "America/Bogota", "yyyy-MM-dd HH:mm");
-  const hojas   = ["Productos", "Pedidos", "Clientes"];
+  const hojas   = ["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones", "Dashboard", "Resumen"];
   const creadas = [];
 
   hojas.forEach(nombre => {
     const sheet = ss.getSheetByName(nombre);
     if (!sheet) return;
+    if (creadas.indexOf("BKP " + nombre + " " + fecha) >= 0) return;
     const copia = sheet.copyTo(ss);
     copia.setName("BKP " + nombre + " " + fecha);
     // Mover la copia al final
@@ -279,6 +280,30 @@ const TEMAS = {
     rowPar:  "#ECFDF5",
     rowImpar:"#FFFFFF",
     border:  "#6EE7B7",
+    imgCol:  null,
+  },
+  "Proveedores": {
+    hdrBg:   "#0F766E",
+    hdrFg:   "#FFFFFF",
+    rowPar:  "#F0FDFA",
+    rowImpar:"#FFFFFF",
+    border:  "#99F6E4",
+    imgCol:  null,
+  },
+  "Cupones": {
+    hdrBg:   "#F59E0B",
+    hdrFg:   "#FFFFFF",
+    rowPar:  "#FFFBEB",
+    rowImpar:"#FFFFFF",
+    border:  "#FCD34D",
+    imgCol:  null,
+  },
+  "Calificaciones": {
+    hdrBg:   "#F59E0B",
+    hdrFg:   "#FFFFFF",
+    rowPar:  "#FFFBEB",
+    rowImpar:"#FFFFFF",
+    border:  "#FCD34D",
     imgCol:  null,
   },
 };

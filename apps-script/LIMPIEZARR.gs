@@ -10,7 +10,7 @@
  *  ✅ Clasificación automática: Nuevo / Recurrente / VIP
  *
  *  SETUP (ejecutar UNA sola vez):
- *  → configuracionInicial()  crea las 3 hojas listas
+ *  → configuracionInicial()  crea y valida Productos, Pedidos, Clientes, Proveedores, Cupones y Dashboard
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -36,6 +36,59 @@ function getSS() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error("No hay spreadsheet activo. Ejecuta desde el editor del Sheet.");
   return ss;
+}
+
+function parseLimpiezaDate(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+  if (typeof value === "number" && !isNaN(value) && value > 20000 && value < 60000) {
+    var serialDate = new Date(Math.round((value - 25569) * 86400 * 1000));
+    if (!isNaN(serialDate.getTime())) return serialDate;
+  }
+
+  var raw = String(value || "").trim();
+  if (!raw) return null;
+
+  var direct = new Date(raw);
+  if (!isNaN(direct.getTime())) return direct;
+
+  raw = raw
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/a\.\s*m\./i, "AM")
+    .replace(/p\.\s*m\./i, "PM")
+    .replace(/a\.m\./i, "AM")
+    .replace(/p\.m\./i, "PM");
+
+  var match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) {
+    var dateOnly = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dateOnly) return null;
+    var parsedDateOnly = new Date(Number(dateOnly[3]), Number(dateOnly[2]) - 1, Number(dateOnly[1]));
+    return isNaN(parsedDateOnly.getTime()) ? null : parsedDateOnly;
+  }
+
+  var day = Number(match[1]);
+  var month = Number(match[2]) - 1;
+  var year = Number(match[3]);
+  var hour = Number(match[4]);
+  var minute = Number(match[5]);
+  var second = Number(match[6] || 0);
+  var meridiem = String(match[7] || "").toUpperCase();
+
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+
+  var parsed = new Date(year, month, day, hour, minute, second);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizarTelefono(value) {
+  var tel = String(value || "").replace(/\D/g, "");
+  if (tel.length === 12 && tel.indexOf("57") === 0) {
+    tel = tel.slice(2);
+  }
+  return tel;
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -95,7 +148,7 @@ function doGet(e) {
 
     // ── Historial ──────────────────────────────────────────
     if (action === "historial") {
-      var tel    = String(e.parameter.telefono || "").replace(/[^0-9]/g, "");
+      var tel    = normalizarTelefono(e.parameter.telefono || "");
       var pSheet = ss.getSheetByName("Pedidos");
       if (!pSheet || !tel) return jsonResponse({ ok: false, pedidos: [] });
       var pData    = pSheet.getDataRange().getValues();
@@ -104,7 +157,7 @@ function doGet(e) {
       pHdr.forEach(function(h, i) { pCOL[String(h).toLowerCase().trim()] = i; });
       var pedidos  = pData.slice(1)
         .filter(function(r) {
-          return String(r[pCOL["telefono"]] || "").replace(/[^0-9]/g, "") === tel;
+          return normalizarTelefono(r[pCOL["telefono"]] || "") === tel;
         })
         .slice(-10).reverse()
         .map(function(r) {
@@ -117,7 +170,7 @@ function doGet(e) {
 
     // ── Estado ─────────────────────────────────────────────
     if (action === "estado") {
-      var tel2   = String(e.parameter.telefono || "").replace(/[^0-9]/g, "");
+      var tel2   = normalizarTelefono(e.parameter.telefono || "");
       var eSheet = ss.getSheetByName("Pedidos");
       if (!eSheet || !tel2) return jsonResponse({ ok: false, pedidos: [] });
       var eData    = eSheet.getDataRange().getValues();
@@ -126,7 +179,7 @@ function doGet(e) {
       eHdr.forEach(function(h, i) { eCOL[String(h).toLowerCase().trim()] = i; });
       var ultimos  = eData.slice(1)
         .filter(function(r) {
-          return String(r[eCOL["telefono"]] || "").replace(/[^0-9]/g, "") === tel2;
+          return normalizarTelefono(r[eCOL["telefono"]] || "") === tel2;
         })
         .slice(-3).reverse()
         .map(function(r) {
@@ -229,6 +282,14 @@ function doGet(e) {
       });
     }
 
+    if (action === "admin_clientes") {
+      return doGet_admin_clientes(e);
+    }
+
+    if (action === "admin_proveedores") {
+      return doGet_admin_proveedores(e);
+    }
+
     // ── Admin: métricas del dashboard ─────────────────────
     if (action === "admin_dashboard") {
       var clave = e.parameter.clave || "";
@@ -273,7 +334,8 @@ function doGet(e) {
 
       rows.forEach(function(r){
         var rawF  = r[PC["fecha"]];
-        var total = Number(r[PC["total"]])||0;
+        var total = Number(r[PC["total"]]);
+        if (isNaN(total) || total <= 0) total = Number(r[PC["subtotal"]]) || 0;
         var estP  = String(r[PC["estado_pago"]]||"").toUpperCase();
         var estE  = String(r[PC["estado_envio"]]||"");
         var prods = String(r[PC["productos"]]||"");
@@ -293,8 +355,8 @@ function doGet(e) {
         if (pago) pagoCount[pago]=(pagoCount[pago]||0)+1;
 
         try {
-          var fd=(rawF instanceof Date)?rawF:new Date(String(rawF));
-          if (!isNaN(fd.getTime())){
+        var fd = parseLimpiezaDate(rawF);
+          if (fd && !isNaN(fd.getTime())){
             var fD=Number(Utilities.formatDate(fd,"America/Bogota","d"));
             var fM=Number(Utilities.formatDate(fd,"America/Bogota","M"));
             var fA=Number(Utilities.formatDate(fd,"America/Bogota","yyyy"));
@@ -309,7 +371,7 @@ function doGet(e) {
           }
         } catch(ed){}
 
-        prods.split("/n").forEach(function(line){
+        prods.split("\n").forEach(function(line){
           var m=line.match(/Cant[^0-9]*([0-9]+)/i);
           var cant=m?parseInt(m[1],10):1;
           var k=line.split("|")[0].trim();
@@ -463,7 +525,7 @@ function doGet(e) {
 
         pedData.slice(1).filter(function(r){ return r[0] !== ""; }).forEach(function(r){
           var prodsStr = String(r[pedPC["productos"]] || "");
-          prodsStr.split("/n").forEach(function(linea){
+          prodsStr.split("\n").forEach(function(linea){
             var cantMatch = linea.match(/Cant[^0-9]*([0-9]+)/i);
             if (!cantMatch) return;
             var cant = parseInt(cantMatch[1], 10);
@@ -536,6 +598,18 @@ function doPost(e) {
       if (claveP !== "LIMPIEZARR2025") return jsonResponse({ ok: false, error: "No autorizado" });
       actualizarPrecioProducto(ss, body);
       return jsonResponse({ ok: true });
+    }
+    if (body.accion === "admin_clientes_upsert") {
+      return doPost_admin_clientes_upsert(e);
+    }
+    if (body.accion === "admin_clientes_eliminar") {
+      return doPost_admin_clientes_eliminar(e);
+    }
+    if (body.accion === "admin_proveedores_upsert") {
+      return doPost_admin_proveedores_upsert(e);
+    }
+    if (body.accion === "admin_proveedores_eliminar") {
+      return doPost_admin_proveedores_eliminar(e);
     }
     guardarPedido(ss, body);
     if (body.telefono) upsertCliente(ss, body);
@@ -707,29 +781,33 @@ function verificarStockCompleto() {
    GUARDAR PEDIDO en hoja "Pedidos"
 ────────────────────────────────────────────────────────────── */
 function guardarPedido(ss, body) {
-  const sheet = ss.getSheetByName("Pedidos");
-  sheet.appendRow([
-    new Date().toLocaleString("es-CO"),
-    body.nombre        || "",
-    body.telefono      || "",
-    body.ciudad        || "",
-    body.departamento  || "",
-    body.barrio        || "",
-    body.direccion     || "",
-    body.casa          || "",
-    body.conjunto      || "",
-    body.nota          || "",
-    body.cupon         || "",
-    body.descuento     || 0,
-    body.pago          || "",
-    body.zona_envio    || "",
-    body.costo_envio   || 0,
-    body.subtotal      || 0,
-    body.total         || 0,
-    body.estado_pago   || "PENDIENTE",
-    "Recibido",
-    body.productos     || "",
-  ]);
+  let sheet = ss.getSheetByName("Pedidos");
+  if (!sheet || sheet.getLastColumn() === 0) {
+    inicializarPedidos();
+    sheet = ss.getSheetByName("Pedidos");
+  }
+  appendRowByHeaders(sheet, {
+    fecha: new Date().toLocaleString("es-CO"),
+    nombre: body.nombre || "",
+    telefono: normalizarTelefono(body.telefono || ""),
+    ciudad: body.ciudad || "",
+    departamento: body.departamento || "",
+    barrio: body.barrio || "",
+    direccion: body.direccion || "",
+    casa: body.casa || "",
+    conjunto: body.conjunto || "",
+    nota: body.nota || "",
+    cupon: body.cupon || "",
+    descuento: body.descuento || 0,
+    pago: body.pago || "",
+    zona_envio: body.zona_envio || "",
+    costo_envio: body.costo_envio || 0,
+    subtotal: body.subtotal || 0,
+    total: Number(body.total) || Number(body.subtotal) || 0,
+    estado_pago: body.estado_pago || "PENDIENTE",
+    estado_envio: "Recibido",
+    productos: body.productos || "",
+  });
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -738,7 +816,11 @@ function guardarPedido(ss, body) {
    - Si no existe: crea fila nueva
 ────────────────────────────────────────────────────────────── */
 function upsertCliente(ss, body) {
-  const sheet = ss.getSheetByName("Clientes");
+  let sheet = ss.getSheetByName("Clientes");
+  if (!sheet || sheet.getLastColumn() === 0) {
+    inicializarClientes();
+    sheet = ss.getSheetByName("Clientes");
+  }
   if (!sheet) return;
 
   const data    = sheet.getDataRange().getValues();
@@ -746,8 +828,8 @@ function upsertCliente(ss, body) {
   const COL     = {};
   headers.forEach((h, i) => COL[h] = i + 1); // base-1 para getRange
 
-  const tel          = String(body.telefono || "").replace(/\D/g, "");
-  const totalPedido  = Number(body.total) || 0;
+  const tel          = normalizarTelefono(body.telefono || "");
+  const totalPedido  = Number(body.total) || Number(body.subtotal) || 0;
   const fecha        = new Date().toLocaleString("es-CO");
 
   // Buscar por telefono
@@ -761,18 +843,18 @@ function upsertCliente(ss, body) {
 
   if (clienteRow === -1) {
     // NUEVO CLIENTE
-    sheet.appendRow([
-      fecha,                               // primera_compra
-      fecha,                               // ultima_compra
-      body.nombre    || "",                // nombre
-      tel,                                 // telefono
-      body.ciudad    || "Bogota",          // ciudad
-      body.barrio    || "",                // barrio
-      body.direccion || "",                // direccion
-      1,                                   // total_pedidos
-      totalPedido,                         // total_gastado
-      clasificarCliente(1, totalPedido),   // tipo
-    ]);
+    appendRowByHeaders(sheet, {
+      primera_compra: fecha,
+      ultima_compra: fecha,
+      nombre: body.nombre || "",
+      telefono: tel,
+      ciudad: body.ciudad || "Bogota",
+      barrio: body.barrio || "",
+      direccion: body.direccion || "",
+      total_pedidos: 1,
+      total_gastado: totalPedido,
+      tipo: clasificarCliente(1, totalPedido),
+    });
   } else {
     // CLIENTE EXISTENTE — actualizar
     const fila         = data[clienteRow - 1];
@@ -781,14 +863,16 @@ function upsertCliente(ss, body) {
     const nuevoPedidos = pedidosAnt + 1;
     const nuevoGastado = gastadoAnt + totalPedido;
 
-    sheet.getRange(clienteRow, COL["ultima_compra"]).setValue(fecha);
-    sheet.getRange(clienteRow, COL["nombre"]).setValue(body.nombre || fila[COL["nombre"] - 1]);
-    sheet.getRange(clienteRow, COL["ciudad"]).setValue(body.ciudad || fila[COL["ciudad"] - 1]);
-    sheet.getRange(clienteRow, COL["barrio"]).setValue(body.barrio || fila[COL["barrio"] - 1]);
-    sheet.getRange(clienteRow, COL["direccion"]).setValue(body.direccion || fila[COL["direccion"] - 1]);
-    sheet.getRange(clienteRow, COL["total_pedidos"]).setValue(nuevoPedidos);
-    sheet.getRange(clienteRow, COL["total_gastado"]).setValue(nuevoGastado);
-    sheet.getRange(clienteRow, COL["tipo"]).setValue(clasificarCliente(nuevoPedidos, nuevoGastado));
+    updateRowByHeaders(sheet, clienteRow, {
+      ultima_compra: fecha,
+      nombre: body.nombre || fila[COL["nombre"] - 1],
+      ciudad: body.ciudad || fila[COL["ciudad"] - 1],
+      barrio: body.barrio || fila[COL["barrio"] - 1],
+      direccion: body.direccion || fila[COL["direccion"] - 1],
+      total_pedidos: nuevoPedidos,
+      total_gastado: nuevoGastado,
+      tipo: clasificarCliente(nuevoPedidos, nuevoGastado),
+    });
   }
 }
 
@@ -818,12 +902,24 @@ function configuracionInicial() {
   populateProductos();
   inicializarPedidos();
   inicializarClientes();
+  if (typeof inicializarProveedores === "function") inicializarProveedores();
+  if (typeof inicializarCupones === "function") inicializarCupones();
+  if (typeof formatearTodo === "function") formatearTodo();
+  if (typeof actualizarCategoriaSuavizantes === "function") actualizarCategoriaSuavizantes();
+  if (typeof inicializarDashboard === "function") inicializarDashboard();
   Logger.log(
     "=== CONFIGURACION COMPLETA ===\n" +
-    "- Productos: OK (columna imagen en amarillo)\n" +
+    "- Productos: OK (catalogo y categoria Suavizante validados)\n" +
     "- Pedidos: OK\n" +
-    "- Clientes: OK (clasificacion automatica)"
+    "- Clientes: OK (clasificacion automatica)\n" +
+    "- Proveedores: OK\n" +
+    "- Cupones: OK\n" +
+    "- Dashboard: OK"
   );
+}
+
+function inicializarBaseDeDatos() {
+  configuracionInicial();
 }
 
 /* ──────────────────────────────────────────────────────────────
