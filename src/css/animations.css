@@ -1,0 +1,15 @@
+@keyframes fadeUp   { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+@keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+.animate-fade-up   { animation: fadeUp .25s ease both; }
+.animate-spin-slow { animation: spin .7s linear infinite; }
+.animate-pulse     { animation: pulse 2s infinite; }
+
+.fi {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.fi.vis { opacity: 1; transform: translateY(0); }

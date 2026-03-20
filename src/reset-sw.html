@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reset Service Worker</title>
+  <style>
+    body { font-family: sans-serif; background: #0F172A; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .box { background: #1E293B; border: 1px solid #334155; border-radius: 16px; padding: 32px 40px; max-width: 480px; text-align: center; }
+    h2  { color: #14B8A6; margin-bottom: 12px; }
+    p   { color: #94A3B8; font-size: .9rem; line-height: 1.6; margin-bottom: 20px; }
+    .log { background: #0F172A; border-radius: 10px; padding: 14px; font-family: monospace; font-size: .8rem; text-align: left; min-height: 80px; color: #94A3B8; }
+    .ok  { color: #4ADE80; }
+    .err { color: #F87171; }
+    .btn { background: #0D9488; color: white; border: none; border-radius: 8px; padding: 10px 24px; font-size: .9rem; font-weight: 600; cursor: pointer; margin-top: 16px; }
+    .btn:hover { background: #0F766E; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>🔧 Resetear Service Worker</h2>
+  <p>El Service Worker anterior está bloqueando Vite.<br>Esta página lo desregistra y limpia el caché.</p>
+  <div class="log" id="log">Esperando...</div>
+  <button class="btn" onclick="reset()">Desregistrar SW y limpiar caché</button>
+</div>
+
+<script>
+const log = document.getElementById('log')
+function addLog(msg, ok = true) {
+  const line = document.createElement('div')
+  line.className = ok ? 'ok' : 'err'
+  line.textContent = (ok ? '✅ ' : '❌ ') + msg
+  log.appendChild(line)
+}
+
+async function reset() {
+  log.innerHTML = ''
+
+  // 1. Desregistrar todos los Service Workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    if (regs.length === 0) {
+      addLog('No había Service Workers registrados')
+    } else {
+      for (const reg of regs) {
+        await reg.unregister()
+        addLog('SW desregistrado: ' + reg.scope)
+      }
+    }
+  } else {
+    addLog('Service Workers no soportados en este navegador', false)
+  }
+
+  // 2. Limpiar todos los cachés
+  if ('caches' in window) {
+    const keys = await caches.keys()
+    if (keys.length === 0) {
+      addLog('No había cachés guardados')
+    } else {
+      for (const key of keys) {
+        await caches.delete(key)
+        addLog('Caché eliminado: ' + key)
+      }
+    }
+  }
+
+  addLog('¡Listo! Redirigiendo a la tienda en 2 segundos...')
+
+  // 3. Redirigir con hard reload después de 2s
+  setTimeout(() => {
+    window.location.replace('/?nocache=' + Date.now())
+  }, 2000)
+}
+
+// Ejecutar automáticamente al cargar
+window.addEventListener('load', reset)
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+/* ═══════════════════════════════════════════════════════
+   ADMIN — CSS entry point (Tailwind 4)
+   Importado desde src/js/admin.js
+═══════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════
+   ADMIN CSS — Limpieza RR
+   Tailwind 4 — dark mode por clase en <html>
+══════════════════════════════════════════ */
+
+@layer base {
+  * { font-family: 'Outfit', sans-serif; }
+  .font-display { font-family: 'Syne', sans-serif; }
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
+.login-bg { background: radial-gradient(ellipse at 60% 20%, rgba(13,148,136,.2) 0%, transparent 60%); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+.animate-fade-up   { animation: fadeUp .25s ease both; }
+.animate-spin-slow { animation: spinSlow .7s linear infinite; }
+
+@layer base {
+  :root {
+    /* Safe area para iPhone */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html  { scroll-behavior: smooth; }
+  body  { font-family: 'Outfit', sans-serif; }
+
+  .font-display { font-family: 'Syne', sans-serif; }
+
+  ::-webkit-scrollbar       { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
+  .login-bg { background: radial-gradient(ellipse at 60% 20%, rgba(13,148,136,.2) 0%, transparent 60%); }
+}
+
+@import './css/admin-componentes.css';

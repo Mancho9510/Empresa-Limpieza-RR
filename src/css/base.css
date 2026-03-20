@@ -1,0 +1,42 @@
+/* ══════════════════════════════════════════════════════
+   BASE.CSS — Variables globales, reset, tipografía
+   ══════════════════════════════════════════════════════ */
+
+/* ── Variables CSS globales ───────────────────────────── */
+:root {
+  --teal:      #0D9488;
+  --teal-l:    #14B8A6;
+  --teal-pale: #CCFBF1;
+  --teal-dk:   #0F766E;
+  --yellow:    #F59E0B;
+  --bg:        #F0FDF9;
+  --white:     #FFFFFF;
+  --gray:      #64748B;
+  --text:      #0F172A;
+  --border:    #99F6E4;
+  --sh:        0 4px 20px rgba(13, 148, 136, 0.10);
+  --sh-lg:     0 16px 48px rgba(13, 148, 136, 0.18);
+  --r:         16px;
+  --r-lg:      24px;
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }

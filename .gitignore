@@ -1,0 +1,24 @@
+# Dependencias de Node (nunca subir al repositorio)
+node_modules/
+
+# Carpeta de build generada automáticamente
+dist/
+
+# Variables de entorno (claves privadas)
+.env
+.env.local
+.env.*.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores de código
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-error.log
