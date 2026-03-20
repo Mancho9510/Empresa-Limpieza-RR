@@ -4,6 +4,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   root: 'src',
+  base: '/Empresa-Limpieza-RR/',
   build: {
     outDir: '../dist',
     emptyOutDir: true,
@@ -15,8 +16,6 @@ export default defineConfig({
       }
     }
   },
-
-  base: '/Empresa-Limpieza-RR/',
 
   plugins: [
     tailwindcss(),
