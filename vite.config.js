@@ -3,9 +3,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
 export default defineConfig({
-
-  base: '/Empresa-Limpieza-RR/', // 👈 nombre del repo
   root: 'src',
+  build: {
+    outDir: '../dist'
+  },
+  base: '/Empresa-Limpieza-RR/',
 
   plugins: [
     tailwindcss(),
