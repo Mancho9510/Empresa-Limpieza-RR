@@ -16,7 +16,7 @@ export const CONFIG = {
 
 // ── TTL del caché de productos (30 minutos) ────────────────
 const CACHE_KEY = 'lrr_prods_v1'
-const CACHE_TTL = 30 * 60 * 1000
+const CACHE_TTL = 5 * 60 * 1000  // 5 minutos
 
 // ── GET: obtener datos públicos ────────────────────────────
 
