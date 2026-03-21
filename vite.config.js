@@ -5,6 +5,7 @@ import { resolve } from 'path'
 export default defineConfig({
   base: '/Empresa-Limpieza-RR/', // 👈 nombre del repo
   root: 'src',
+  base: '/Empresa-Limpieza-RR/',
 
   plugins: [
     tailwindcss(),
