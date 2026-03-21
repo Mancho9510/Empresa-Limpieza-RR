@@ -5,17 +5,6 @@ import { resolve } from 'path'
 export default defineConfig({
   root: 'src',
   base: '/Empresa-Limpieza-RR/',
-  build: {
-    outDir: '../dist',
-    emptyOutDir: true,
-
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'src/index.html'),
-        admin: resolve(__dirname, 'src/admin.html'),
-      }
-    }
-  },
 
   plugins: [
     tailwindcss(),
