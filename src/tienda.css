@@ -1,10 +1,11 @@
+@import "tailwindcss";
+
 /* ═══════════════════════════════════════════════════════
    LIMPIEZA RR — tienda.css v2  (Tailwind 4 + Dark Mode)
    Toggle dark: <html data-theme="dark">
    Toggle light: <html data-theme="light">  (default)
 ═══════════════════════════════════════════════════════ */
 
-@import "tailwindcss";
 
 /* ══════════════════════════════════════════════════════
    1. DESIGN TOKENS — LIGHT + DARK
@@ -634,21 +635,22 @@ nav ul a:hover::after { width: 100%; }
 /* Grid 4 columnas */
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 18px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  align-items: stretch;
 }
 
-/* Card base */
+/* ── Card base ── */
 .benefit-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
-  padding: 30px 22px 24px;
+  padding: 28px 20px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  border: 1.5px solid rgba(0,0,0,.06);
-  box-shadow: 0 4px 24px rgba(13,148,136,.07);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--sh);
   transition: all .35s cubic-bezier(.22,1,.36,1);
   position: relative;
   overflow: hidden;
@@ -656,67 +658,80 @@ nav ul a:hover::after { width: 100%; }
 [data-theme="dark"] .benefit-card {
   background: rgba(255,255,255,.06);
   border-color: rgba(255,255,255,.1);
-  box-shadow: 0 4px 24px rgba(0,0,0,.3);
 }
 .benefit-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 16px 48px rgba(13,148,136,.14);
-  border-color: rgba(13,148,136,.22);
+  box-shadow: var(--sh-lg);
+  border-color: var(--teal-l);
 }
 
-/* Card teal destacada (tercera, igual al mockup) */
+/* ── Card teal destacada ── */
 .benefit-card--featured {
-  background: linear-gradient(160deg, #12A89A, #0D9488);
+  background: linear-gradient(160deg,#12A89A,#0D9488);
   border-color: transparent;
   box-shadow: 0 12px 40px rgba(13,148,136,.4);
   color: #fff;
 }
 [data-theme="dark"] .benefit-card--featured {
-  background: linear-gradient(160deg, #0D9488, #0A5E55);
+  background: linear-gradient(160deg,#0D9488,#0A5E55);
 }
 .benefit-card--featured:hover {
   box-shadow: 0 20px 56px rgba(13,148,136,.5);
   transform: translateY(-8px);
 }
 
-/* Icono SVG circular */
+/* ── Ícono ── */
 .benefit-icon-wrap {
-  width: 88px; height: 88px;
+  width: 80px; height: 80px;
   border-radius: 50%;
   background: rgba(13,148,136,.1);
   display: flex; align-items:center; justify-content:center;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   flex-shrink: 0;
   transition: transform .35s cubic-bezier(.22,1,.36,1);
 }
 [data-theme="dark"] .benefit-icon-wrap { background:rgba(20,184,166,.12); }
 .benefit-card--featured .benefit-icon-wrap { background:rgba(255,255,255,.18); }
 .benefit-card:hover .benefit-icon-wrap { transform:scale(1.08) rotate(-3deg); }
-.benefit-icon-wrap svg { width:40px; height:40px; stroke:var(--teal); stroke-width:1.6; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.benefit-icon-wrap svg {
+  width:40px; height:40px;
+  stroke:var(--teal); stroke-width:1.6;
+  fill:none; stroke-linecap:round; stroke-linejoin:round;
+}
 .benefit-card--featured .benefit-icon-wrap svg { stroke:#fff; }
 
-/* Textos */
+/* ── Wrapper de texto ── */
+.benefit-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Título ── */
 .benefit-title {
   font-family: 'Syne', sans-serif;
   font-size: 1rem; font-weight:800;
-  color: #0F172A;
+  color: var(--text);
   margin-bottom: 10px; line-height:1.3;
 }
-[data-theme="dark"] .benefit-title { color:#F0FDF9; }
 .benefit-card--featured .benefit-title { color:#fff; }
 
+/* ── Descripción ── */
 .benefit-desc {
-  font-size: .84rem; color: #64748B;
-  line-height: 1.65; flex:1; margin-bottom:20px;
+  font-size: .84rem;
+  color: var(--text-2);
+  line-height: 1.65;
+  flex: 1;
+  margin-bottom: 16px;
 }
-[data-theme="dark"] .benefit-desc { color:rgba(203,213,225,.7); }
-.benefit-card--featured .benefit-desc { color:rgba(255,255,255,.82); }
+.benefit-card--featured .benefit-desc { color:rgba(255,255,255,.85); }
 
-/* Badge circular inferior */
+/* ── Badge circular inferior ── */
 .benefit-badge {
-  width: 36px; height:36px; border-radius:50%;
-  background: rgba(13,148,136,.1);
-  border: 1.5px solid rgba(13,148,136,.2);
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(13,148,136,.1);
+  border:1.5px solid rgba(13,148,136,.2);
   display:flex; align-items:center; justify-content:center;
   margin-top:auto; flex-shrink:0;
   transition:all .25s;
@@ -727,8 +742,60 @@ nav ul a:hover::after { width: 100%; }
 .benefit-card--featured .benefit-badge svg { stroke:#fff; }
 .benefit-card:hover .benefit-badge { background:var(--teal); border-color:var(--teal); transform:scale(1.1); }
 .benefit-card:hover .benefit-badge svg { stroke:#fff; }
-.benefit-card--featured:hover .benefit-badge { background:rgba(255,255,255,.3); border-color:rgba(255,255,255,.5); }
-.benefit-card--featured:hover .benefit-badge svg { stroke:#fff; }
+.benefit-card--featured:hover .benefit-badge { background:rgba(255,255,255,.3); }
+
+/* ── Etiqueta badge texto ── */
+.benefit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--teal-pale);
+  color: var(--teal-dk);
+  border-radius: 50px;
+  padding: 5px 14px;
+  font-size: .75rem;
+  font-weight: 700;
+  width: fit-content;
+  margin-top: auto;
+}
+[data-theme="dark"] .benefit-tag { background:rgba(13,148,136,.2); color:var(--teal-l); }
+.benefit-tag--white { background:rgba(255,255,255,.22); color:#fff; }
+
+/* ════ RESPONSIVE BENEFITS ════
+   ≥1025px  : 4 columnas
+   601-1024 : 2×2
+   ≤600px   : 1 col horizontal
+═══════════════════════════════*/
+@media (max-width: 1024px) {
+  .benefits-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .benefit-card { padding:24px 18px 20px; }
+  .benefit-icon-wrap { width:68px; height:68px; margin-bottom:16px; }
+  .benefit-icon-wrap svg { width:32px; height:32px; }
+}
+
+@media (max-width: 600px) {
+  .benefits-grid { grid-template-columns:1fr; gap:12px; }
+  .benefit-card,
+  .benefit-card--featured {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    padding: 18px 16px;
+    gap: 14px;
+  }
+  .benefit-icon-wrap {
+    width:52px; height:52px; min-width:52px;
+    margin-bottom:0; margin-top:2px;
+  }
+  .benefit-icon-wrap svg { width:24px; height:24px; }
+  .benefit-title { font-size:.92rem; margin-bottom:5px; }
+  .benefit-desc  { font-size:.80rem; line-height:1.5; margin-bottom:8px; }
+  .benefit-badge { display:none; }
+}
+
 
 /* ══════════════════════════════════════════════════════
    9. RESEÑAS
@@ -749,232 +816,48 @@ nav ul a:hover::after { width: 100%; }
   margin-bottom:10px; letter-spacing:-.02em;
 }
 .sec-sub { color:var(--text-muted); font-size:.97rem; }
-/* ══════════════════════════════════════════════════════
-   9. SECCIÓN RESEÑAS — diseño mejorado con texto visible
-══════════════════════════════════════════════════════ */
-
-/* Header de sección */
-#resenas { padding: 80px 5%; }
-#resenas .sec-hd { margin-bottom: 48px; }
-
-/* Grid de cards */
 .resenas-wrap {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 0 5% 48px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:18px; padding:0 5% 40px;
 }
-
-/* Card base */
 .resena-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  transition: box-shadow .25s, transform .25s, border-color .25s;
-  position: relative;
-  overflow: hidden;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); padding:20px;
+  transition:box-shadow .25s,transform .25s,border-color .25s; position:relative; overflow:hidden;
 }
-/* Comilla decorativa de fondo */
 .resena-card::before {
-  content: '"';
-  position: absolute;
-  top: -14px; right: 18px;
-  font-size: 7rem;
-  font-family: 'Syne', sans-serif;
-  color: var(--teal-pale);
-  line-height: 1;
-  pointer-events: none;  
-  -webkit-user-select: none;
-  user-select: none;
+  content:'"'; position:absolute; top:-8px; right:16px;
+  font-size:6rem; font-family:'Syne',sans-serif;
+  color:var(--teal-pale); line-height:1; pointer-events:none;
 }
-[data-theme="dark"] .resena-card::before { color: rgba(45,212,191,.07); }
-.resena-card:hover {
-  box-shadow: var(--sh-lg);
-  transform: translateY(-4px);
-  border-color: var(--teal-l);
-}
-
-/* Card con texto recibe un borde teal sutil al hover */
-.resena-card--con-texto { border-color: var(--border); }
-.resena-card--con-texto:hover { border-color: var(--teal); }
-
-/* ── Header: avatar + nombre + estrellas ── */
-.resena-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+[data-theme="dark"] .resena-card::before { color:rgba(45,212,191,.08); }
+.resena-card:hover { box-shadow:var(--sh-lg); transform:translateY(-3px); border-color:var(--teal-l); }
+.resena-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
 .resena-avatar {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--teal), var(--teal-dk));
-  color: #fff;
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(13,148,136,.3);
+  width:40px; height:40px; border-radius:50%;
+  background:linear-gradient(135deg,var(--teal),var(--teal-dk));
+  color:#fff; font-family:'Syne',sans-serif; font-weight:800; font-size:.95rem;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.resena-info { flex: 1; min-width: 0; }
-.resena-nombre {
-  font-weight: 700;
-  font-size: .95rem;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.resena-nombre { font-weight:600; font-size:.9rem; }
+.resena-fecha  { color:var(--text-muted); font-size:.75rem; }
+.resena-stars  { margin-left:auto; color:var(--yellow); font-size:1rem; letter-spacing:1px; }
+blockquote { margin:0; padding:0; }
+.resena-texto  {
+  font-size:.88rem; color:var(--text-2); line-height:1.6;
+  border-left:3px solid var(--teal-l); padding-left:12px; margin:0;
+  font-style:italic; position:relative; z-index:1;
 }
-.resena-fecha {
-  color: var(--text-muted);
-  font-size: .75rem;
-  margin-top: 2px;
-}
-.resena-stars {
-  font-size: 1.1rem;
-  color: var(--yellow);
-  letter-spacing: 2px;
-  flex-shrink: 0;
-  filter: drop-shadow(0 1px 3px rgba(251,191,36,.35));
-}
-
-/* ── Texto del comentario — PROTAGONISTA ── */
-blockquote { margin: 0; padding: 0; }
-.resena-texto {
-  font-size: .95rem;         /* más grande que antes */
-  color: var(--text);        /* color principal, no atenuado */
-  line-height: 1.7;
-  border-left: 3px solid var(--teal-l);
-  padding: 10px 14px;
-  margin: 0;
-  font-style: italic;
-  background: var(--surface-2, rgba(13,148,136,.04));
-  border-radius: 0 8px 8px 0;
-  position: relative;
-  z-index: 1;
-  flex: 1;
-}
-[data-theme="dark"] blockquote { margin: 0; padding: 0; }
-.resena-texto {
-  color: #E2E8F0;
-  background: rgba(45,212,191,.05);
-}
-[data-theme="dark"] .resena-texto {
-  color: #E2E8F0;
-  background: rgba(45,212,191,.05);
-}
-.resena-texto::before {
-  content: '"';
-  font-size: 1.5rem;
-  color: var(--teal);
-  font-family: 'Syne', sans-serif;
-  font-style: normal;
-  line-height: 0;
-  vertical-align: -0.3em;
-  margin-right: 3px;
-}
-.resena-texto::after {
-  content: '"';
-  font-size: 1.5rem;
-  color: var(--teal);
-  font-family: 'Syne', sans-serif;
-  font-style: normal;
-  line-height: 0;
-  vertical-align: -0.3em;
-  margin-left: 2px;
-}
-
-/* Card sin comentario — más compacta */
-.resena-sin-texto {
-  font-size: .82rem;
-  color: var(--text-muted);
-  font-style: italic;
-  margin: 0;
-}
-
-/* ── Footer de la card ── */
-.resena-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 2px;
-}
-.resena-verificado {
-  font-size: .72rem;
-  color: var(--teal-dk);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-[data-theme="dark"] .resena-verificado { color: var(--teal-l); }
-.resena-top-badge {
-  font-size: .65rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  background: linear-gradient(135deg, var(--yellow), #F97316);
-  color: #fff;
-  border-radius: 50px;
-  padding: 2px 8px;
-  text-transform: uppercase;
-}
-
-/* ── Skeleton loader ── */
 .resena-skeleton {
-  height: 160px;
-  border-radius: var(--r);
-  background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  height:130px; border-radius:var(--r);
+  background:linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 50%,var(--surface) 75%);
+  background-size:200% 100%; animation:shimmer 1.5s infinite;
 }
-.resenas-empty {
-  color: var(--text-muted);
-  text-align: center;
-  padding: 56px 20px;
-  grid-column: 1/-1;
-}
-
-/* ── Bloque de estadísticas (promedio global) ── */
-.resenas-stats {
-  display: none;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  padding: 0 5% 52px;
-}
-.resena-avg-wrap { text-align: center; }
-.resena-avg-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 4rem;
-  font-weight: 800;
-  color: var(--teal);
-  line-height: 1;
-}
-.resena-avg-stars {
-  font-size: 1.6rem;
-  color: var(--yellow);
-  letter-spacing: 3px;
-  margin: 6px 0;
-}
-.resena-avg-count {
-  color: var(--text-muted);
-  font-size: .88rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .resenas-wrap { grid-template-columns: 1fr; gap: 14px; padding: 0 4% 40px; }
-  blockquote { margin: 0; padding: 0; }
-.resena-texto { font-size: .9rem; }
-}
-
+.resenas-empty { color:var(--text-muted); text-align:center; padding:40px; grid-column:1/-1; }
+.resenas-stats { display:none; justify-content:center; align-items:center; gap:16px; padding:0 5% 48px; }
+.resena-avg-num   { font-family:'Syne',sans-serif; font-size:3.5rem; font-weight:800; color:var(--teal); line-height:1; }
+.resena-avg-stars { font-size:1.5rem; color:var(--yellow); letter-spacing:2px; margin:4px 0; }
+.resena-avg-count { color:var(--text-muted); font-size:.85rem; }
 
 /* ══════════════════════════════════════════════════════
    10. SECCIÓN PRODUCTOS (mockup con badge categ + qty)
@@ -1651,19 +1534,59 @@ footer {
 
 /* PWA Banner */
 .pwa-banner {
-  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(120px);
+  position:fixed; bottom:80px; left:50%;
+  transform:translateX(-50%) translateY(140px);
   background:var(--teal-dk); color:#fff; border-radius:var(--r);
   padding:14px 18px; display:flex; align-items:center; gap:12px;
-  z-index:500; box-shadow:var(--sh-lg); transition:transform .4s cubic-bezier(.4,0,.2,1);
+  z-index:500; box-shadow:var(--sh-lg);
+  transition:transform .4s cubic-bezier(.4,0,.2,1), opacity .4s;
   width:min(360px,90vw);
+  opacity:0;
+  pointer-events:none;
 }
-.pwa-banner.show { transform:translateX(-50%) translateY(0); }
+.pwa-banner.show {
+  transform:translateX(-50%) translateY(0);
+  opacity:1;
+  pointer-events:all;
+}
 .pwa-banner-ico { font-size:1.8rem; flex-shrink:0; }
 .pwa-banner-txt { flex:1; display:flex; flex-direction:column; gap:2px; }
 .pwa-banner-txt strong { font-size:.92rem; }
 .pwa-banner-txt span { font-size:.78rem; opacity:.8; }
-.pwa-btn-install { background:#fff; color:var(--teal-dk); border:none; border-radius:50px; padding:8px 16px; font:700 .82rem 'Outfit',sans-serif; cursor:pointer; }
-.pwa-btn-dismiss { background:none; border:none; color:rgba(255,255,255,.7); cursor:pointer; font-size:1rem; padding:4px; }
+.pwa-btn-install {
+  background: #fff;
+  color: var(--teal-dk);
+  border: none;
+  border-radius: 50px;
+  padding: 9px 18px;
+  font: 700 .85rem 'Outfit', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pwa-btn-install:hover { opacity: .88; }
+.pwa-btn-install:active { transform: scale(.96); }
+
+.pwa-btn-dismiss {
+  background: rgba(255,255,255,.15);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pwa-btn-dismiss:hover { background: rgba(255,255,255,.28); }
 
 /* Toast */
 .toast {
@@ -1712,9 +1635,7 @@ footer {
   .cart-sidebar { width:100vw!important; }
   #productos { padding:48px 4% 60px!important; }
   #contacto { padding:48px 4%!important; }
-  #premium { padding:56px 4%; }
-  .premium-grid { grid-template-columns:1fr; gap:14px; }
-  .premium-card--featured { transform:translateY(0); }
+  #premium { padding:48px 4%; }
   .gallery-main { width:110px; height:110px; }
   .gallery-dot { width:34px; height:34px; }
   .m-img-wrap, .p-img--lg, .p-img-fallback--lg { width:110px; height:110px; font-size:3.2rem; margin:0 auto; }
@@ -1730,27 +1651,4 @@ footer {
   .prod-grid { grid-template-columns:repeat(2,1fr)!important; }
   .p-icon { width:44px; height:44px; font-size:1.3rem; }
   .footer-badges { flex-wrap:wrap; justify-content:center; }
-}
-
-/* Etiqueta badge debajo de las cards premium */
-.benefit-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--teal-pale);
-  color: var(--teal-dk);
-  border-radius: 50px;
-  padding: 5px 14px;
-  font-size: .75rem;
-  font-weight: 700;
-  width: fit-content;
-  margin-top: auto;
-}
-[data-theme="dark"] .benefit-tag {
-  background: rgba(13,148,136,.2);
-  color: var(--teal-l);
-}
-.benefit-tag--white {
-  background: rgba(255,255,255,.22);
-  color: #fff;
 }

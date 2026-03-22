@@ -983,38 +983,38 @@ let deferredPrompt = null;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  // Solo mostrar si el usuario no lo ha descartado antes
+  // Solo mostrar si no fue descartado en esta sesión
   if (!sessionStorage.getItem("pwa-dismissed")) {
     const banner = $("pwaBanner");
-    if (banner) {
-      banner.classList.add("show");
-      setTimeout(() => banner.classList.remove("show"), 20000);
-    }
+    if (banner) banner.classList.add("show");
   }
 });
 
-// Si ya está instalado, ocultar el banner
+// Ocultar banner cuando ya está instalado
 window.addEventListener("appinstalled", () => {
   deferredPrompt = null;
   const banner = $("pwaBanner");
   if (banner) banner.classList.remove("show");
+  sessionStorage.setItem("pwa-dismissed", "1");
 });
 
 function installPWA() {
-  if (!deferredPrompt) {
-    // Fallback: guiar al usuario manualmente en iOS o si no hay prompt
-    alert("Para instalar:\n\n📱 iOS: toca el botón Compartir → \'Añadir a inicio\'\n🤖 Android/Chrome: menú ⋮ → \'Instalar aplicación\'\n💻 PC: icono ⊕ en la barra de dirección");
-    return;
-  }
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then((result) => {
-    deferredPrompt = null;
-    const banner = $("pwaBanner");
+  const banner = $("pwaBanner");
+  if (deferredPrompt) {
+    // Navega el prompt nativo del navegador (instala en pantalla de inicio/escritorio)
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      if (banner) banner.classList.remove("show");
+    });
+  } else {
+    // Sin prompt nativo: ocultar silenciosamente — no mostrar instrucciones
     if (banner) banner.classList.remove("show");
-  });
+  }
 }
 
 function dismissPWA() {
+  // Marcar como descartado para esta sesión
   sessionStorage.setItem("pwa-dismissed", "1");
   const banner = $("pwaBanner");
   if (banner) banner.classList.remove("show");
@@ -1022,11 +1022,20 @@ function dismissPWA() {
 
 // Registrar Service Worker
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js")
-      .then(() => console.log("SW registrado"))
-      .catch(err => console.warn("SW error:", err));
-  });
+  // El SW solo funciona en HTTPS (producción/Vercel)
+  // En localhost Vite dev server sirve sw.js como HTML → error normal, ignorar
+  const isProd = location.protocol === "https:";
+  if (isProd) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" })
+        .then(reg => {
+          console.log("SW registrado ✅", reg.scope);
+        })
+        .catch(() => {
+          // Fallo silencioso — no afecta la app
+        });
+    });
+  }
 }
 
 
