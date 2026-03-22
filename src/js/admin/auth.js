@@ -12,10 +12,12 @@ export function initAuth({ onLogin, onLogout }) {
 
   function doLogin() {
     if (loginInput.value.trim() === ADMIN_KEY) {
-      document.getElementById('loginWrap').classList.add('hidden');
+      // Usar style.display para evitar conflicto con Tailwind flex/hidden
+      document.getElementById('loginWrap').style.display = 'none';
       const app = document.getElementById('app');
       app.classList.remove('hidden');
       app.classList.add('flex');
+      app.style.display = 'flex';
       onLogin();
     } else {
       loginErr.textContent = '❌ Clave incorrecta';
@@ -23,17 +25,22 @@ export function initAuth({ onLogin, onLogout }) {
     }
   }
 
-  loginBtn.addEventListener('click', doLogin);
-  loginInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  if (loginBtn)   loginBtn.addEventListener('click', doLogin);
+  if (loginInput) loginInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-  logoutBtn.addEventListener('click', () => {
-    document.getElementById('app').classList.add('hidden');
-    document.getElementById('app').classList.remove('flex');
-    document.getElementById('loginWrap').classList.remove('hidden');
-    loginInput.value = '';
-    onLogout();
-  });
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      const app = document.getElementById('app');
+      app.classList.add('hidden');
+      app.classList.remove('flex');
+      app.style.display = '';
+      const lw = document.getElementById('loginWrap');
+      lw.style.display = 'flex';
+      if (loginInput) loginInput.value = '';
+      onLogout();
+    });
+  }
 
   // Foco automático al cargar
-  loginInput.focus();
+  if (loginInput) loginInput.focus();
 }

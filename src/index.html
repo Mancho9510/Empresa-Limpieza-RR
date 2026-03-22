@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,22 +10,16 @@
   <meta property="og:type"        content="website">
   <meta property="og:site_name"   content="Limpieza RR">
   <meta property="og:title"       content="Limpieza RR – Productos de Aseo Premium">
-  <meta property="og:description" content="Detergentes, fragancias, limpiapisos y más. Calidad profesional para tu hogar. Entrega a domicilio en Bogotá. ¡Pide por WhatsApp!">
-  <meta property="og:image"       content="">
-  <meta property="og:url"         content="https://mancho9510.github.io/Empresa-Limpieza-RR/">
+  <meta property="og:description" content="Detergentes, fragancias, limpiapisos y más. Calidad profesional para tu hogar. Entrega a domicilio en Bogotá.">
+  <meta property="og:url"         content="https://limpiezarr.com/">
   <meta property="og:locale"      content="es_CO">
-
-  <!-- Twitter Card -->
   <meta name="twitter:card"        content="summary_large_image">
   <meta name="twitter:title"       content="Limpieza RR – Productos de Aseo Premium">
   <meta name="twitter:description" content="Productos de aseo de calidad profesional para tu hogar. Entrega en Bogotá.">
-  <meta name="twitter:image"       content="https://limpiezarr.com/icons/icon-512.png">
-
-  <!-- SEO -->
-  <meta name="keywords" content="productos de aseo, limpieza, detergentes, limpiapisos, fragancias, Bogotá, Colombia, entrega a domicilio">
-  <meta name="author"   content="Limpieza RR">
-  <meta name="robots"   content="index, follow">
-  <link rel="canonical" href="https://limpiezarr.com/">
+  <meta name="keywords"  content="productos de aseo, limpieza, detergentes, limpiapisos, fragancias, Bogotá, Colombia">
+  <meta name="author"    content="Limpieza RR">
+  <meta name="robots"    content="index, follow">
+  <link rel="canonical"  href="https://limpiezarr.com/">
 
   <!-- Schema.org -->
   <script type="application/ld+json">
@@ -42,20 +36,23 @@
   </script>
 
   <!-- PWA -->
-  <link rel="manifest"        href="/manifest.json">
+  <link rel="manifest"         href="/manifest.json">
   <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
 
-  <!-- Fuentes — preconnect primero para performance -->
+  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- CSS — Vite lo inyecta automáticamente desde el import en app.js -->
-  <!-- NO agregar <link> al CSS aquí — Vite lo maneja via import en JS -->
+  <!-- Anti-flash dark mode (debe ir ANTES del body) -->
+  <script>(function(){var t=localStorage.getItem('lrr-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+
+  <!-- Vite inyecta el CSS desde app.js — NO agregar <link> al CSS aquí -->
+  <script type="module" src="/js/app.js"></script>
 </head>
 <body>
 
-<!-- ══ NAV ══════════════════════════════════════════════════ -->
+<!-- ══ NAV ══ -->
 <nav>
   <a class="logo" href="#">
     <svg width="40" height="40" viewBox="0 0 42 42" fill="none" aria-hidden="true">
@@ -82,8 +79,22 @@
   </ul>
 
   <div class="nav-r">
-    <a class="btn-wa-nav" href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    <!-- Toggle dark/light -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+
+    <a class="btn-wa-nav" href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
       <span class="wa-nav-txt">WhatsApp</span>
     </a>
 
@@ -97,7 +108,6 @@
     </button>
   </div>
 
-  <!-- Menú móvil -->
   <div class="mobile-menu" id="mobileMenu">
     <a href="#inicio"    id="mmInicio"><span class="mm-icon">🏠</span> Inicio</a>
     <a href="#productos" id="mmProductos"><span class="mm-icon">🧴</span> Productos</a>
@@ -111,7 +121,7 @@
   </div>
 </nav>
 
-<!-- ══ HERO ═════════════════════════════════════════════════ -->
+<!-- ══ HERO ══ -->
 <section id="inicio">
   <div class="hero-content">
     <div class="hero-badge">✨ Calidad garantizada en cada producto</div>
@@ -127,81 +137,82 @@
       <div><div class="stat-num">⭐</div><div class="stat-lbl">TOP Selección</div></div>
     </div>
   </div>
-
   <div class="carousel-wrap">
     <div class="carousel-label">⭐ PRODUCTOS DESTACADOS</div>
     <div class="carousel-box">
       <div class="carousel-track" id="cTrack">
-        <div class="carousel-slide">
-          <div class="c-icon">⏳</div>
-          <div class="c-name">Cargando productos...</div>
-        </div>
+        <div class="carousel-slide"><div class="c-icon">⏳</div><div class="c-name">Cargando...</div></div>
       </div>
       <div class="carousel-nav">
-        <button class="c-btn" id="cBtnPrev" aria-label="Producto anterior">←</button>
+        <button class="c-btn" id="cBtnPrev" aria-label="Anterior">←</button>
         <div class="c-dots" id="cDots"></div>
-        <button class="c-btn" id="cBtnNext" aria-label="Producto siguiente">→</button>
+        <button class="c-btn" id="cBtnNext" aria-label="Siguiente">→</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ SECCIÓN PREMIUM ══════════════════════════════════════ -->
+<!-- ══ BENEFITS ══ -->
 <section id="premium">
   <div class="premium-inner">
     <div class="premium-hd fi">
       <div class="sec-tag">⭐ Nuestra promesa</div>
-      <h2 class="sec-title">¿Por qué nuestros productos<br>son <em class="premium-em">premium</em>?</h2>
+      <h2 class="premium-title-big">¿Por qué nuestros productos<br>son <em>premium</em>?</h2>
     </div>
-    <div class="premium-grid fi">
-      <div class="premium-card">
-        <div class="premium-icon-wrap"><span class="premium-icon">🧪</span></div>
-        <h3>Fórmulas concentradas</h3>
-        <p>Nuestros productos están diseñados con una alta concentración de activos limpiadores, lo que significa <strong>mayor poder de limpieza con menos producto</strong>. Rinden más, duran más y cuidan tu bolsillo.</p>
-        <div class="premium-tag">Hasta 3x más rendimiento</div>
+    <div class="benefits-grid fi">
+
+      <div class="benefit-card">
+        <div class="benefit-icon-wrap">
+          <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 3h6M12 3v5l4 4"/><path d="M8 12l4 4m0 0l4 4M8 16l4-4"/><circle cx="12" cy="17" r="4"/>
+          </svg>
+        </div>
+        <div class="benefit-title">Fórmulas concentradas</div>
+        <div class="benefit-desc">Nuestros productos están diseñados con una alta concentración de activos limpiadores, lo que significa <strong>mayor poder de limpieza con menos producto</strong>. Rinden más, duran más y cuidan tu bolsillo.</div>
+        <div class="benefit-tag">Hasta 3x más rendimiento</div>
       </div>
-      <div class="premium-card premium-card--featured">
-        <div class="premium-icon-wrap"><span class="premium-icon">🌿</span></div>
-        <h3>Materias primas de calidad</h3>
-        <p>Trabajamos exclusivamente con materias primas de <strong>alta calidad</strong>, seleccionadas para garantizar resultados superiores en cada uso. Sin compromisos, sin rellenos innecesarios.</p>
-        <div class="premium-tag premium-tag--white">Calidad certificada</div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-wrap">
+          <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22V12M5 12C5 7 12 2 12 2s7 5 7 10a7 7 0 0 1-14 0z"/>
+            <path d="M12 12C10 10 7 9 5 12M12 12c2-2 5-3 7 0"/>
+          </svg>
+        </div>
+        <div class="benefit-title">Materias primas de calidad</div>
+        <div class="benefit-desc">Trabajamos exclusivamente con materias primas de <strong>alta calidad</strong>, seleccionadas para garantizar resultados superiores en cada uso. Sin compromisos, sin rellenos innecesarios.</div>
+        <div class="benefit-tag">Calidad certificada</div>
       </div>
-      <div class="premium-card">
-        <div class="premium-icon-wrap"><span class="premium-icon">✅</span></div>
-        <h3>Eficiencia garantizada</h3>
-        <p>Cada producto está formulado para ser <strong>efectivo desde la primera aplicación</strong>. Menos esfuerzo, mejores resultados — eso es lo que distingue un producto premium de uno ordinario.</p>
-        <div class="premium-tag">Resultados comprobados</div>
+
+      <div class="benefit-card benefit-card--featured">
+        <div class="benefit-icon-wrap">
+          <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" stroke-dasharray="4 2"/>
+            <path d="M8 12l3 3 5-5" stroke-width="2.2"/>
+          </svg>
+        </div>
+        <div class="benefit-title">Eficiencia garantizada</div>
+        <div class="benefit-desc">Cada producto está formulado para ser <strong>efectivo desde la primera aplicación</strong>. Menos esfuerzo, mejores resultados — eso es lo que distingue un producto premium de uno ordinario.</div>
+        <div class="benefit-tag benefit-tag--white">Resultados comprobados</div>
       </div>
-    </div>
-    <div class="premium-banner fi">
-      <span class="premium-banner-icon">💡</span>
-      <p>Un producto concentrado no solo limpia mejor — <strong>también es más amigable con el medio ambiente</strong> al requerir menor cantidad por uso y generar menos residuos.</p>
+
+      <div class="benefit-card">
+        <div class="benefit-icon-wrap">
+          <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 19c1-3 4-5 5-3s4-1 4-5"/>
+            <path d="M12 3a9 9 0 1 0 9 9"/>
+            <path d="M16 3h5v5"/>
+          </svg>
+        </div>
+        <div class="benefit-title">Eco-amigables</div>
+        <div class="benefit-desc">Un producto concentrado no solo limpia mejor — también es <strong>más amigable con el medio ambiente</strong> al requerir menor cantidad por uso y generar menos residuos.</div>
+        <div class="benefit-tag">💡 Impacto positivo</div>
+      </div>
+
     </div>
   </div>
 </section>
-
-<!-- ══ RESEÑAS ═══════════════════════════════════════════════ -->
-<section id="resenas">
-  <div class="sec-hd fi">
-    <div class="sec-tag">⭐ Reseñas</div>
-    <h2 class="sec-title">Lo que dicen nuestros<br><em>clientes</em></h2>
-    <p class="sec-sub">Opiniones reales de quienes ya compraron con nosotros</p>
-  </div>
-  <div class="resenas-wrap fi" id="resenasWrap">
-    <div class="resena-skeleton"></div>
-    <div class="resena-skeleton"></div>
-    <div class="resena-skeleton"></div>
-  </div>
-  <div class="resenas-stats fi" id="resenasStats" style="display:none">
-    <div class="resena-avg-wrap">
-      <div class="resena-avg-num"   id="resenaAvgNum">—</div>
-      <div class="resena-avg-stars" id="resenaAvgStars"></div>
-      <div class="resena-avg-count" id="resenaAvgCount"></div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ PRODUCTOS ════════════════════════════════════════════ -->
+<!-- ══ RESEÑAS ══ -->
 <section id="productos">
   <div class="sec-hd fi">
     <div class="sec-tag">🧹 Catálogo completo</div>
@@ -228,7 +239,29 @@
   </div>
 </section>
 
-<!-- ══ CONTACTO ══════════════════════════════════════════════ -->
+
+<!-- ══ RESEÑAS ══ -->
+<section id="resenas">
+  <div class="sec-hd fi">
+    <div class="sec-tag">⭐ Reseñas</div>
+    <h2 class="sec-title">Lo que dicen nuestros<br><em>clientes</em></h2>
+    <p class="sec-sub">Opiniones reales de quienes ya compraron con nosotros</p>
+  </div>
+  <div class="resenas-wrap fi" id="resenasWrap">
+    <div class="resena-skeleton"></div>
+    <div class="resena-skeleton"></div>
+    <div class="resena-skeleton"></div>
+  </div>
+  <div class="resenas-stats fi" id="resenasStats" style="display:none">
+    <div class="resena-avg-wrap">
+      <div class="resena-avg-num"   id="resenaAvgNum">—</div>
+      <div class="resena-avg-stars" id="resenaAvgStars"></div>
+      <div class="resena-avg-count" id="resenaAvgCount"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONTACTO ══ -->
 <section id="contacto">
   <div class="contact-inner">
     <div class="sec-tag sec-tag--contact">📞 Contáctanos</div>
@@ -246,7 +279,7 @@
         <h3>WhatsApp</h3>
         <p>¡Realiza tu pedido o resuelve tus dudas por chat!</p>
         <a class="btn-wa" href="https://wa.me/573503443140?text=Hola%20Limpieza%20RR%2C%20quisiera%20hacer%20un%20pedido" target="_blank" rel="noopener noreferrer">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
           Escribir ahora
         </a>
       </div>
@@ -254,35 +287,80 @@
   </div>
 </section>
 
-<!-- ══ FOOTER ════════════════════════════════════════════════ -->
+<!-- ══ FOOTER ══ -->
 <footer>
-  <div class="footer-brand"><strong>Limpieza RR</strong> · Productos de Aseo Premium</div>
-  <div>📍 Colombia &nbsp;·&nbsp; 📞 +57 350 344 3140</div>
-  <div class="footer-copy">© 2025 Limpieza RR. Todos los derechos reservados.</div>
+  <div class="footer-top">
+    <div class="footer-brand-col">
+      <a class="footer-logo" href="#">
+        <svg width="36" height="36" viewBox="0 0 42 42" fill="none">
+          <circle cx="21" cy="21" r="21" fill="#0D9488"/>
+          <path d="M21 7 C21 7,13 17,13 23 C13 27.4 16.6 31 21 31 C25.4 31 29 27.4 29 23 C29 17 21 7 21 7Z" fill="white" opacity=".92"/>
+          <text x="15.5" y="26.5" font-family="Arial Black,sans-serif" font-size="8.5" font-weight="900" fill="#0F766E">RR</text>
+        </svg>
+        <div class="footer-logo-text">Limpieza <span>RR</span></div>
+      </a>
+      <p class="footer-tagline">Productos de aseo premium para tu hogar y negocio. Calidad profesional, precios accesibles, entrega en Bogotá.</p>
+      <a class="footer-wa" href="https://wa.me/573503443140?text=Hola%20Limpieza%20RR" target="_blank" rel="noopener noreferrer">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        Pedir por WhatsApp
+      </a>
+    </div>
+    <div class="footer-nav-col">
+      <div class="footer-nav-title">Navegación</div>
+      <ul class="footer-nav-list">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#premium">¿Por qué somos premium?</a></li>
+        <li><a href="#resenas">Reseñas</a></li>
+        <li><a href="#productos">Catálogo</a></li>
+        <li><a href="#contacto">Contáctanos</a></li>
+      </ul>
+    </div>
+    <div class="footer-nav-col">
+      <div class="footer-nav-title">Mi Cuenta</div>
+      <ul class="footer-nav-list">
+        <li><a href="#" id="footerHistoryBtn">Mis pedidos</a></li>
+        <li><a href="#" id="footerStatusBtn">Rastrear pedido</a></li>
+        <li><a href="https://wa.me/573503443140" target="_blank" rel="noopener noreferrer">Hacer un pedido</a></li>
+      </ul>
+    </div>
+    <div class="footer-nav-col">
+      <div class="footer-nav-title">Contacto</div>
+      <div class="footer-contact-item">
+        <div class="footer-contact-icon">📱</div>
+        <div class="footer-contact-text">
+          <a href="tel:+573503443140">+57 350 344 3140</a>
+          <div class="footer-hours">🕐 Lun–Sáb · 8 am – 6 pm</div>
+        </div>
+      </div>
+      <div class="footer-contact-item">
+        <div class="footer-contact-icon">📍</div>
+        <div class="footer-contact-text">Bogotá, Colombia<br>Envíos a toda la ciudad</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 Limpieza RR. Todos los derechos reservados.</div>
+    <div class="footer-badges">
+      <span class="footer-badge"><span>🇨🇴</span> Hecho en Colombia</span>
+      <span class="footer-badge"><span>🚚</span> Envío Bogotá</span>
+      <span class="footer-badge"><span>💚</span> WhatsApp</span>
+    </div>
+  </div>
 </footer>
 
-<!-- ══ OVERLAYS Y MODALES ════════════════════════════════════ -->
-
-<!-- Overlay de fondo -->
+<!-- ══ OVERLAYS Y MODALES ══ -->
 <div class="overlay" id="overlay"></div>
-
-<!-- Banner PWA -->
 <div class="pwa-banner" id="pwaBanner">
   <div class="pwa-banner-ico">📱</div>
-  <div class="pwa-banner-txt">
-    <strong>Instala Limpieza RR</strong>
-    <span>Accede rápido desde tu celular</span>
-  </div>
+  <div class="pwa-banner-txt"><strong>Instala Limpieza RR</strong><span>Accede rápido desde tu celular</span></div>
   <button class="pwa-btn-install" id="pwaBtnInstall">Instalar</button>
   <button class="pwa-btn-dismiss" id="pwaBtnDismiss" aria-label="Cerrar">✕</button>
 </div>
-
-<!-- Recibo post-pedido -->
-<div class="recibo-modal" id="reciboModal" role="dialog" aria-modal="true" aria-label="Recibo del pedido">
+<div class="recibo-modal" id="reciboModal" role="dialog" aria-modal="true">
   <div class="recibo-inner">
     <div class="recibo-check">✅</div>
     <h2 class="recibo-title">¡Pedido confirmado!</h2>
-    <p class="recibo-sub">Tu pedido fue enviado por WhatsApp. Aquí tienes tu resumen:</p>
+    <p class="recibo-sub">Tu pedido fue enviado por WhatsApp.</p>
     <div class="recibo-body" id="reciboBody"></div>
     <div class="recibo-actions">
       <button class="btn-primary" id="reciboClosBtn">Seguir comprando</button>
@@ -290,55 +368,47 @@
     </div>
   </div>
 </div>
-
-<!-- Modal producto (bottom sheet) -->
 <div class="prod-modal" id="prodModal" role="dialog" aria-modal="true">
   <div class="drag-bar"></div>
   <div class="modal-grid" id="modalGrid"></div>
 </div>
-
-<!-- Carrito lateral -->
-<div class="cart-sidebar" id="cartSidebar" role="dialog" aria-modal="true" aria-label="Carrito de compras">
+<div class="cart-sidebar" id="cartSidebar" role="dialog" aria-modal="true">
   <div class="cart-hd">
     <span class="cart-title">🛒 Tu carrito</span>
-    <button class="x-btn" id="cartCloseBtn" aria-label="Cerrar carrito">✕</button>
+    <button class="x-btn" id="cartCloseBtn" aria-label="Cerrar">✕</button>
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-ft">
     <div class="coupon-row">
-      <input type="text" id="couponInput" class="coupon-input" placeholder="Código de descuento" maxlength="20" aria-label="Código de descuento">
+      <input type="text" id="couponInput" class="coupon-input" placeholder="Código de descuento" maxlength="20">
       <button id="couponBtn" class="coupon-btn">Aplicar</button>
     </div>
     <div class="coupon-msg" id="couponMsg"></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">$0</span></div>
     <div class="cart-sub cart-disc-row cart-disc-row--hidden" id="cartDiscRow">
-      <span class="disc-label">🏷️ Descuento</span>
-      <span id="cartDiscVal" class="disc-val">$0</span>
+      <span class="disc-label">🏷️ Descuento</span><span id="cartDiscVal" class="disc-val">$0</span>
     </div>
     <div class="cart-sub cart-total-final">
-      <span><strong>Total</strong></span>
-      <span id="cartTotalRow"><strong>$0</strong></span>
+      <span><strong>Total</strong></span><span id="cartTotalRow"><strong>$0</strong></span>
     </div>
     <button class="btn-order" id="btnOrder" disabled>Realizar pedido →</button>
   </div>
 </div>
-
-<!-- Formulario de pedido -->
-<div class="order-modal" id="orderModal" role="dialog" aria-modal="true" aria-label="Formulario de pedido">
+<div class="order-modal" id="orderModal" role="dialog" aria-modal="true">
   <div class="om-hd">
     <button class="x-btn" id="orderCloseBtn" aria-label="Cerrar">✕</button>
     <h2 class="om-title">Datos de entrega</h2>
   </div>
   <div class="form-grid">
-    <div class="fg full"><label for="fNombre">Nombre completo *</label><input id="fNombre" type="text" placeholder="Tu nombre completo" autocomplete="name"></div>
-    <div class="fg full"><label for="fTelefono">Teléfono / WhatsApp *</label><input id="fTelefono" type="tel" placeholder="Ej: 3001234567" autocomplete="tel" inputmode="numeric" maxlength="15"></div>
-    <div class="fg"><label for="fCiudad">Ciudad *</label><input id="fCiudad" type="text" placeholder="Ej: Bogotá" autocomplete="address-level2"></div>
-    <div class="fg"><label for="fDepto">Departamento *</label><input id="fDepto" type="text" placeholder="Ej: Cundinamarca"></div>
-    <div class="fg"><label for="fBarrio">Barrio *</label><input id="fBarrio" type="text" placeholder="Ej: El Campín"></div>
-    <div class="fg"><label for="fDir">Dirección *</label><input id="fDir" type="text" placeholder="Ej: Calle 45 #12-34" autocomplete="street-address"></div>
-    <div class="fg"><label for="fCasa">Casa / Apartamento</label><input id="fCasa" type="text" placeholder="Ej: Apto 301 – Piso 3"></div>
-    <div class="fg"><label for="fConj">Nombre del conjunto</label><input id="fConj" type="text" placeholder="Si aplica"></div>
-    <div class="fg full"><label for="fNota">Nota adicional</label><textarea id="fNota" rows="2" placeholder="Indicaciones para la entrega (opcional)"></textarea></div>
+    <div class="fg full"><label>Nombre completo *</label><input id="fNombre" type="text" placeholder="Tu nombre completo" autocomplete="name"></div>
+    <div class="fg full"><label>Teléfono / WhatsApp *</label><input id="fTelefono" type="tel" placeholder="Ej: 3001234567" inputmode="numeric" maxlength="15"></div>
+    <div class="fg"><label>Ciudad *</label><input id="fCiudad" type="text" placeholder="Ej: Bogotá"></div>
+    <div class="fg"><label>Departamento *</label><input id="fDepto" type="text" placeholder="Ej: Cundinamarca"></div>
+    <div class="fg"><label>Barrio *</label><input id="fBarrio" type="text" placeholder="Ej: El Campín"></div>
+    <div class="fg"><label>Dirección *</label><input id="fDir" type="text" placeholder="Ej: Calle 45 #12-34"></div>
+    <div class="fg"><label>Casa / Apartamento</label><input id="fCasa" type="text" placeholder="Ej: Apto 301"></div>
+    <div class="fg"><label>Nombre del conjunto</label><input id="fConj" type="text" placeholder="Si aplica"></div>
+    <div class="fg full"><label>Nota adicional</label><textarea id="fNota" rows="2" placeholder="Indicaciones (opcional)"></textarea></div>
     <div class="fg full">
       <label>Medio de pago *</label>
       <div class="pay-grid">
@@ -358,50 +428,38 @@
         <option value="7000">📍 Zona Norte (Usaquén, Chapinero, Suba) — $ 7.000</option>
         <option value="8000">📍 Zona Sur (Usme, Ciudad Bolívar, Tunjuelito) — $ 8.000</option>
         <option value="10000">📍 Zona Occidente (Fontibón, Engativá, Barrios Unidos) — $ 10.000</option>
-        <option value="12000">📍 Zona Oriente (San Cristóbal, Rafael Uribe, Antonio Nariño) — $ 12.000</option>
+        <option value="12000">📍 Zona Oriente (San Cristóbal, Rafael Uribe) — $ 12.000</option>
         <option value="15000">📍 Zona Noroccidente (Suba lejano, La Conejera) — $ 15.000</option>
-        <option value="20000">📍 Zona Periférica (límites distritales) — $ 20.000</option>
+        <option value="20000">📍 Zona Periférica — $ 20.000</option>
         <option value="convenir">✏️ Mi barrio no aparece — Precio a convenir</option>
       </select>
       <div class="envio-note" id="envioNote"></div>
     </div>
   </div>
   <div class="order-sum">
-    <h3>📦 Resumen del pedido</h3>
+    <h3>📦 Resumen</h3>
     <div id="sumItems"></div>
-    <div class="si sum-shipping--hidden" id="sumShipping">
-      <span>🚚 Envío</span><span id="sumShippingVal">$0</span>
-    </div>
-    <div class="si-total">
-      <span>Total a pagar</span>
-      <span id="sumTotal">$0</span>
-    </div>
+    <div class="si sum-shipping--hidden" id="sumShipping"><span>🚚 Envío</span><span id="sumShippingVal">$0</span></div>
+    <div class="si-total"><span>Total a pagar</span><span id="sumTotal">$0</span></div>
   </div>
   <div class="pay-proof-banner pay-proof--hidden" id="payProofBanner">
     <span>📎</span>
-    <div>
-      <strong>Adjunta el comprobante de pago</strong>
-      <p>Al enviar el pedido por WhatsApp, adjunta la <em>captura de pantalla</em> o el <em>comprobante</em> de tu transferencia.</p>
-    </div>
+    <div><strong>Adjunta el comprobante de pago</strong><p>Al enviar por WhatsApp, adjunta la captura de tu transferencia.</p></div>
   </div>
-  <button class="btn-confirm" id="btnConfirmOrder">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+  <button class="btn-confirm" id="btnConfirm">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
     Confirmar pedido por WhatsApp
   </button>
 </div>
-
-<!-- Modal calificación -->
-<div class="rating-modal" id="ratingModal" role="dialog" aria-modal="true" aria-label="Calificar experiencia">
+<div class="rating-modal" id="ratingModal" role="dialog" aria-modal="true">
   <div class="drag-bar"></div>
   <div class="rating-inner">
     <h3 class="rating-title">⭐ ¿Cómo fue tu experiencia?</h3>
     <p class="rating-sub">Tu opinión nos ayuda a mejorar</p>
     <div class="stars-row" id="starsRow">
-      <button class="star-btn" data-rating="1" aria-label="1 estrella">★</button>
-      <button class="star-btn" data-rating="2" aria-label="2 estrellas">★</button>
-      <button class="star-btn" data-rating="3" aria-label="3 estrellas">★</button>
-      <button class="star-btn" data-rating="4" aria-label="4 estrellas">★</button>
-      <button class="star-btn" data-rating="5" aria-label="5 estrellas">★</button>
+      <button class="star-btn" data-rating="1">★</button><button class="star-btn" data-rating="2">★</button>
+      <button class="star-btn" data-rating="3">★</button><button class="star-btn" data-rating="4">★</button>
+      <button class="star-btn" data-rating="5">★</button>
     </div>
     <textarea id="ratingComment" class="rating-comment" rows="3" placeholder="Cuéntanos cómo fue (opcional)"></textarea>
     <div class="rating-actions">
@@ -410,35 +468,22 @@
     </div>
   </div>
 </div>
-
-<!-- Modal historial de pedidos -->
-<div class="history-modal" id="historyModal" role="dialog" aria-modal="true" aria-label="Mis pedidos">
-  <div class="hm-hd">
-    <h2 class="hm-title">📋 Mis Pedidos</h2>
-    <button class="x-btn" id="historyCloseBtn" aria-label="Cerrar">✕</button>
-  </div>
+<div class="history-modal" id="historyModal" role="dialog" aria-modal="true">
+  <div class="hm-hd"><h2 class="hm-title">📋 Mis Pedidos</h2><button class="x-btn" id="historyCloseBtn">✕</button></div>
   <div class="hm-search">
-    <input type="tel" id="historyPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15" aria-label="Número de WhatsApp">
+    <input type="tel" id="historyPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15">
     <button id="historySearchBtn" class="btn-primary">🔍 Buscar</button>
   </div>
   <div id="historyResult" class="hm-result"></div>
 </div>
-
-<!-- Modal rastrear pedido -->
-<div class="history-modal" id="statusModal" role="dialog" aria-modal="true" aria-label="Rastrear pedido">
-  <div class="hm-hd">
-    <h2 class="hm-title">🚚 Rastrear Pedido</h2>
-    <button class="x-btn" id="statusCloseBtn" aria-label="Cerrar">✕</button>
-  </div>
+<div class="history-modal" id="statusModal" role="dialog" aria-modal="true">
+  <div class="hm-hd"><h2 class="hm-title">🚚 Rastrear Pedido</h2><button class="x-btn" id="statusCloseBtn">✕</button></div>
   <div class="hm-search">
-    <input type="tel" id="statusPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15" aria-label="Número de WhatsApp">
+    <input type="tel" id="statusPhone" placeholder="Tu número de WhatsApp" inputmode="numeric" maxlength="15">
     <button id="statusSearchBtn" class="btn-primary">Consultar</button>
   </div>
   <div id="statusResult" class="hm-result"></div>
 </div>
-
-<!-- ══ JAVASCRIPT — Vite maneja el bundling ══════════════════ -->
-<script type="module" src="/js/app.js"></script>
 
 </body>
 </html>

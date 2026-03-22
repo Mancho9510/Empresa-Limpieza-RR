@@ -63,3 +63,16 @@ async function refreshActivo() {
   ico?.classList.remove('animate-spin-slow');
   showToast('✅ Todo actualizado');
 }
+
+/* ══ Toggle Dark / Light mode admin ══ */
+function toggleAdminTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-admin-theme') || 'dark';
+  const next    = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-admin-theme', next);
+  localStorage.setItem('lrr-admin-theme', next);
+}
+
+// Conectar el botón
+document.getElementById('adminThemeToggle')
+  ?.addEventListener('click', toggleAdminTheme);
