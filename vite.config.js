@@ -6,6 +6,12 @@ export default defineConfig({
   base: '/',
   root: 'src',
 
+  // public/ en la raíz del proyecto (no dentro de src/)
+  // Vite copia todo public/ al dist/ sin procesar
+  // → sw.js queda en dist/sw.js → sirve como /sw.js ✅
+  // → icons/ queda en dist/icons/ → sirve como /icons/ ✅ (sin doble /assets/)
+  publicDir: resolve(__dirname, 'public'),
+
   plugins: [
     tailwindcss(),
   ],
