@@ -1,6 +1,7 @@
 /* ══════════════════════════════════════════
-   RENTABILIDAD — Panel admin
-   Edición inline de costo y % margen desde la tabla
+   RENTABILIDAD v2 — Panel admin ERP
+   Nuevos KPIs: margenGlobal, ROI, masVendidos,
+   ganancia por categoría, acumulados históricos por producto
 ══════════════════════════════════════════ */
 import { adminApi }  from './admin-api.js';
 import { showToast } from './admin-toast.js';
@@ -21,14 +22,12 @@ export function initRentabilidad() {
   document.getElementById('btnAplicarPrecio')?.addEventListener('click', aplicarPrecioSugerido);
   document.getElementById('btnCopiarPrecio')?.addEventListener('click', copiarPrecio);
 
-  // Delegar eventos en la tabla (sobrevive re-renders)
   const tbody = document.getElementById('rentTabla');
   if (tbody) {
     tbody.addEventListener('keydown', handleRentKeydown);
     tbody.addEventListener('click',   handleRentClick);
   }
 
-  // Escuchar cambios desde Inventario → actualizar tabla en tiempo real
   window.addEventListener('costo-actualizado', (e) => {
     const { fila, costo, precio, ganancia_pct, ganancia_pesos } = e.detail;
     const p = rentTodos.find(x => x.fila === fila);
@@ -74,49 +73,41 @@ function filtrarRentabilidad() {
 
 /* ══════════════════════════════════════════
    TABLA CON EDICIÓN INLINE
-   Columnas: Producto | Precio venta | Costo (input) | Margen % (input) | Gan/ud | % badge | Guardar
+   Columnas: Producto | Precio | Costo | Margen | Gan/ud | % | Vendidos | Gan.Total | Guardar
 ══════════════════════════════════════════ */
 function renderTablaRent(lista) {
   const tbody = document.getElementById('rentTabla');
   if (!tbody) return;
-
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-500 py-8">Sin resultados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-500 py-8">Sin resultados</td></tr>';
     return;
   }
-
   tbody.innerHTML = lista.map((p, i) => {
     const pct      = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
     const ganPesos = (p.ganancia_pesos != null && p.costo > 0)               ? Number(p.ganancia_pesos) : null;
+    const ventas   = p.ventas       || 0;
+    const ganTotal = p.ganancia_total || 0;
 
     const color   = pct === null ? 'text-slate-500'
       : pct >= 30 ? 'text-green-400' : pct >= 10 ? 'text-yellow-400' : 'text-red-400';
     const bgBadge = pct === null ? 'bg-slate-700/40'
       : pct >= 30 ? 'bg-green-900/40' : pct >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
-
-    const rowBg      = i % 2 === 0 ? '' : 'bg-slate-800/30';
+    const rowBg = i % 2 === 0 ? '' : 'bg-slate-800/30';
     const margenActual = pct !== null ? pct.toFixed(1) : '';
 
     return `
     <tr class="${rowBg} hover:bg-teal-900/10 border-b border-slate-800/60" data-fila="${p.fila}">
-
-      <!-- Producto -->
       <td class="py-2 px-2">
         <div class="font-semibold text-white text-sm">${escapeHtml(p.nombre)}</div>
         <div class="text-xs text-slate-500">${escapeHtml(p.tamano)} · ${escapeHtml(p.categoria)}</div>
       </td>
-
-      <!-- Precio venta actual -->
       <td class="py-2 px-2 text-right">
         <span class="text-sm font-semibold text-teal-300" id="rent-precio-${p.fila}">
           ${p.precio > 0 ? fmt(p.precio) : '—'}
         </span>
       </td>
-
-      <!-- Costo — input editable amarillo -->
       <td class="py-2 px-2">
-        <input
-          type="number" min="0"
+        <input type="number" min="0"
           class="rent-costo-input w-24 bg-slate-700 border border-yellow-600/50 hover:border-yellow-500
                  focus:border-yellow-400 rounded-lg px-2 py-1.5 text-xs text-white text-right
                  outline-none transition placeholder-slate-500"
@@ -125,12 +116,9 @@ function renderTablaRent(lista) {
           data-fila="${p.fila}"
           aria-label="Costo de ${escapeHtml(p.nombre)}">
       </td>
-
-      <!-- Margen % — input editable teal -->
       <td class="py-2 px-2">
         <div class="flex items-center gap-1">
-          <input
-            type="number" min="0" max="1000"
+          <input type="number" min="0" max="1000"
             class="rent-margen-input w-20 bg-slate-700 border border-teal-600/50 hover:border-teal-500
                    focus:border-teal-400 rounded-lg px-2 py-1.5 text-xs text-white text-center
                    outline-none transition placeholder-slate-500"
@@ -141,14 +129,9 @@ function renderTablaRent(lista) {
           <span class="text-xs text-slate-500">%</span>
         </div>
       </td>
-
-      <!-- Ganancia / ud — se actualiza sin re-render -->
-      <td class="py-2 px-2 text-right ${color} font-semibold text-sm"
-          id="rent-ganpesos-${p.fila}">
+      <td class="py-2 px-2 text-right ${color} font-semibold text-sm" id="rent-ganpesos-${p.fila}">
         ${ganPesos !== null ? fmt(ganPesos) : '—'}
       </td>
-
-      <!-- % badge — se actualiza sin re-render -->
       <td class="py-2 px-2 text-center" id="rent-pct-${p.fila}">
         ${pct !== null
           ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgBadge} ${color}">
@@ -156,18 +139,20 @@ function renderTablaRent(lista) {
              </span>`
           : '<span class="text-slate-600 text-xs">—</span>'}
       </td>
-
-      <!-- Guardar -->
+      <!-- NUEVO: unidades vendidas -->
+      <td class="py-2 px-2 text-center text-xs font-semibold ${ventas > 0 ? 'text-blue-300' : 'text-slate-600'}">
+        ${ventas > 0 ? ventas + ' ud' : '—'}
+      </td>
+      <!-- NUEVO: ganancia total histórica -->
+      <td class="py-2 px-2 text-right text-xs font-bold ${ganTotal > 0 ? 'text-teal-300' : 'text-slate-600'}">
+        ${ganTotal > 0 ? fmt(ganTotal) : '—'}
+      </td>
       <td class="py-2 px-2 text-center">
-        <button
-          class="btn-rent-guardar bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:opacity-40
-                 text-white text-xs font-bold rounded-lg px-3 py-1.5 transition-all whitespace-nowrap"
-          data-fila="${p.fila}">
-          💾 Guardar
-        </button>
+        <button class="btn-rent-guardar bg-teal-600 hover:bg-teal-700 active:scale-95 disabled:opacity-40
+               text-white text-xs font-bold rounded-lg px-3 py-1.5 transition-all whitespace-nowrap"
+          data-fila="${p.fila}">💾 Guardar</button>
         <div class="rent-msg text-xs mt-1 min-h-[14px]" data-fila="${p.fila}"></div>
       </td>
-
     </tr>`;
   }).join('');
 }
@@ -177,7 +162,6 @@ function handleRentClick(e) {
   const btn = e.target.closest('.btn-rent-guardar');
   if (btn) guardarFilaRent(btn.dataset.fila);
 }
-
 function handleRentKeydown(e) {
   if (e.key !== 'Enter') return;
   const input = e.target.closest('.rent-costo-input, .rent-margen-input');
@@ -185,13 +169,7 @@ function handleRentKeydown(e) {
 }
 
 /* ══════════════════════════════════════════
-   GUARDAR FILA — lógica principal
-   1. Lee costo y margen del input
-   2. Si hay margen → calcula precio de venta sugerido
-   3. Guarda costo en Sheets (siempre)
-   4. Si hay margen → guarda precio también
-   5. Actualiza DOM sin re-renderizar la tabla
-   6. Dispara evento para sincronizar Inventario
+   GUARDAR FILA
 ══════════════════════════════════════════ */
 async function guardarFilaRent(filaStr) {
   const fila = Number(filaStr);
@@ -205,37 +183,21 @@ async function guardarFilaRent(filaStr) {
   const costoVal  = costoInp?.value.trim();
   const margenVal = margenInp?.value.trim();
 
-  // Validaciones
-  if (!costoVal && !margenVal) {
-    showToast('⚠️ Ingresa el costo o el margen para guardar');
-    return;
-  }
-  if (costoVal && (isNaN(Number(costoVal)) || Number(costoVal) < 0)) {
-    showToast('⚠️ El costo debe ser un número positivo');
-    costoInp?.focus();
-    return;
-  }
-  if (margenVal && (isNaN(Number(margenVal)) || Number(margenVal) < 0)) {
-    showToast('⚠️ El margen debe ser un número positivo');
-    margenInp?.focus();
-    return;
-  }
+  if (!costoVal && !margenVal) { showToast('⚠️ Ingresa el costo o el margen para guardar'); return; }
+  if (costoVal  && (isNaN(Number(costoVal))  || Number(costoVal)  < 0)) { showToast('⚠️ Costo inválido');  costoInp?.focus(); return; }
+  if (margenVal && (isNaN(Number(margenVal)) || Number(margenVal) < 0)) { showToast('⚠️ Margen inválido'); margenInp?.focus(); return; }
 
   const p = rentTodos.find(x => x.fila === fila);
   if (!p) return;
 
   const nuevoCosto  = costoVal  ? Number(costoVal)  : (p.costo || 0);
   const nuevoMargen = margenVal ? Number(margenVal)  : null;
-
-  // Si se ingresó margen → calcular precio de venta sugerido
   const nuevoPrecio = (nuevoMargen !== null && nuevoCosto > 0)
-    ? Math.ceil(nuevoCosto * (1 + nuevoMargen / 100))
-    : p.precio;
+    ? Math.ceil(nuevoCosto * (1 + nuevoMargen / 100)) : p.precio;
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-  if (msgEl) { msgEl.textContent = ''; }
+  if (msgEl) msgEl.textContent = '';
 
-  // ── Actualización optimista ──────────────────────────────
   const precioAnterior = p.precio;
   p.costo = nuevoCosto;
   if (nuevoPrecio > 0 && nuevoCosto > 0) {
@@ -246,47 +208,24 @@ async function guardarFilaRent(filaStr) {
     p.ganancia_pct   = Math.round(((p.precio - nuevoCosto) / nuevoCosto) * 1000) / 10;
     p.ganancia_pesos = p.precio - nuevoCosto;
   }
-
   _actualizarFilaDOM(fila, p);
 
   try {
-    // 1. Guardar costo (siempre que haya costo)
-    if (costoVal) {
-      await adminApi.updateCosto({ fila, costo: nuevoCosto });
-    }
-
-    // 2. Si se ingresó margen y se calculó nuevo precio → guardarlo
+    if (costoVal) await adminApi.updateCosto({ fila, costo: nuevoCosto });
     if (nuevoMargen !== null && nuevoPrecio !== precioAnterior) {
       await adminApi.updatePrecio({ fila, precio: nuevoPrecio });
     }
-
     const resumen = nuevoMargen !== null
       ? `Costo: ${fmt(nuevoCosto)} · Precio: ${fmt(nuevoPrecio)} · Margen: ${nuevoMargen}%`
       : `Costo: ${fmt(nuevoCosto)}`;
-
     showToast(`✅ ${p.nombre} — ${resumen}`);
-    if (msgEl) {
-      msgEl.textContent = '✅';
-      msgEl.className   = 'rent-msg text-xs mt-1 text-green-400';
-    }
-
-    // Notificar a Inventario
+    if (msgEl) { msgEl.textContent = '✅'; msgEl.className = 'rent-msg text-xs mt-1 text-green-400'; }
     window.dispatchEvent(new CustomEvent('costo-actualizado', {
-      detail: {
-        fila,
-        nombre:        p.nombre,
-        tamano:        p.tamano,
-        costo:         nuevoCosto,
-        precio:        nuevoPrecio,
-        ganancia_pct:  p.ganancia_pct,
-        ganancia_pesos: p.ganancia_pesos,
-      }
+      detail: { fila, nombre: p.nombre, tamano: p.tamano, costo: nuevoCosto,
+                precio: nuevoPrecio, ganancia_pct: p.ganancia_pct, ganancia_pesos: p.ganancia_pesos }
     }));
-
     poblarCalcProductos();
-
   } catch (err) {
-    // Revertir cambio local si falla
     p.precio = precioAnterior;
     if (p.precio > 0 && p.costo > 0) {
       p.ganancia_pct   = Math.round(((p.precio - p.costo) / p.costo) * 1000) / 10;
@@ -294,83 +233,86 @@ async function guardarFilaRent(filaStr) {
     }
     _actualizarFilaDOM(fila, p);
     showToast('⚠️ No se pudo guardar: ' + err.message);
-    if (msgEl) {
-      msgEl.textContent = '❌ Error';
-      msgEl.className   = 'rent-msg text-xs mt-1 text-red-400';
-    }
+    if (msgEl) { msgEl.textContent = '❌ Error'; msgEl.className = 'rent-msg text-xs mt-1 text-red-400'; }
   }
-
   if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar'; }
   setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 4000);
 }
 
-/* ── Actualizar solo la fila en el DOM (sin re-render) ───── */
+/* ── Actualizar fila en DOM sin re-render ────────────────── */
 function _actualizarFilaDOM(fila, p) {
   const pct      = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
   const ganPesos = (p.ganancia_pesos != null && p.costo > 0)               ? Number(p.ganancia_pesos) : null;
-
-  const color   = pct === null ? 'text-slate-500'
+  const color    = pct === null ? 'text-slate-500'
     : pct >= 30 ? 'text-green-400' : pct >= 10 ? 'text-yellow-400' : 'text-red-400';
-  const bgBadge = pct === null ? 'bg-slate-700/40'
+  const bgBadge  = pct === null ? 'bg-slate-700/40'
     : pct >= 30 ? 'bg-green-900/40' : pct >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
 
-  // Precio de venta
   const precioEl = document.getElementById(`rent-precio-${fila}`);
   if (precioEl) precioEl.textContent = p.precio > 0 ? fmt(p.precio) : '—';
 
-  // Badge de % margen
   const pctEl = document.getElementById(`rent-pct-${fila}`);
-  if (pctEl) {
-    pctEl.innerHTML = pct !== null
-      ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgBadge} ${color}">
-           ${(Number.isFinite(pct) ? pct : 0).toFixed(1)}%
-         </span>`
-      : '<span class="text-slate-600 text-xs">—</span>';
-  }
+  if (pctEl) pctEl.innerHTML = pct !== null
+    ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgBadge} ${color}">${(Number.isFinite(pct)?pct:0).toFixed(1)}%</span>`
+    : '<span class="text-slate-600 text-xs">—</span>';
 
-  // Ganancia en pesos
   const ganEl = document.getElementById(`rent-ganpesos-${fila}`);
-  if (ganEl) {
-    ganEl.textContent = ganPesos !== null ? fmt(ganPesos) : '—';
-    ganEl.className   = `py-2 px-2 text-right font-semibold text-sm ${color}`;
-  }
+  if (ganEl) { ganEl.textContent = ganPesos !== null ? fmt(ganPesos) : '—'; ganEl.className = `py-2 px-2 text-right font-semibold text-sm ${color}`; }
 
-  // Inputs — actualizar valor y placeholder con los datos actuales
   const costoInp = document.querySelector(`.rent-costo-input[data-fila="${fila}"]`);
-  if (costoInp) {
-    costoInp.value       = p.costo > 0 ? p.costo : '';
-    costoInp.placeholder = p.costo > 0 ? String(p.costo) : 'ej: 3500';
-  }
-
+  if (costoInp) { costoInp.value = p.costo > 0 ? p.costo : ''; costoInp.placeholder = p.costo > 0 ? String(p.costo) : 'ej: 3500'; }
   const margenInp = document.querySelector(`.rent-margen-input[data-fila="${fila}"]`);
-  if (margenInp && pct !== null) {
-    margenInp.value       = pct.toFixed(1);
-    margenInp.placeholder = pct.toFixed(1);
-  }
+  if (margenInp && pct !== null) { margenInp.value = pct.toFixed(1); margenInp.placeholder = pct.toFixed(1); }
 }
 
 /* ══════════════════════════════════════════
-   RENDER GENERAL (KPIs, tops, menos rentables)
+   RENDER GENERAL — KPIs + tops
 ══════════════════════════════════════════ */
 function renderRentabilidad(d) {
   const r = d.resumen;
-  const avgColor = r.avgGanPct >= 30 ? 'text-green-400'
-    : r.avgGanPct >= 10 ? 'text-yellow-400'
-    : r.avgGanPct > 0   ? 'text-red-400' : 'text-slate-400';
 
+  // ── KPIs financieros ─────────────────────────────────────
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  // Margen global ponderado (gross margin — ganancia/ingresos reales)
+  const mgColor = r.margenGlobal >= 30 ? 'text-green-400'
+    : r.margenGlobal >= 10 ? 'text-yellow-400'
+    : r.margenGlobal > 0   ? 'text-red-400' : 'text-slate-400';
+  const mgEl = document.getElementById('rentMargenGlobal');
+  if (mgEl) {
+    mgEl.textContent = r.margenGlobal > 0 ? r.margenGlobal.toFixed(1) + '%' : '—';
+    mgEl.className   = 'font-display font-extrabold text-3xl ' + mgColor;
+  }
+
+  // Markup promedio sobre costo (consistencia con calculadora de precios)
+  const avgColor = r.avgMarkupPct >= 30 ? 'text-green-400'
+    : r.avgMarkupPct >= 10 ? 'text-yellow-400'
+    : r.avgMarkupPct > 0   ? 'text-red-400' : 'text-slate-400';
   const avgEl = document.getElementById('rentAvgGan');
   if (avgEl) {
-    avgEl.textContent = (r.avgGanPct > 0 && Number.isFinite(r.avgGanPct))
-      ? r.avgGanPct.toFixed(1) + '%' : '—';
+    avgEl.textContent = (r.avgMarkupPct > 0 && Number.isFinite(r.avgMarkupPct))
+      ? r.avgMarkupPct.toFixed(1) + '%' : '—';
     avgEl.className = 'font-display font-extrabold text-3xl ' + avgColor;
   }
 
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('rentGanReal',   r.gananciaReal   > 0 ? fmt(r.gananciaReal)   : '—');
-  set('rentConCosto',  r.conCosto);
-  set('rentSinCosto',  r.sinCosto);
-  set('rentInversion', r.totalInversion > 0 ? fmt(r.totalInversion) : '—');
+  // ROI inventario
+  const roiEl = document.getElementById('rentROI');
+  if (roiEl) {
+    roiEl.textContent = r.roi > 0 ? r.roi.toFixed(1) + '%' : '—';
+    roiEl.className   = 'font-display font-extrabold text-2xl ' + (r.roi >= 50 ? 'text-green-400' : r.roi > 0 ? 'text-yellow-400' : 'text-slate-400');
+  }
 
+  // Resto de KPIs
+  set('rentGanReal',       r.totalGanancia  > 0 ? fmt(r.totalGanancia)  : '—');
+  set('rentIngresos',      r.totalIngresos  > 0 ? fmt(r.totalIngresos)  : '—');
+  set('rentConCosto',      r.conCosto);
+  set('rentSinCosto',      r.sinCosto);
+  set('rentInversion',     r.totalInversion > 0 ? fmt(r.totalInversion) : '—');
+  // Total unidades vendidas — suma de masVendidos
+  const totalUds = (d.masVendidos || []).reduce((s, p) => s + (p.ventas || 0), 0);
+  set('rentTotalVendidos', totalUds > 0 ? totalUds + ' uds' : '—');
+
+  // Alerta sin costo
   const alerta = document.getElementById('rentAlertaSinCosto');
   if (alerta) {
     r.sinCosto > 0 ? alerta.classList.remove('hidden') : alerta.classList.add('hidden');
@@ -378,7 +320,7 @@ function renderRentabilidad(d) {
     if (numEl) numEl.textContent = r.sinCosto;
   }
 
-  // Top más rentables
+  // ── Top más rentables (por ganancia TOTAL real, no margen teórico) ──
   const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
   const topEl  = document.getElementById('rentTopRent');
   if (topEl) {
@@ -396,22 +338,63 @@ function renderRentabilidad(d) {
               </div>
             </div>
             <div class="flex flex-col items-end gap-1 flex-shrink-0">
-              <span class="text-xs font-bold rounded-full px-2.5 py-0.5 ${bgBadge} ${color}">
-                ${(Number.isFinite(pct)?pct:0).toFixed(1)}%
-              </span>
-              <span class="text-xs text-slate-500">
-                ${p.precio>0?fmt(p.precio):'—'} − ${p.costo>0?fmt(p.costo):'—'} = ${p.ganancia_pesos>0?fmt(p.ganancia_pesos):'—'}/ud
-              </span>
+              <span class="text-xs font-bold text-teal-300">${fmt(p.ganancia_total||0)}</span>
+              <div class="flex items-center gap-1">
+                <span class="text-xs text-slate-500">${p.ventas||0} uds ·</span>
+                <span class="text-xs font-bold rounded-full px-2 py-0.5 ${bgBadge} ${color}">
+                  ${(Number.isFinite(pct)?pct:0).toFixed(1)}%
+                </span>
+              </div>
             </div>
           </div>`;
         }).join('')
-      : '<div class="text-xs text-slate-500 py-4 text-center">Ingresa costos para ver el ranking</div>';
+      : '<div class="text-xs text-slate-500 py-4 text-center">Ingresa costos y hay ventas para ver el ranking</div>';
   }
 
-  renderTablaRent(d.todos || []);
-  poblarCalcProductos();
+  // ── Más vendidos (ranking por unidades) — NUEVO ──────────
+  const mvEl = document.getElementById('rentMasVendidos');
+  if (mvEl) {
+    mvEl.innerHTML = (d.masVendidos||[]).length
+      ? d.masVendidos.map((p, i) => `
+          <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-700/50 last:border-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-base flex-shrink-0">${medals[i]||'▪'}</span>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-white truncate">${escapeHtml(p.nombre)}</div>
+                <div class="text-xs text-slate-500">${escapeHtml(p.tamano)}</div>
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+              <span class="text-sm font-bold text-blue-300">${p.ventas} uds</span>
+              <span class="text-xs text-teal-400">${fmt(p.ingresos||0)}</span>
+            </div>
+          </div>`).join('')
+      : '<div class="text-xs text-slate-500 py-4 text-center">Sin ventas registradas aún</div>';
+  }
 
-  // Menos rentables
+  // ── Ganancia por categoría — NUEVO ──────────────────────
+  const catEl = document.getElementById('rentPorCategoria');
+  if (catEl && (d.porCategoria||[]).length) {
+    const maxGan = Math.max(...d.porCategoria.map(c => c.ganancia), 1);
+    catEl.innerHTML = d.porCategoria.map(c => {
+      const pct = Math.round((c.ganancia / maxGan) * 100);
+      return `
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs">
+          <span class="text-slate-300 font-semibold">${escapeHtml(c.categoria)}</span>
+          <span class="text-teal-300 font-bold">${fmt(c.ganancia)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden">
+            <div class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width:${pct}%"></div>
+          </div>
+          <span class="text-xs text-slate-500 w-12 text-right">${c.ventas} uds</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Menos rentables ──────────────────────────────────────
   const menosEl = document.getElementById('rentMenosRent');
   if (menosEl) {
     menosEl.innerHTML = d.menosRentables.length
@@ -421,30 +404,34 @@ function renderRentabilidad(d) {
           return `<div class="flex items-center justify-between gap-2 py-2 border-b border-slate-700/50 last:border-0">
             <div class="min-w-0">
               <div class="text-sm text-white truncate">${escapeHtml(p.nombre)} ${escapeHtml(p.tamano)}</div>
-              <div class="text-xs text-slate-500">Vendes ${p.precio>0?fmt(p.precio):'—'} · Te cuesta ${p.costo>0?fmt(p.costo):'—'}</div>
+              <div class="text-xs text-slate-500">
+                Vendes ${p.precio>0?fmt(p.precio):'—'} · Costo ${p.costo>0?fmt(p.costo):'—'}
+                · ${p.ventas||0} uds · Gan total: ${p.ganancia_total>0?fmt(p.ganancia_total):'—'}
+              </div>
             </div>
             <span class="text-sm font-bold flex-shrink-0 ${color}">${(Number.isFinite(pct)?pct:0).toFixed(1)}%</span>
           </div>`;
         }).join('')
       : '<div class="text-xs text-slate-500 py-2">Sin datos disponibles</div>';
   }
+
+  renderTablaRent(d.todos || []);
+  poblarCalcProductos();
 }
 
 /* ══════════════════════════════════════════
-   CALCULADORA DE PRECIOS
+   CALCULADORA DE PRECIOS (sin cambios)
 ══════════════════════════════════════════ */
 function poblarCalcProductos() {
   const sel = document.getElementById('calcProd');
   if (!sel || !rentTodos.length) return;
   sel.innerHTML = '<option value="">— Elegir producto —</option>' +
-    rentTodos
-      .filter(p => Number(p.costo) > 0)
-      .map((p, i) => {
-        const key = encodeURIComponent(`${p.nombre}|||${p.tamano}`);
-        return `<option value="${i}" data-idx="${i}" data-costo="${p.costo}" data-precio="${p.precio}" data-key="${key}">
-          ${escapeHtml(p.nombre)} ${escapeHtml(p.tamano)} (costo: ${fmt(p.costo)})
-        </option>`;
-      }).join('');
+    rentTodos.filter(p => Number(p.costo) > 0).map((p, i) => {
+      const key = encodeURIComponent(`${p.nombre}|||${p.tamano}`);
+      return `<option value="${i}" data-idx="${i}" data-costo="${p.costo}" data-precio="${p.precio}" data-key="${key}">
+        ${escapeHtml(p.nombre)} ${escapeHtml(p.tamano)} (costo: ${fmt(p.costo)})
+      </option>`;
+    }).join('');
 }
 
 function onCalcProdChange() {
@@ -464,108 +451,64 @@ function calcularPrecio() {
   const resEl  = document.getElementById('calcResultado');
   const detEl  = document.getElementById('calcDetalle');
   const accEl  = document.getElementById('calcAcciones');
-
   if (!costo || !margen || costo <= 0 || margen <= 0) {
     if (resEl) resEl.textContent = '—';
-    detEl?.classList.add('hidden');  detEl?.classList.remove('grid');
-    accEl?.classList.add('hidden');  accEl?.classList.remove('flex');
+    detEl?.classList.add('hidden'); detEl?.classList.remove('grid');
+    accEl?.classList.add('hidden'); accEl?.classList.remove('flex');
     return;
   }
-
-  const sel    = document.getElementById('calcProd');
-  const opt2   = sel?.options[sel?.selectedIndex];
-  const idxRaw = parseInt(opt2?.dataset?.idx, 10);
-  _calcFilaActual = (!isNaN(idxRaw) && idxRaw >= 0) ? idxRaw : null;
-
+  const sel        = document.getElementById('calcProd');
+  const opt2       = sel?.options[sel?.selectedIndex];
+  const idxRaw     = parseInt(opt2?.dataset?.idx, 10);
+  _calcFilaActual  = (!isNaN(idxRaw) && idxRaw >= 0) ? idxRaw : null;
   const precioSug  = Math.ceil(costo * (1 + margen / 100));
   const gananciaUd = precioSug - costo;
   if (resEl) resEl.textContent = fmt(precioSug);
-
   const precioActual = Number(opt2?.dataset?.precio) || 0;
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  set('calcDetCosto',  fmt(costo));
-  set('calcDetGan',    fmt(gananciaUd));
-  set('calcDetPrecio', fmt(precioSug));
-
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  s('calcDetCosto', fmt(costo)); s('calcDetGan', fmt(gananciaUd)); s('calcDetPrecio', fmt(precioSug));
   const dact = document.getElementById('calcDetActual');
   if (dact && precioActual > 0) {
     const diff = precioSug - precioActual;
-    dact.textContent = fmt(precioActual)
-      + (diff !== 0 ? (diff > 0 ? ' (↑' : ' (↓') + fmt(Math.abs(diff)) + ')' : ' ✓');
-    dact.className = diff > 0 ? 'text-sm font-bold text-yellow-400'
-      : diff < 0 ? 'text-sm font-bold text-red-400'
-      : 'text-sm font-bold text-green-400';
-  } else if (dact) {
-    dact.textContent = 'Sin precio';
-  }
-
+    dact.textContent = fmt(precioActual) + (diff !== 0 ? (diff > 0 ? ' (↑' : ' (↓') + fmt(Math.abs(diff)) + ')' : ' ✓');
+    dact.className   = diff > 0 ? 'text-sm font-bold text-yellow-400' : diff < 0 ? 'text-sm font-bold text-red-400' : 'text-sm font-bold text-green-400';
+  } else if (dact) dact.textContent = 'Sin precio';
   detEl?.classList.remove('hidden'); detEl?.classList.add('grid');
   accEl?.classList.remove('hidden'); accEl?.classList.add('flex');
-
   const btnAplicar = document.getElementById('btnAplicarPrecio');
   if (btnAplicar) btnAplicar.style.display = (_calcFilaActual !== null) ? '' : 'none';
 }
 
 async function aplicarPrecioSugerido() {
-  if (_calcFilaActual === null || isNaN(_calcFilaActual)) {
-    showToast('⚠️ Selecciona un producto primero');
-    return;
-  }
+  if (_calcFilaActual === null || isNaN(_calcFilaActual)) { showToast('⚠️ Selecciona un producto primero'); return; }
   const costo  = Number(document.getElementById('calcCosto')?.value)  || 0;
   const margen = Number(document.getElementById('calcMargen')?.value) || 0;
   if (!costo || !margen) { showToast('⚠️ Ingresa costo y margen'); return; }
-
-  const prodConCosto  = rentTodos.filter(p => Number(p.costo) > 0);
-  const prod          = prodConCosto[_calcFilaActual];
+  const prodConCosto = rentTodos.filter(p => Number(p.costo) > 0);
+  const prod         = prodConCosto[_calcFilaActual];
   if (!prod) { showToast('⚠️ Producto no encontrado'); return; }
-
   const precio = Math.ceil(costo * (1 + margen / 100));
   const btn    = document.getElementById('btnAplicarPrecio');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando fila...'; }
-
   try {
     const dataProd      = await adminApi.getProductos();
     const nombreBuscado = (prod.nombre + ' ' + prod.tamano).trim().toLowerCase();
-    const prodReal      = dataProd.productos?.find(p =>
-      (p.nombre + ' ' + p.tamano).trim().toLowerCase() === nombreBuscado
-    );
-
-    if (!prodReal?.fila) {
-      showToast('⚠️ No se encontró la fila del producto');
-      if (btn) { btn.disabled = false; btn.textContent = '✅ Aplicar este precio al producto'; }
-      return;
-    }
-
+    const prodReal      = dataProd.productos?.find(p => (p.nombre + ' ' + p.tamano).trim().toLowerCase() === nombreBuscado);
+    if (!prodReal?.fila) { showToast('⚠️ No se encontró la fila del producto'); if (btn) { btn.disabled = false; btn.textContent = '✅ Aplicar este precio al producto'; } return; }
     if (btn) btn.textContent = '⏳ Aplicando...';
-
-    prod.precio         = precio;
-    prod.ganancia_pct   = margen;
-    prod.ganancia_pesos = precio - costo;
-    const pOrig = rentTodos.find(p =>
-      (p.nombre + ' ' + p.tamano).trim().toLowerCase() === nombreBuscado
-    );
-    if (pOrig) {
-      pOrig.precio         = precio;
-      pOrig.ganancia_pct   = margen;
-      pOrig.ganancia_pesos = precio - costo;
-    }
-
+    prod.precio = precio; prod.ganancia_pct = margen; prod.ganancia_pesos = precio - costo;
+    const pOrig = rentTodos.find(p => (p.nombre + ' ' + p.tamano).trim().toLowerCase() === nombreBuscado);
+    if (pOrig) { pOrig.precio = precio; pOrig.ganancia_pct = margen; pOrig.ganancia_pesos = precio - costo; }
     await adminApi.updateCosto({ fila: prodReal.fila, costo });
     await adminApi.updatePrecio({ fila: prodReal.fila, precio });
-
-    showToast('✅ Precio ' + fmt(precio) + ' aplicado en Sheets');
-    poblarCalcProductos();
-    renderTablaRent(rentTodos);
-
-  } catch (err) {
-    showToast('⚠️ Error: ' + err.message);
-  }
-
+    showToast('✅ Precio ' + fmt(precio) + ' aplicado');
+    poblarCalcProductos(); renderTablaRent(rentTodos);
+  } catch (err) { showToast('⚠️ Error: ' + err.message); }
   if (btn) { btn.disabled = false; btn.textContent = '✅ Aplicar este precio al producto'; }
 }
 
 function copiarPrecio() {
-  const costo  = Number(document.getElementById('calcCosto')?.value)  || 0;
+  const costo  = Number(document.getElementById('calcCosto')?.value) || 0;
   const margen = Number(document.getElementById('calcMargen')?.value) || 0;
   if (!costo || !margen) return;
   const precio = Math.ceil(costo * (1 + margen / 100));
@@ -579,30 +522,17 @@ function calcularPreviewMasivo() {
   const wrap   = document.getElementById('calcMasivoWrap');
   const tbody  = document.getElementById('calcMasivoTabla');
   if (!margen || !tbody) return;
-
   const conCosto = rentTodos.filter(p => Number(p.costo) > 0);
-  if (!conCosto.length) {
-    wrap?.classList.remove('hidden');
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-4">No hay productos con costo ingresado</td></tr>';
-    return;
-  }
-
+  if (!conCosto.length) { wrap?.classList.remove('hidden'); tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-500 py-4">No hay productos con costo ingresado</td></tr>'; return; }
   wrap?.classList.remove('hidden');
   tbody.innerHTML = conCosto.map((p, i) => {
-    const sug  = Math.ceil(Number(p.costo) * (1 + margen / 100));
-    const act  = Number(p.precio) || 0;
+    const sug = Math.ceil(Number(p.costo) * (1 + margen / 100));
+    const act = Number(p.precio) || 0;
     const diff = sug - act;
-    const diffStr = diff === 0
-      ? '<span class="text-green-400">Sin cambio</span>'
-      : diff > 0
-        ? `<span class="text-yellow-400">+${fmt(diff)}</span>`
-        : `<span class="text-red-400">${fmt(diff)}</span>`;
+    const diffStr = diff === 0 ? '<span class="text-green-400">Sin cambio</span>' : diff > 0 ? `<span class="text-yellow-400">+${fmt(diff)}</span>` : `<span class="text-red-400">${fmt(diff)}</span>`;
     const bg = i % 2 === 0 ? '' : 'bg-slate-800/30';
     return `<tr class="${bg} border-b border-slate-800/60">
-      <td class="py-2 px-2">
-        <div class="font-semibold text-white">${escapeHtml(p.nombre)}</div>
-        <div class="text-slate-500">${escapeHtml(p.tamano)}</div>
-      </td>
+      <td class="py-2 px-2"><div class="font-semibold text-white">${escapeHtml(p.nombre)}</div><div class="text-slate-500">${escapeHtml(p.tamano)}</div></td>
       <td class="py-2 px-2 text-right text-slate-400">${fmt(p.costo)}</td>
       <td class="py-2 px-2 text-right text-slate-300">${act > 0 ? fmt(act) : '—'}</td>
       <td class="py-2 px-2 text-right font-bold text-teal-300">${fmt(sug)}</td>

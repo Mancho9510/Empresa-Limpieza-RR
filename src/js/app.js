@@ -690,11 +690,18 @@ async function confirmOrder() {
   const total       = (shipping !== null ? sub + shipping : sub);
   const isContra    = pag.value === "Contra entrega";
 
-  // Productos separados para Sheets
+  // Productos separados para Sheets — texto legible (WhatsApp, recibo, historial)
   const productosLineas = cart.map(it => {
     const p = products.find(x => x.id === it.id);
     return `${p.name} ${p.size} | Cant: ${it.qty} | P.Unit: ${fmt(p.price)} | Subtotal: ${fmt(p.price * it.qty)}`;
   }).join("\n");
+
+  // Productos estructurados — para lookup O(1) en rentabilidad/stock del backend
+  // Incluye id numérico para que el backend no dependa del parsing de texto
+  const productosJson = JSON.stringify(cart.map(it => {
+    const p = products.find(x => x.id === it.id);
+    return { id: p.id, nombre: p.name, tamano: p.size, cantidad: it.qty, precio: p.price };
+  }));
 
   const discount    = getDiscount();
   const finalTotal  = (shipping !== null ? sub + shipping : sub) - discount;
@@ -719,6 +726,7 @@ async function confirmOrder() {
     total:        shipping !== null ? total : "A convenir",
     estado_pago:  isContra ? "CONTRA ENTREGA" : "PENDIENTE",
     productos:    productosLineas,
+    productos_json: productosJson,  // structured — backend lo prefiere sobre parsing de texto
   };
 
   await saveOrderToSheets(orderData);
