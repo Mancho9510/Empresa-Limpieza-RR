@@ -265,6 +265,9 @@ function onProductsLoaded() {
   buildCats();
   renderProds();
   loadResenas();
+  // Si el usuario tenía carrito guardado, ahora sí podemos renderizarlo
+  // porque ya tenemos los productos con nombres y precios
+  if (cart.length > 0) refreshCart();
 }
 
 function simulateDelay(ms) {
@@ -470,6 +473,43 @@ function quickAdd(id)   { addById(id, 1); showToast("✅ Producto agregado al ca
 /* ════════════════════════════════════════════════════════════
    CARRITO
 ═══════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════
+   PERSISTENCIA DEL CARRITO — localStorage con TTL 48h
+   Solo guardamos IDs y cantidades (nunca precios) para que
+   si el precio cambia en Sheets, el carrito lo refleje al cargar.
+════════════════════════════════════════════════════════════ */
+const CART_KEY = "lrr_cart_v1";
+const CART_TTL = 48 * 60 * 60 * 1000; // 48 horas
+
+function saveCart() {
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify({ items: cart, ts: Date.now() }));
+  } catch (_) {}
+}
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    if (!raw) return;
+    const { items, ts } = JSON.parse(raw);
+    // TTL: si el carrito tiene más de 48h, descartarlo silenciosamente
+    if (!items || Date.now() - ts > CART_TTL) {
+      localStorage.removeItem(CART_KEY);
+      return;
+    }
+    // Solo restaurar ítems con id y qty válidos
+    cart = items.filter(it => it.id && it.qty > 0);
+  } catch (_) {
+    // localStorage corrupto — limpiar y continuar
+    try { localStorage.removeItem(CART_KEY); } catch (_) {}
+  }
+}
+
+function clearSavedCart() {
+  try { localStorage.removeItem(CART_KEY); } catch (_) {}
+}
+
 function addById(id, qty) {
   const p = products.find(x => x.id === id);
   if (!p) return;
@@ -490,6 +530,7 @@ function addById(id, qty) {
   const ex = cart.find(x => x.id === id);
   ex ? ex.qty += qty : cart.push({ id, qty });
   refreshCart();
+  saveCart();
 }
 
 function refreshCart() {
@@ -564,9 +605,9 @@ function updQty(id, d) {
   if (!it) return;
   it.qty += d;
   if (it.qty <= 0) remItem(id);
-  else refreshCart();
+  else { refreshCart(); saveCart(); }
 }
-function remItem(id) { cart = cart.filter(x => x.id !== id); refreshCart(); }
+function remItem(id) { cart = cart.filter(x => x.id !== id); refreshCart(); saveCart(); }
 function subtotal()  { return cart.reduce((s, it) => s + products.find(x => x.id === it.id).price * it.qty, 0); }
 
 /* ════════════════════════════════════════════════════════════
@@ -721,9 +762,9 @@ async function confirmOrder() {
     descuento:    discount,
     pago:         pag.value,
     zona_envio:   shippingLbl,
-    costo_envio:  shipping !== null ? shipping : "A convenir",
+    costo_envio:  shipping !== null ? shipping : 0,  // 0 = a convenir (numérico para el backend)
     subtotal:     sub,
-    total:        shipping !== null ? total : "A convenir",
+    total:        finalTotal,  // incluye descuento de cupón y envío — siempre numérico
     estado_pago:  isContra ? "CONTRA ENTREGA" : "PENDIENTE",
     productos:    productosLineas,
     productos_json: productosJson,  // structured — backend lo prefiere sobre parsing de texto
@@ -745,15 +786,18 @@ async function confirmOrder() {
 
   msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `🛒 Subtotal: ${fmt(sub)}\n`;
+  if (discount > 0) {
+    msg += `🏷️ Descuento (${activeCoupon?.code || "cupón"}): -${fmt(discount)}\n`;
+  }
   if (shipping === null) {
-    msg += `🚚 Envío: A convenir\n`;
-    msg += `💰 *TOTAL: ${fmt(sub)} + envío*\n`;
+    msg += `🚚 Envío: A convenir (acordamos el costo por chat)\n`;
+    msg += `💰 *TOTAL: ${fmt(sub - discount)} + envío*\n`;
   } else if (shipping === 0) {
-    msg += `🚚 Envío: Sin costo (recoge en punto)\n`;
-    msg += `💰 *TOTAL: ${fmt(total)}*\n`;
+    msg += `🚚 Envío: Sin costo\n`;
+    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\n`;
   } else {
     msg += `🚚 Envío: ${fmt(shipping)}\n`;
-    msg += `💰 *TOTAL A PAGAR: ${fmt(total)}*\n`;
+    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\n`;
   }
 
   msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
@@ -785,6 +829,7 @@ async function confirmOrder() {
   const lastOrderData = { ...orderData };
   cart = [];
   activeCoupon = null;
+  clearSavedCart();   // pedido confirmado — limpiar carrito guardado
   refreshCart();
   closeOrder();
   showToast("✅ ¡Pedido enviado por WhatsApp y guardado!");
@@ -1322,8 +1367,9 @@ const DEMO_PRODUCTS = [
    INICIALIZACIÓN
 ═══════════════════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
-  refreshCart();
-  loadProducts();
+  loadCart();          // restaurar carrito guardado antes de todo
+  refreshCart();       // actualizar badge (aunque products aún no cargó)
+  loadProducts();      // al terminar llama onProductsLoaded → refreshCart() de nuevo
   initPaymentListeners();
   initShippingListener();
   initNavListeners();
