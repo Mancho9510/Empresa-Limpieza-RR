@@ -140,6 +140,11 @@ function validarClave(clave) {
   return clave === getAdminKey();
 }
 
+// Alias para compatibilidad — el código existente (Setup, Admin, Formato) usa "verificarClave"
+function verificarClave(clave) {
+  return validarClave(clave);
+}
+
 /* ──────────────────────────────────────────────────────────────
    F. PARSER CENTRALIZADO DE PRODUCTOS EN PEDIDOS
    
