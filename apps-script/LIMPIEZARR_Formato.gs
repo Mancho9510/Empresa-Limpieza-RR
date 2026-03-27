@@ -198,16 +198,14 @@ function mapAdminProveedor(row, fila, COL, demanda) {
 }
 
 function buildProviderDemandIndex(ss) {
-  const pSheet = ss.getSheetByName("Pedidos");
-  if (!pSheet || pSheet.getLastRow() < 2) return {};
+  var _s = leerSheet(ss, "Pedidos");
+  if (!_s.sheet || _s.rows.length === 0) return {};
 
-  const data = pSheet.getDataRange().getValues();
-  const headers = data[0].map(h => String(h).toLowerCase().trim());
-  const fechaIdx = headers.indexOf("fecha");
-  const prodIdx = headers.indexOf("productos");
-  const demand = {};
+  var fechaIdx = _s.headers.indexOf("fecha");
+  var prodIdx = _s.headers.indexOf("productos");
+  var demand = {};
 
-  data.slice(1).forEach(row => {
+  _s.rows.forEach(row => {
     const fecha = String(row[fechaIdx] || "");
     parseProviderOrderProducts(row[prodIdx]).forEach(producto => {
       const key = provNormalizeText(producto.nombre);

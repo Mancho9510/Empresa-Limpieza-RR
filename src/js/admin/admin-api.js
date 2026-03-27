@@ -32,13 +32,6 @@ async function postJson(payload) {
 
   const text = await res.text();
 
-  // LOG DE DIAGNÓSTICO — quitar cuando todo funcione
-  console.group(`📤 POST accion=${payload.accion}`);
-  console.log('payload:', payload);
-  console.log('status:', res.status, res.url);
-  console.log('respuesta (primeros 300 chars):', text.slice(0, 300));
-  console.groupEnd();
-
   try {
     const data = JSON.parse(text);
     if (!data.ok) throw new Error(data.error || 'Error del servidor');

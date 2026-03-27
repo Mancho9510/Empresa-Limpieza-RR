@@ -125,17 +125,15 @@ function doGet(e) {
    ACCIÓN: productos (público — tienda)
 ────────────────────────────────────────────────────────────── */
 function doGet_productos(e, ss) {
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) return jsonResponse({ ok: false, error: "Hoja Productos no encontrada" });
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var rows = data.slice(1)
-    .filter(function(row) { return row[0] !== "" && row[0] !== null; })
-    .map(function(row) {
-      var obj = {};
-      headers.forEach(function(h, i) { obj[String(h).trim()] = row[i]; });
-      return obj;
-    });
+  var _s = leerSheet(ss, "Productos");
+  if (!_s.sheet) return jsonResponse({ ok: false, error: "Hoja Productos no encontrada" });
+  var COL = {};
+  _s.headers.forEach(function(h, i) { COL[h] = i; });
+  var rows = _s.rows.map(function(row) {
+    var obj = {};
+    _s.headers.forEach(function(h, i) { obj[h] = row[i]; });
+    return obj;
+  });
   return jsonResponse({ ok: true, data: rows });
 }
 
@@ -354,17 +352,11 @@ function doGet_admin_dashboard(e, ss) {
     }
   }
 
-  var pedSheet = ss.getSheetByName("Pedidos");
-  var cliSheet = ss.getSheetByName("Clientes");
-  var calSheet = ss.getSheetByName("Calificaciones");
-  var proSheet = ss.getSheetByName("Productos");
-  if (!pedSheet) return jsonResponse({ ok: false, error: "Hoja Pedidos no encontrada" });
-
-  var pData = pedSheet.getDataRange().getValues();
-  var pHdr  = pData[0];
-  var PC    = {};
-  pHdr.forEach(function(h,i){ PC[String(h).toLowerCase().trim()]=i; });
-  var rows = pData.slice(1).filter(function(r){ return r[0]!==""; });
+  var _ped = leerSheet(ss, "Pedidos");
+  if (!_ped.sheet) return jsonResponse({ ok: false, error: "Hoja Pedidos no encontrada" });
+  var PC = {};
+  _ped.headers.forEach(function(h,i){ PC[h]=i; });
+  var rows = _ped.rows;
 
   var hoy     = new Date();
   var hoyDia  = Number(Utilities.formatDate(hoy,"America/Bogota","d"));
@@ -435,25 +427,22 @@ function doGet_admin_dashboard(e, ss) {
                   .sort(function(a,b){return b.cnt-a.cnt;});
 
   var avgRating=0, numResenas=0;
-  if (calSheet&&calSheet.getLastRow()>1){
-    var cData=calSheet.getDataRange().getValues();
-    var cHdr=cData[0].map(function(h){return String(h).toLowerCase();});
-    var si=cHdr.indexOf("estrellas");
+  var _cal = leerSheet(ss, "Calificaciones");
+  if (_cal.sheet && _cal.rows.length > 0){
+    var si=_cal.headers.indexOf("estrellas");
     if (si>=0){
-      var stars=cData.slice(1).map(function(r){return Number(r[si]);}).filter(function(v){return v>0;});
+      var stars=_cal.rows.map(function(r){return Number(r[si]);}).filter(function(v){return v>0;});
       numResenas=stars.length;
       if (stars.length>0) avgRating=parseFloat((stars.reduce(function(a,b){return a+b;},0)/stars.length).toFixed(1));
     }
   }
 
   var alertasStock=[];
-  if (proSheet&&proSheet.getLastRow()>1){
-    var prData=proSheet.getDataRange().getValues();
-    var prHdr=prData[0].map(function(h){return String(h).toLowerCase().trim();});
-    var ni=prHdr.indexOf("nombre"),ti=prHdr.indexOf("tamano"),sti=prHdr.indexOf("stock");
+  var _pro = leerSheet(ss, "Productos");
+  if (_pro.sheet && _pro.rows.length > 0){
+    var ni=_pro.headers.indexOf("nombre"),ti=_pro.headers.indexOf("tamano"),sti=_pro.headers.indexOf("stock");
     if (sti>=0){
-      prData.slice(1).forEach(function(r){
-        if (!r[ni]) return;
+      _pro.rows.forEach(function(r){
         var sv=r[sti]; if (sv===""||sv===null) return;
         var sn=Number(sv); if (isNaN(sn)) return;
         var nivel = sn===0?"agotado":sn<=5?"bajo":null;
@@ -463,12 +452,11 @@ function doGet_admin_dashboard(e, ss) {
   }
 
   var numClientes=0, vip=0;
-  if (cliSheet&&cliSheet.getLastRow()>1){
-    numClientes=cliSheet.getLastRow()-1;
-    var clData=cliSheet.getDataRange().getValues();
-    var clHdr=clData[0].map(function(h){return String(h).toLowerCase();});
-    var ti2=clHdr.indexOf("tipo");
-    if (ti2>=0) clData.slice(1).forEach(function(r){ if (String(r[ti2]).toUpperCase().indexOf("VIP")>=0) vip++; });
+  var _cli = leerSheet(ss, "Clientes");
+  if (_cli.sheet && _cli.rows.length > 0){
+    numClientes=_cli.rows.length;
+    var ti2=_cli.headers.indexOf("tipo");
+    if (ti2>=0) _cli.rows.forEach(function(r){ if (String(r[ti2]).toUpperCase().indexOf("VIP")>=0) vip++; });
   }
 
   var resultado = {
@@ -532,16 +520,15 @@ function doGet_admin_rentabilidad(e, ss) {
   // ════════════════════════════════════════
   // 1. LEER PRODUCTOS — construir map O(1)
   // ════════════════════════════════════════
-  var pData   = prodSheet.getDataRange().getValues();
-  var pH      = pData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var _prod = leerSheet(ss, "Productos");
+  if (!_prod.sheet) return jsonResponse({ ok: false, error: "Sin hoja Productos" });
   var PC      = {};
-  pH.forEach(function(h, i){ PC[h] = i; });
+  _prod.headers.forEach(function(h, i){ PC[h] = i; });
 
   var productos    = [];
   var productosMap = {};  // key: "nombre tamano" lowercase → producto
 
-  pData.slice(1).forEach(function(r, i) {
-    if (!r[0]) return;
+  _prod.rows.forEach(function(r, i) {
 
     var nombre = String(r[PC["nombre"]] || "").trim();
     var tamano = String(r[PC["tamano"]] || "").trim();
@@ -586,18 +573,17 @@ function doGet_admin_rentabilidad(e, ss) {
   var totalIngresos = 0;
   var totalGanancia = 0;
 
-  if (pedSheet && pedSheet.getLastRow() > 1) {
-    var pedData    = pedSheet.getDataRange().getValues();
-    var pedH       = pedData[0].map(function(h){ return String(h).toLowerCase().trim(); });
-    var pedPC      = {};
-    pedH.forEach(function(h, i){ pedPC[h] = i; });
+  if (pedSheet) {
+    var _pedR = leerSheet(ss, "Pedidos");
+    if (_pedR.sheet && _pedR.rows.length > 0) {
+    var pedPC = {};
+    _pedR.headers.forEach(function(h, i){ pedPC[h] = i; });
 
-    pedData.slice(1).forEach(function(r) {
-      if (!r[0]) return;
+    _pedR.rows.forEach(function(r) {
       var prodsStr = String(r[pedPC["productos"]] || "");
 
       // Usar JSON estructurado si disponible, fallback al texto histórico
-      var pedPC_json = pedH.indexOf("productos_json");
+      var pedPC_json = _pedR.headers.indexOf("productos_json");
       var jsonStr = (pedPC_json >= 0) ? String(r[pedPC_json] || "") : "";
       parsearProductosPedido(prodsStr, jsonStr).forEach(function(item) {
         var cantidad  = item.cantidad;
@@ -614,7 +600,8 @@ function doGet_admin_rentabilidad(e, ss) {
         totalGanancia += prod.ganancia_pesos !== null ? prod.ganancia_pesos * cantidad : 0;
       });
     });
-  }
+    }  // if (_pedR.sheet)
+  }    // if (pedSheet)
 
   // ════════════════════════════════════════
   // 3. KPIs GLOBALES
@@ -796,9 +783,9 @@ function procesarNuevoPedido(ss, body) {
   cacheDelete("admin_dashboard_v1");
   cacheDelete("admin_rentabilidad_v1");
 
-  // 4. Actualizar hoja Dashboard en segundo plano
-  try { actualizarDashboard(ss); }
-  catch(e7) { Logger.log("Dashboard: " + e7.message); }
+  // 4. Dashboard: NO recalcular aquí — corre via trigger horario
+  //    (instalarTriggerHorario). Recalcular en cada pedido con 500+ filas
+  //    excede el límite de 6 min de Apps Script.
 
   return jsonResponse({ ok: true });
 }

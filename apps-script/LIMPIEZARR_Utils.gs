@@ -119,20 +119,21 @@ function logInfo(accion, mensaje) {
 /* ──────────────────────────────────────────────────────────────
    E. ADMIN KEY SEGURA — PropertiesService
    
-   Cómo configurar la primera vez:
+   Cómo configurar:
      En Apps Script: Archivo → Propiedades del proyecto → Script Properties
-     Agregar: clave = LIMPIEZARR2025  (o tu clave personalizada)
+     Agregar:  Clave = ADMIN_KEY   Valor = tu_clave_secreta
    
-   Fallback: si no está en PropertiesService, usa la constante ADMIN_KEY
-   del código para no romper sistemas existentes durante la migración.
+   NO hay fallback hardcodeado. Si no está configurada, lanza error.
 ────────────────────────────────────────────────────────────── */
 function getAdminKey() {
   try {
     var stored = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY");
     if (stored && stored.trim()) return stored.trim();
-  } catch(e) {}
-  // Fallback a la constante global mientras se completa la migración
-  return (typeof ADMIN_KEY !== "undefined") ? ADMIN_KEY : "LIMPIEZARR2025";
+  } catch(e) {
+    logError("getAdminKey", e);
+  }
+  // Sin fallback — forzar configuración correcta
+  throw new Error("ADMIN_KEY no configurada en PropertiesService. Ve a Archivo → Propiedades del proyecto → Script Properties y agrega ADMIN_KEY.");
 }
 
 function validarClave(clave) {
