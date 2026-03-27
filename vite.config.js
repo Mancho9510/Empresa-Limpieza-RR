@@ -5,6 +5,7 @@ import { resolve } from 'path'
 export default defineConfig({
   base: '/',
   root: 'src',
+  envDir: resolve(__dirname),  // .env.local está en la raíz, no en src/
 
   // public/ en la raíz del proyecto (no dentro de src/)
   // Vite copia todo public/ al dist/ sin procesar
