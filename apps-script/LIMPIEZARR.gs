@@ -217,7 +217,7 @@ function inicializarProveedores() {
 ══════════════════════════════════════════════════════════════ */
 function hacerBackup() {
   const ss      = SpreadsheetApp.getActiveSpreadsheet();
-  const fecha   = Utilities.formatDate(new Date(), "America/Bogota", "yyyy-MM-dd HH:mm");
+  const fecha   = Utilities.formatDate(new Date(), "America/Bogota", "yyyy-MM-dd HH:mm:ss");
   const hojas   = ["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones", "Dashboard", "Resumen"];
   const creadas = [];
 

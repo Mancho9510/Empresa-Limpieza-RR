@@ -15,7 +15,7 @@
 // ══════════════════════════════════════════════════════════
 // CONFIGURACIÓN CENTRALIZADA
 // ══════════════════════════════════════════════════════════
-//var ADMIN_KEY = "LIMPIEZARR2025";   // BUG-11 fix: única fuente de verdad
+// ADMIN_KEY: configurar en PropertiesService (ver LIMPIEZARR_Utils.gs → getAdminKey)
 
 var CONFIG_WA = {
   NUMERO:  "573503443140",
@@ -244,7 +244,7 @@ function doGet_resenas(e, ss) {
    BUG-04 FIX: sanitizeDriveUrl ahora existe y funciona
 ────────────────────────────────────────────────────────────── */
 function doGet_admin_productos(e, ss) {
-  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+  if (!verificarClave(e.parameter.clave || "")) return jsonResponse({ ok: false, error: "No autorizado" });
 
   // Cache 10 min — productos cambian poco en tiempo real
   var CACHE_KEY = "admin_productos_v1";
@@ -283,7 +283,7 @@ function doGet_admin_productos(e, ss) {
    ACCIÓN: admin_pedidos
 ────────────────────────────────────────────────────────────── */
 function doGet_admin_pedidos(e, ss) {
-  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+  if (!verificarClave(e.parameter.clave || "")) return jsonResponse({ ok: false, error: "No autorizado" });
   // leerSheet() usa getRange específico en lugar de getDataRange() completo
   var _s = leerSheet(ss, "Pedidos");
   if (!_s.sheet) return jsonResponse({ ok: false, pedidos: [] });
@@ -336,7 +336,7 @@ function doGet_admin_pedidos(e, ss) {
    BUG-12 FIX: pendientes solo cuenta "PENDIENTE", no "CONTRA ENTREGA"
 ────────────────────────────────────────────────────────────── */
 function doGet_admin_dashboard(e, ss) {
-  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+  if (!verificarClave(e.parameter.clave || "")) return jsonResponse({ ok: false, error: "No autorizado" });
 
   var cache     = CacheService.getScriptCache();
   var CACHE_KEY = "admin_dashboard_v1";
@@ -501,7 +501,7 @@ function doGet_admin_dashboard(e, ss) {
      con etiqueta explícita para no confundir.
 ────────────────────────────────────────────────────────────── */
 function doGet_admin_rentabilidad(e, ss) {
-  if ((e.parameter.clave || "") !== getAdminKey()) {
+  if (!verificarClave(e.parameter.clave || "")) {
     return jsonResponse({ ok: false, error: "No autorizado" });
   }
 
@@ -977,8 +977,7 @@ function upsertCliente(ss, body) {
 
 function clasificarCliente(pedidos, gastado) {
   if (pedidos >= 10 || gastado >= 500000) return "VIP";
-  if (pedidos >= 3  || gastado >= 150000) return "Recurrente";
-  if (pedidos >= 2)                        return "Recurrente";
+  if (pedidos >= 2  || gastado >= 150000) return "Recurrente";
   return "Nuevo";
 }
 

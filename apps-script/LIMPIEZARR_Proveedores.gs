@@ -13,8 +13,15 @@ var PROVEEDORES_HEADERS  = ["nombre","contacto_nombre","telefono","email","produ
 var CUPONES_HEADERS      = ["codigo","descripcion","tipo","valor","usos_maximos","usos_actuales","vencimiento","activo"];
 var CALIFICACIONES_HEADERS = ["fecha","nombre","telefono","estrellas","comentario"];
 
-// ── Margen por defecto para calcularPreciosConMargen ──
-var MARGEN_DESEADO = 80; // porcentaje
+// ── Margen: lee de PropertiesService, fallback a 80% ──
+function getMargenDeseado() {
+  try {
+    var val = PropertiesService.getScriptProperties().getProperty("MARGEN_DESEADO");
+    if (val) return Number(val) || 80;
+  } catch(e) {}
+  return 80;
+}
+var MARGEN_DESEADO = getMargenDeseado();
 
 /* ──────────────────────────────────────────────────────────────
    HELPERS DE HOJA

@@ -1,6 +1,9 @@
 /**
- * LIMPIEZA RR - PROVEEDORES
- * Endpoints admin para proveedores y relacion con demanda de productos.
+ * LIMPIEZA RR — PROVEEDORES (Endpoints CRUD + Demand Index)
+ * 
+ * NOTA: Este archivo se llama "Formato" por razones históricas.
+ * Contiene la lógica de proveedores: endpoints admin, mapeo, demanda.
+ * La lógica de formato de tablas está en LIMPIEZARR_Dashboard.gs.
  */
 
 function doGet_admin_proveedores(e) {
