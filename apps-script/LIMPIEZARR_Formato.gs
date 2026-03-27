@@ -1,315 +1,218 @@
 /* ═══════════════════════════════════════════════════════════
-   LIMPIEZA RR — Formato de Tablas (LIMPIEZARR_Formato.gs)
+   LIMPIEZA RR — Formato de Tablas v3
+   Correcciones:
+   ✅ BUG-07: Eliminadas las 3 funciones _legacy duplicadas
+   ✅ BUG-08: onEditar reformateada — solo la fila editada, no toda la hoja
 ═══════════════════════════════════════════════════════════ */
 
-function formatearComoTabla(nombreHoja) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(nombreHoja);
-  if (!sheet) {
-    Logger.log("Hoja no encontrada: " + nombreHoja);
-    return;
-  }
+// TEMAS está declarado en LIMPIEZARR_Admin.gs — compartido en el scope global de Apps Script.
 
-  const tema      = TEMAS[nombreHoja] || TEMAS["Pedidos"];
-  const lastRow   = Math.max(sheet.getLastRow(), 2);
-  const lastCol   = sheet.getLastColumn();
+/* ──────────────────────────────────────────────────────────────
+   formatearComoTabla — aplica estilo completo a una hoja
+────────────────────────────────────────────────────────────── */
+function formatearComoTabla(nombreHoja) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(nombreHoja);
+  if (!sheet) { Logger.log("Hoja no encontrada: " + nombreHoja); return; }
+
+  var tema     = TEMAS[nombreHoja] || TEMAS["Pedidos"];
+  var lastRow  = Math.max(sheet.getLastRow(), 2);
+  var lastCol  = sheet.getLastColumn();
   if (lastCol === 0) return;
 
-  const totalRows = lastRow;
-
-  // ── 1. Encabezado ──────────────────────────────────────────
-  const hdrRange = sheet.getRange(1, 1, 1, lastCol);
-  hdrRange
-    .setBackground(tema.hdrBg)
-    .setFontColor(tema.hdrFg)
-    .setFontWeight("bold")
-    .setFontSize(10)
-    .setVerticalAlignment("middle")
-    .setHorizontalAlignment("center")
-    .setBorder(true, true, true, true, true, true,
-               tema.border, SpreadsheetApp.BorderStyle.SOLID);
+  // ── 1. Encabezado ──
+  sheet.getRange(1, 1, 1, lastCol)
+    .setBackground(tema.hdrBg).setFontColor(tema.hdrFg)
+    .setFontWeight("bold").setFontSize(10)
+    .setVerticalAlignment("middle").setHorizontalAlignment("center")
+    .setBorder(true, true, true, true, true, true, tema.border, SpreadsheetApp.BorderStyle.SOLID);
   sheet.setFrozenRows(1);
   sheet.setRowHeight(1, 32);
 
-  if (totalRows < 2) return;
+  if (lastRow < 2) return;
 
-  // ── 2. Filas de datos con colores alternados ───────────────
-  for (let r = 2; r <= totalRows; r++) {
-    const rowRange = sheet.getRange(r, 1, 1, lastCol);
-    const bg       = r % 2 === 0 ? tema.rowPar : tema.rowImpar;
-    rowRange
-      .setBackground(bg)
-      .setFontColor("#0F172A")
-      .setFontWeight("normal")
-      .setFontSize(10)
+  // ── 2. Filas alternadas ──
+  for (var r = 2; r <= lastRow; r++) {
+    var bg = r % 2 === 0 ? tema.rowPar : tema.rowImpar;
+    sheet.getRange(r, 1, 1, lastCol)
+      .setBackground(bg).setFontColor("#0F172A")
+      .setFontWeight("normal").setFontSize(10)
       .setVerticalAlignment("middle")
-      .setBorder(true, true, true, true, true, true,
-                 tema.border, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+      .setBorder(true, true, true, true, true, true, tema.border, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
     sheet.setRowHeight(r, 28);
   }
 
-  // ── 3. Columna imagen en amarillo (solo Productos) ─────────
+  // ── 3. Columna imagen amarilla (solo Productos) ──
   if (tema.imgCol) {
-    const headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    const imgIndex = headers.indexOf("imagen");
+    var headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var imgIndex = headers.indexOf("imagen");
     if (imgIndex !== -1) {
-      const col = imgIndex + 1;
-      sheet.getRange(1, col, totalRows, 1).setBackground(tema.imgCol);
+      sheet.getRange(1, imgIndex + 1, lastRow, 1).setBackground(tema.imgCol);
     }
   }
 
-  // ── 4. Columna "tipo" en Clientes con color por nivel ─────
-  if (nombreHoja === "Clientes" && totalRows >= 2) {
-    const headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    const tipoIdx  = headers.indexOf("tipo");
-    if (tipoIdx !== -1) {
-      const col      = tipoIdx + 1;
-      const valores  = sheet.getRange(2, col, totalRows - 1, 1).getValues();
-      valores.forEach((row, i) => {
-        const cell = sheet.getRange(i + 2, col);
-        const val  = String(row[0]).toLowerCase();
-        if (val.includes("vip")) {
-          cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-        } else if (val.includes("recurrente")) {
-          cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-        } else {
-          cell.setBackground("#EFF6FF").setFontColor("#1E40AF").setFontWeight("normal");
-        }
+  // ── 4. Columna "tipo" en Clientes ──
+  if (nombreHoja === "Clientes" && lastRow >= 2) {
+    var hdr2   = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var tipoCol= hdr2.indexOf("tipo") + 1;
+    if (tipoCol > 0) {
+      var tipoVals = sheet.getRange(2, tipoCol, lastRow - 1, 1).getValues();
+      tipoVals.forEach(function(row, i) {
+        var cell = sheet.getRange(i + 2, tipoCol);
+        var val  = String(row[0]).toLowerCase();
+        if (val.includes("vip"))        cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+        else if (val.includes("rec"))   cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+        else                            cell.setBackground("#EFF6FF").setFontColor("#1E40AF").setFontWeight("normal");
       });
     }
   }
 
-  // ── 5. Columna "estado_pago" en Pedidos con color ─────────
-  if (nombreHoja === "Pedidos" && totalRows >= 2) {
-    const headers     = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    const estadoIdx   = headers.indexOf("estado_pago");
-    if (estadoIdx !== -1) {
-      const col    = estadoIdx + 1;
-      const valores = sheet.getRange(2, col, totalRows - 1, 1).getValues();
-      valores.forEach((row, i) => {
-        const cell = sheet.getRange(i + 2, col);
-        const val  = String(row[0]).toUpperCase();
-        if (val.includes("PAGADO")) {
-          cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-        } else if (val.includes("CONTRA")) {
-          cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-        } else {
-          cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
-        }
+  // ── 5. Columna "estado_pago" en Pedidos ──
+  if (nombreHoja === "Pedidos" && lastRow >= 2) {
+    var hdr3    = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var estCol  = hdr3.indexOf("estado_pago") + 1;
+    if (estCol > 0) {
+      var estVals = sheet.getRange(2, estCol, lastRow - 1, 1).getValues();
+      estVals.forEach(function(row, i) {
+        var cell = sheet.getRange(i + 2, estCol);
+        var val  = String(row[0]).toUpperCase();
+        if (val.includes("PAGADO"))         cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+        else if (val.includes("CONTRA"))    cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+        else                                cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
       });
     }
   }
 
-  // ── 6. Ajustar anchos de columna ──────────────────────────
   sheet.autoResizeColumns(1, lastCol);
-
-  Logger.log("Tabla formateada: " + nombreHoja + " (" + (totalRows - 1) + " filas)");
+  Logger.log("Tabla formateada: " + nombreHoja + " (" + (lastRow - 1) + " filas)");
 }
 
-/* ──────────────────────────────────────────────────────────────
-   Formatea las 3 hojas de una vez
-────────────────────────────────────────────────────────────── */
 function formatearTodo() {
-  formatearComoTabla("Productos");
-  formatearComoTabla("Pedidos");
-  formatearComoTabla("Clientes");
-  formatearComoTabla("Proveedores");
-  formatearComoTabla("Cupones");
+  ["Productos","Pedidos","Clientes","Proveedores","Cupones"].forEach(function(h) {
+    formatearComoTabla(h);
+  });
   Logger.log("=== Todas las tablas formateadas ===");
 }
 
-/* ══════════════════════════════════════════════════════════════
+/* ──────────────────────────────────────────────────────────────
    DISPARADOR AUTOMÁTICO
-   Instala un trigger que formatea la hoja cada vez que
-   se edita o agrega una fila nueva.
-   Ejecutar instalarDisparador() UNA sola vez.
-══════════════════════════════════════════════════════════════ */
+   BUG-08 FIX: onEditar ahora solo reformatea la FILA editada,
+   no toda la hoja. Evita timeouts con 500+ filas.
+────────────────────────────────────────────────────────────── */
 function instalarDisparador() {
-  // Eliminar disparadores anteriores del mismo tipo para no duplicar
-  const triggers = ScriptApp.getProjectTriggers();
-  triggers.forEach(t => {
-    if (t.getHandlerFunction() === "onEditar") {
-      ScriptApp.deleteTrigger(t);
-    }
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "onEditar") ScriptApp.deleteTrigger(t);
   });
-
-  // Instalar disparador onEdit para el spreadsheet
   ScriptApp.newTrigger("onEditar")
     .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
     .onEdit()
     .create();
-
-  Logger.log("Disparador instalado. Las tablas se formatearán automáticamente.");
+  Logger.log("Disparador instalado.");
 }
 
-/* ──────────────────────────────────────────────────────────────
-   HANDLER del disparador — se ejecuta en cada edición
-────────────────────────────────────────────────────────────── */
+/**
+ * BUG-08 FIX: En lugar de formatear TODA la hoja (que puede costar 30s+),
+ * solo formateamos la fila específica que fue editada.
+ * Si se agrega una fila nueva (fila > lastRow anterior), se formatea esa fila.
+ */
 function onEditar(e) {
-  if (!e) return;
-  const nombreHoja = e.range.getSheet().getName();
-  // Solo formatear las hojas principales, no los backups
-  if (["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones", "Calificaciones"].includes(nombreHoja)) {
-    formatearComoTabla(nombreHoja);
+  if (!e || !e.range) return;
+
+  var nombreHoja = e.range.getSheet().getName();
+  var hojasPrincipales = ["Productos","Pedidos","Clientes","Proveedores","Cupones","Calificaciones"];
+  if (hojasPrincipales.indexOf(nombreHoja) === -1) return;
+
+  var fila    = e.range.getRow();
+  var sheet   = e.range.getSheet();
+  var lastCol = sheet.getLastColumn();
+  if (fila < 2 || lastCol === 0) return;  // fila 1 = encabezado, no tocar
+
+  var tema    = TEMAS[nombreHoja] || TEMAS["Pedidos"];
+  var bg      = fila % 2 === 0 ? tema.rowPar : tema.rowImpar;
+
+  // Aplicar formato a la fila editada
+  sheet.getRange(fila, 1, 1, lastCol)
+    .setBackground(bg).setFontColor("#0F172A")
+    .setFontWeight("normal").setFontSize(10)
+    .setVerticalAlignment("middle")
+    .setBorder(true, true, true, true, true, true, tema.border, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.setRowHeight(fila, 28);
+
+  // Color especial en "estado_pago" si se editó esa columna en Pedidos
+  if (nombreHoja === "Pedidos") {
+    var hdr    = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var estCol = hdr.indexOf("estado_pago") + 1;
+    if (estCol > 0 && e.range.getColumn() === estCol) {
+      var val  = String(e.value || "").toUpperCase();
+      var cell = sheet.getRange(fila, estCol);
+      if (val.includes("PAGADO"))       cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+      else if (val.includes("CONTRA"))  cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      else                              cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+    }
+  }
+
+  // Color especial en "tipo" si se editó esa columna en Clientes
+  if (nombreHoja === "Clientes") {
+    var hdr2   = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var tipoCol= hdr2.indexOf("tipo") + 1;
+    if (tipoCol > 0 && e.range.getColumn() === tipoCol) {
+      var val2  = String(e.value || "").toLowerCase();
+      var cell2 = sheet.getRange(fila, tipoCol);
+      if (val2.includes("vip"))       cell2.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      else if (val2.includes("rec"))  cell2.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+      else                            cell2.setBackground("#EFF6FF").setFontColor("#1E40AF").setFontWeight("normal");
+    }
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   REPARAR COLUMNAS — ejecutar UNA vez si las columnas están
-   desplazadas porque "telefono" no estaba en la hoja original.
-
-   QUÉ HACE:
-   1. Inserta la columna "telefono" en la posición correcta (col 3)
-   2. Ajusta el formato de toda la fila de encabezados
-   3. NO borra ningún dato existente
-
-   CUÁNDO EJECUTAR:
-   → Si la hoja "Pedidos" tiene datos pero sin columna "telefono"
-══════════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────
+   REPARAR COLUMNAS PEDIDOS (migración)
+────────────────────────────────────────────────────────────── */
 function repararColumnasPedidos() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Pedidos");
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Pedidos");
   if (!sheet) { Logger.log("Hoja Pedidos no encontrada"); return; }
-
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   Logger.log("Encabezados actuales: " + headers.join(" | "));
-
-  // Verificar si ya existe la columna telefono
-  if (headers.includes("telefono")) {
-    Logger.log("La columna 'telefono' ya existe. No se realizaron cambios.");
+  if (headers.indexOf("telefono") >= 0) {
+    Logger.log("La columna 'telefono' ya existe.");
     return;
   }
-
-  // Insertar columna en posición 3 (después de "nombre")
-  sheet.insertColumnAfter(2); // columna 2 = nombre → inserta col 3 nueva
-
-  // Poner el encabezado
-  const hdrCell = sheet.getRange(1, 3);
-  hdrCell.setValue("telefono");
-  hdrCell.setBackground("#0D9488").setFontColor("#fff").setFontWeight("bold");
-
-  // Rellenar la nueva columna con vacío en filas existentes (ya está vacía, solo formatea)
-  const lastRow = sheet.getLastRow();
+  sheet.insertColumnAfter(2);
+  sheet.getRange(1, 3).setValue("telefono")
+    .setBackground("#0D9488").setFontColor("#fff").setFontWeight("bold");
+  var lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    sheet.getRange(2, 3, lastRow - 1, 1)
-      .setBackground("#FFFFFF")
-      .setFontColor("#0F172A")
-      .setValue("");
+    sheet.getRange(2, 3, lastRow - 1, 1).setBackground("#FFFFFF").setFontColor("#0F172A").setValue("");
   }
-
   sheet.autoResizeColumn(3);
-
-  Logger.log(
-    "Columna 'telefono' insertada en posicion 3.\n" +
-    "Los pedidos anteriores quedan con telefono vacío (normal).\n" +
-    "Los nuevos pedidos ya guardarán el teléfono correctamente."
-  );
+  Logger.log("Columna 'telefono' insertada en posición 3.");
 }
 
 /* ──────────────────────────────────────────────────────────────
-   VERIFICAR columnas de todas las hojas — diagnóstico
+   VERIFICAR ESTRUCTURA
 ────────────────────────────────────────────────────────────── */
 function verificarEstructura() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const hojas = ["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones"];
-
-  const esperado = {
-    "Productos": PRODUCTOS_HEADERS,
-    "Pedidos":   PEDIDOS_HEADERS,
-    "Clientes":  CLIENTES_HEADERS,
+  var ss   = SpreadsheetApp.getActiveSpreadsheet();
+  var esperado = {
+    "Productos":   PRODUCTOS_HEADERS,
+    "Pedidos":     PEDIDOS_HEADERS,
+    "Clientes":    CLIENTES_HEADERS,
     "Proveedores": PROVEEDORES_HEADERS,
-    "Cupones": CUPONES_HEADERS,
+    "Cupones":     CUPONES_HEADERS,
   };
-
-  hojas.forEach(nombre => {
-    const sheet = ss.getSheetByName(nombre);
-    if (!sheet) { Logger.log("FALTA la hoja: " + nombre); return; }
-
-    const actuales = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const esp      = esperado[nombre];
-    let ok = true;
-
-    esp.forEach((col, i) => {
+  Object.keys(esperado).forEach(function(nombre) {
+    var sheet = ss.getSheetByName(nombre);
+    if (!sheet) { Logger.log("FALTA: " + nombre); return; }
+    var actuales = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var esp      = esperado[nombre];
+    var ok       = true;
+    esp.forEach(function(col, i) {
       if (actuales[i] !== col) {
-        Logger.log("ERROR en " + nombre + " col " + (i+1) +
-                   ": esperado='" + col + "' actual='" + actuales[i] + "'");
+        Logger.log("ERROR " + nombre + " col " + (i+1) + ": esperado='" + col + "' actual='" + actuales[i] + "'");
         ok = false;
       }
     });
-
-    if (ok) {
-      Logger.log("OK: " + nombre + " (" + actuales.length + " columnas correctas)");
-    }
+    if (ok) Logger.log("OK: " + nombre + " (" + actuales.length + " columnas)");
   });
 }
-
-/* ══════════════════════════════════════════════════════════════
-   CALIFICACIONES
-══════════════════════════════════════════════════════════════ */
-function guardarCalificacion_formato_legacy(ss, body) {
-  let sheet = ss.getSheetByName("Calificaciones");
-  if (!sheet) {
-    sheet = ss.insertSheet("Calificaciones");
-    const h = ["fecha","nombre","telefono","estrellas","comentario"];
-    sheet.appendRow(h);
-    sheet.getRange(1,1,1,h.length).setFontWeight("bold").setBackground("#F59E0B").setFontColor("#fff");
-    sheet.setFrozenRows(1);
-  }
-  sheet.appendRow([
-    new Date().toLocaleString("es-CO"),
-    body.nombre    || "",
-    body.telefono  || "",
-    body.estrellas || 0,
-    body.comentario|| "",
-  ]);
-}
-
-/* ══════════════════════════════════════════════════════════════
-   CUPONES — incrementar uso
-══════════════════════════════════════════════════════════════ */
-function incrementarUsoCupon_formato_legacy(ss, code) {
-  const sheet = ss.getSheetByName("Cupones");
-  if (!sheet) return;
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const COL     = {};
-  headers.forEach((h, i) => COL[h] = i + 1);
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][COL["codigo"] - 1]).toUpperCase() === code.toUpperCase()) {
-      const cell = sheet.getRange(i + 1, COL["usos_actuales"]);
-      cell.setValue((Number(cell.getValue()) || 0) + 1);
-      break;
-    }
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════
-   NOTIFICACIÓN EMAIL al recibir pedido
-══════════════════════════════════════════════════════════════ */
-function notificarPedido_formato_legacy(body) {
-  try {
-    const email   = Session.getActiveUser().getEmail();
-    if (!email) return;
-    const subject = "🧴 Nuevo pedido Limpieza RR — " + (body.nombre || "cliente");
-    const total   = body.total !== undefined ? "$ " + Number(body.total).toLocaleString("es-CO") : "A convenir";
-    const html    = "<h2 style='color:#0D9488'>🛒 Nuevo Pedido Recibido</h2>" +
-      "<table style='border-collapse:collapse;width:100%;font-family:sans-serif'>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Cliente</td><td style='padding:8px'>" + (body.nombre||"") + "</td></tr>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Teléfono</td><td style='padding:8px'>" + (body.telefono||"") + "</td></tr>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Dirección</td><td style='padding:8px'>" + (body.barrio||"") + " — " + (body.direccion||"") + "</td></tr>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Pago</td><td style='padding:8px'>" + (body.pago||"") + "</td></tr>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Envío</td><td style='padding:8px'>" + (body.zona_envio||"") + "</td></tr>" +
-      "<tr><td style='padding:8px;background:#F0FDF9;font-weight:bold'>Total</td><td style='padding:8px;color:#0D9488;font-weight:bold'>" + total + "</td></tr>" +
-      "</table>" +
-      "<h3 style='color:#0F766E;margin-top:20px'>Productos:</h3>" +
-      "<pre style='background:#F0FDF9;padding:12px;border-radius:8px'>" + (body.productos||"") + "</pre>";
-    MailApp.sendEmail({ to: email, subject, htmlBody: html });
-  } catch (err) {
-    Logger.log("Error enviando email: " + err.message);
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════
-   DASHBOARD — Hoja "Resumen" que se actualiza automáticamente
-══════════════════════════════════════════════════════════════ */
-// ── Dashboard y cupones están en LIMPIEZARR_Dashboard.gs ──
