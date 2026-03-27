@@ -14,12 +14,11 @@ import '/tienda.css';
 
 /* ─── ⚙️  CONFIGURACIÓN ──────────────────────────────────── */
 const CONFIG = {
-  // Cambia esta URL cuando vayas a apuntar la tienda a otro deployment de Apps Script.
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycby-dGGJrYSeWPHPscyzIP5ndwA519NZzRpJHSh7TFylsQIooLzRL0qS4Ge2CxNy6CHo/exec",
-  WA_NUMBER:       "573503443140",
+  APPS_SCRIPT_URL: import.meta.env.VITE_APPS_URL ?? '',
+  WA_NUMBER:       import.meta.env.VITE_WA_NUMBER ?? '573503443140',
   AUTOPLAY_MS:     4200,
-  PAY_NUMBER:      "3203346819",   // Número Nequi / Breb / Daviplata
-  PAY_HOLDER:      "Limpieza RR", // Nombre del titular
+  PAY_NUMBER:      "3203346819",
+  PAY_HOLDER:      "Limpieza RR",
 };
 
 /* ─── ESTADO GLOBAL ─────────────────────────────────────── */

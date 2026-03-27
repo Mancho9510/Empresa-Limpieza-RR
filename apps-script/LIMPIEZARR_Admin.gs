@@ -24,8 +24,8 @@ function repararEsquemaPedidosV2() {
   const SCHEMA_NUEVO = [
     "fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
     "casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio",
-    "subtotal","total","estado_pago","estado_envio","productos"
-  ]; // 20 columnas
+    "subtotal","total","estado_pago","estado_envio","productos","productos_json"
+  ]; // 21 columnas — productos_json agregado en v3 para parsing robusto
 
   const SCHEMA_VIEJO = [
     "fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
@@ -53,9 +53,20 @@ function repararEsquemaPedidosV2() {
 
   Logger.log("Tiene cupon: " + tieneCupon + " | descuento: " + tieneDescuento + " | estado_envio: " + tieneEstadoEnv);
 
-  if (tieneCupon && tieneDescuento && tieneEstadoEnv && headers.length >= 20) {
-    Logger.log("El esquema ya está correcto (20 columnas). No se requiere reparación.");
-    Logger.log("✅ El esquema ya está correcto. No se requiere reparación.");
+  // Si tiene 21 columnas con productos_json ya está en v3
+  var tieneProductosJson = headers.includes("productos_json");
+  if (tieneCupon && tieneDescuento && tieneEstadoEnv && tieneProductosJson && headers.length >= 21) {
+    Logger.log("El esquema ya está correcto (21 columnas con productos_json). No se requiere reparación.");
+    return;
+  }
+  // Si tiene 20 columnas (v2) solo agregar productos_json al final
+  if (tieneCupon && tieneDescuento && tieneEstadoEnv && !tieneProductosJson && headers.length >= 20) {
+    Logger.log("Esquema v2 detectado (20 columnas). Agregando columna productos_json...");
+    var lastCol = sheet.getLastColumn();
+    sheet.insertColumnAfter(lastCol);
+    sheet.getRange(1, lastCol + 1).setValue("productos_json")
+      .setFontWeight("bold").setBackground("#0D9488").setFontColor("#FFFFFF");
+    Logger.log("✅ Columna productos_json agregada. Sin pérdida de datos.");
     return;
   }
 

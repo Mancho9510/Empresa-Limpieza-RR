@@ -1,0 +1,416 @@
+/* ═══════════════════════════════════════════════════════════
+   LIMPIEZA RR — Utilidades Centralizadas v4
+   LIMPIEZARR_Utils.gs
+
+   Contiene:
+   A. calcGanancia()        — fórmula única de rentabilidad
+   B. aplicarColorStock()   — colores batch-ready para stock
+   C. aplicarColorPago()    — colores para estado de pago
+   D. logError()            — logging estructurado a hoja Log
+   E. getAdminKey()         — clave desde PropertiesService (seguro)
+   F. parseProductosLinea() — parser centralizado del campo productos
+
+   REGLA: si necesitas calcular ganancia, formatear un color de
+   stock/pago, o escribir un log, importa desde aquí.
+   No dupliques la lógica en ningún otro archivo.
+═══════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────────────
+   A. GANANCIA — única fuente de verdad
+   
+   Markup sobre costo: ((precio - costo) / costo) × 100
+   Consistente con la calculadora de precios y el Sheet.
+   
+   Devuelve: { pct: number|null, pesos: number|null }
+────────────────────────────────────────────────────────────── */
+function calcGanancia(precio, costo) {
+  var p = Number(precio) || 0;
+  var c = Number(costo)  || 0;
+  if (p <= 0 || c <= 0) return { pct: null, pesos: null };
+  return {
+    pct:   Math.round(((p - c) / c) * 100 * 10) / 10,   // ej: 66.7
+    pesos: p - c,                                         // ej: 4000
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   B. COLOR DE STOCK — aplica formato a una celda de Sheets
+   
+   Uso: aplicarColorStock(sheet.getRange(fila, col), nuevoStock)
+   
+   Devuelve el objeto Range para encadenamiento opcional.
+────────────────────────────────────────────────────────────── */
+function aplicarColorStock(cell, stock) {
+  if (stock === "" || stock === null || stock === undefined) {
+    cell.setBackground("#FFFFFF").setFontColor("#0F172A").setFontWeight("normal");
+  } else if (Number(stock) === 0) {
+    cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+  } else if (Number(stock) <= 5) {
+    cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+  } else {
+    cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal");
+  }
+  return cell;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   C. COLOR DE PAGO — aplica formato a celda estado_pago
+────────────────────────────────────────────────────────────── */
+function aplicarColorPago(cell, estadoPago) {
+  var val = String(estadoPago || "").toUpperCase();
+  if (val === "PAGADO")              cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+  else if (val === "CONTRA ENTREGA") cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+  else                               cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+  return cell;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   D. LOGGING ESTRUCTURADO
+   
+   Escribe en la hoja "Log" (la crea si no existe).
+   Solo registra errores reales — no debug verboso.
+   
+   Uso: logError("descontarStock", err, { productos: body.productos });
+   Uso: logError("doPost", err);
+────────────────────────────────────────────────────────────── */
+function logError(accion, error, datos) {
+  try {
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Log");
+    if (!sheet) {
+      sheet = ss.insertSheet("Log");
+      sheet.appendRow(["fecha", "nivel", "accion", "mensaje", "datos"]);
+      sheet.getRange(1, 1, 1, 5)
+        .setFontWeight("bold").setBackground("#EF4444").setFontColor("#FFFFFF");
+      sheet.setFrozenRows(1);
+    }
+    var mensaje = (error instanceof Error) ? error.message : String(error || "");
+    var datosStr = datos ? JSON.stringify(datos).slice(0, 500) : "";
+    sheet.appendRow([
+      Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm:ss"),
+      "ERROR",
+      accion,
+      mensaje,
+      datosStr,
+    ]);
+  } catch(logErr) {
+    // Nunca fallar dentro del logger
+    Logger.log("logError falló: " + logErr.message);
+  }
+}
+
+function logInfo(accion, mensaje) {
+  // Versión ligera para eventos importantes (pedido nuevo, etc.)
+  // Solo escribe si la hoja Log ya existe — no la crea.
+  try {
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Log");
+    if (!sheet) return;
+    sheet.appendRow([
+      Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm:ss"),
+      "INFO",
+      accion,
+      mensaje,
+      "",
+    ]);
+  } catch(e) {}
+}
+
+/* ──────────────────────────────────────────────────────────────
+   E. ADMIN KEY SEGURA — PropertiesService
+   
+   Cómo configurar la primera vez:
+     En Apps Script: Archivo → Propiedades del proyecto → Script Properties
+     Agregar: clave = LIMPIEZARR2025  (o tu clave personalizada)
+   
+   Fallback: si no está en PropertiesService, usa la constante ADMIN_KEY
+   del código para no romper sistemas existentes durante la migración.
+────────────────────────────────────────────────────────────── */
+function getAdminKey() {
+  try {
+    var stored = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY");
+    if (stored && stored.trim()) return stored.trim();
+  } catch(e) {}
+  // Fallback a la constante global mientras se completa la migración
+  return (typeof ADMIN_KEY !== "undefined") ? ADMIN_KEY : "LIMPIEZARR2025";
+}
+
+function validarClave(clave) {
+  return clave === getAdminKey();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   F. PARSER CENTRALIZADO DE PRODUCTOS EN PEDIDOS
+   
+   Lee una línea del campo "productos" de la hoja Pedidos.
+   Formato actual: "Limpiapisos 1 Kg | Cant: 2 | P.Unit: $ 9.000 | Subtotal: $ 18.000"
+   
+   Devuelve: { nombre: string, cantidad: number }
+   O null si la línea no tiene una cantidad válida.
+   
+   Nota: cuando se implemente productos_json, este parser
+   se puede reemplazar sin tocar el resto del backend.
+────────────────────────────────────────────────────────────── */
+function parsearLineaProducto(linea) {
+  var limpia = String(linea || "").trim();
+  if (!limpia) return null;
+  var cantMatch = limpia.match(/Cant[^0-9]*([0-9]+)/i);
+  if (!cantMatch) return null;
+  return {
+    nombre:   limpia.split("|")[0].trim().toLowerCase(),
+    cantidad: parseInt(cantMatch[1], 10) || 1,
+  };
+}
+
+function parsearProductosPedido(productosStr, productosJsonStr) {
+  // Preferir JSON estructurado si está disponible — más fiable que el parsing de texto
+  if (productosJsonStr) {
+    try {
+      var arr = JSON.parse(productosJsonStr);
+      if (Array.isArray(arr) && arr.length > 0) {
+        return arr.map(function(item) {
+          return {
+            nombre:   String((item.nombre || "") + " " + (item.tamano || "")).trim().toLowerCase(),
+            cantidad: Number(item.cantidad) || 1,
+            id:       item.id || null,
+            precio:   Number(item.precio) || 0,
+          };
+        }).filter(function(item) { return item.nombre; });
+      }
+    } catch(e) {
+      // JSON malformado → fallback al texto
+      Logger.log("parsearProductosPedido: JSON inválido, usando texto");
+    }
+  }
+  // Fallback: parsing de texto (pedidos históricos sin productos_json)
+  return String(productosStr || "")
+    .split("\n")
+    .map(parsearLineaProducto)
+    .filter(Boolean);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   G. BATCH COLOR STOCK — aplica colores a múltiples celdas a la vez
+   
+   Recibe un array de { fila, col, stock } y hace UNA llamada
+   setValues + una por cada grupo de color (máximo 4 grupos).
+   
+   Mucho más eficiente que setValue/setBackground por celda.
+   
+   Uso:
+     var cambios = [{ fila: 5, stock: 0 }, { fila: 7, stock: 3 }];
+     batchColorStock(sheet, stkCol, cambios);
+────────────────────────────────────────────────────────────── */
+function batchColorStock(sheet, stkCol, cambios) {
+  if (!cambios || cambios.length === 0) return;
+
+  // Agrupar por color para minimizar llamadas a la API
+  var agotados = [], bajos = [], ok = [], sinControl = [];
+
+  cambios.forEach(function(c) {
+    var val = c.stock;
+    if (val === "" || val === null || val === undefined) {
+      sinControl.push(c.fila);
+    } else if (Number(val) === 0) {
+      agotados.push(c.fila);
+    } else if (Number(val) <= 5) {
+      bajos.push(c.fila);
+    } else {
+      ok.push(c.fila);
+    }
+  });
+
+  function colorGroup(filas, bg, fg, fw) {
+    filas.forEach(function(fila) {
+      var cell = sheet.getRange(fila, stkCol);
+      cell.setBackground(bg).setFontColor(fg).setFontWeight(fw);
+    });
+  }
+
+  if (agotados.length)   colorGroup(agotados,   "#FEE2E2", "#991B1B", "bold");
+  if (bajos.length)      colorGroup(bajos,       "#FEF9C3", "#854D0E", "bold");
+  if (ok.length)         colorGroup(ok,          "#DCFCE7", "#166534", "normal");
+  if (sinControl.length) colorGroup(sinControl,  "#FFFFFF", "#0F172A", "normal");
+}
+
+/* ──────────────────────────────────────────────────────────────
+   H. RECONCILIACIÓN DE STOCK
+   
+   Recalcula el stock de todos los productos sumando las
+   ventas registradas en Pedidos y restándolas del stock inicial.
+   
+   Útil cuando hay inconsistencias por errores anteriores.
+   Solo ejecutar manualmente desde el editor.
+────────────────────────────────────────────────────────────── */
+function recalcularStockDesdePedidos() {
+  var ss        = SpreadsheetApp.getActiveSpreadsheet();
+  var prodSheet = ss.getSheetByName("Productos");
+  var pedSheet  = ss.getSheetByName("Pedidos");
+
+  if (!prodSheet || !pedSheet) {
+    Logger.log("ERROR: Falta hoja Productos o Pedidos");
+    return;
+  }
+
+  // Construir mapa de ventas por producto
+  var pedData = pedSheet.getDataRange().getValues();
+  var pedH    = pedData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var pedPC   = {}; pedH.forEach(function(h,i){ pedPC[h]=i; });
+
+  var ventasPorProducto = {};
+  pedData.slice(1).forEach(function(r) {
+    if (!r[0]) return;
+    parsearProductosPedido(r[pedPC["productos"]]).forEach(function(item) {
+      ventasPorProducto[item.nombre] = (ventasPorProducto[item.nombre] || 0) + item.cantidad;
+    });
+  });
+
+  // Generar reporte — NO modifica el stock automáticamente
+  var prodData = prodSheet.getDataRange().getValues();
+  var prodH    = prodData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var pPC      = {}; prodH.forEach(function(h,i){ pPC[h]=i; });
+
+  var reporte = ["Producto | Stock actual | Ventas registradas | Diferencia"];
+  prodData.slice(1).forEach(function(r) {
+    if (!r[0]) return;
+    var nombre   = String(r[pPC["nombre"]]||"").trim();
+    var tamano   = String(r[pPC["tamano"]]||"").trim();
+    var key      = (nombre + " " + tamano).toLowerCase();
+    var stock    = r[pPC["stock"]];
+    var ventas   = ventasPorProducto[key] || 0;
+    if (ventas > 0) {
+      reporte.push([nombre, tamano, stock, ventas].join(" | "));
+    }
+  });
+
+  Logger.log(reporte.join("\n"));
+  Logger.log("Ejecutado en: " + Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm"));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   I. VALIDACIÓN DE PEDIDO — punto de entrada único
+   
+   Lanza Error con campo específico si falta algo.
+   Se llama ANTES de guardar nada.
+   
+   Uso: validarBodyPedido(body); // lanza si algo falla
+══════════════════════════════════════════════════════════════ */
+function validarBodyPedido(body) {
+  // Campos de texto obligatorios
+  var requeridos = [
+    { campo: "nombre",    etiqueta: "Nombre completo" },
+    { campo: "telefono",  etiqueta: "Teléfono" },
+    { campo: "ciudad",    etiqueta: "Ciudad" },
+    { campo: "barrio",    etiqueta: "Barrio" },
+    { campo: "direccion", etiqueta: "Dirección" },
+    { campo: "pago",      etiqueta: "Método de pago" },
+  ];
+
+  requeridos.forEach(function(r) {
+    var val = String(body[r.campo] || "").trim();
+    if (!val) throw new Error(r.etiqueta + " es requerido");
+  });
+
+  // Teléfono: solo dígitos, mínimo 7
+  var tel = String(body.telefono || "").replace(/\D/g, "");
+  if (tel.length < 7) throw new Error("Teléfono inválido (" + tel.length + " dígitos)");
+
+  // Total: número >= 0
+  // Acepta 0 cuando es "a convenir" (zona sin precio fijo)
+  // Acepta el string "A convenir" de versiones anteriores del frontend (compatibilidad)
+  var totalRaw = body.total;
+  if (totalRaw !== "A convenir") {
+    var total = Number(totalRaw);
+    if (isNaN(total) || total < 0) throw new Error("Total inválido: " + totalRaw);
+  }
+
+  // Productos: debe existir y tener al menos una línea válida
+  var prods = String(body.productos || "").trim();
+  if (!prods) throw new Error("El pedido no tiene productos");
+
+  var lineas = parsearProductosPedido(prods);
+  if (lineas.length === 0) throw new Error("No se pudo leer ningún producto del pedido");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   J. LEER SHEET EFICIENTE — solo las filas con datos
+   
+   Reemplaza getDataRange().getValues() en hojas que crecen.
+   Devuelve { headers, rows, lastRow } — misma interfaz.
+   
+   Uso: var s = leerSheet(ss, "Pedidos");
+        s.rows.forEach(r => { ... s.headers ... })
+══════════════════════════════════════════════════════════════ */
+function leerSheet(ss, nombreHoja) {
+  var sheet = ss.getSheetByName(nombreHoja);
+  if (!sheet) return { sheet: null, headers: [], rows: [], lastRow: 0 };
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  if (lastRow < 2 || lastCol === 0) {
+    var hdr = lastRow >= 1
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+      : [];
+    return { sheet: sheet, headers: hdr, rows: [], lastRow: lastRow };
+  }
+
+  // Leer solo las filas con datos (sin filas vacías del final)
+  var allData = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  // Filtrar filas vacías (primer campo vacío = fila sin datos)
+  var rows = allData.slice(1).filter(function(r) {
+    return r[0] !== "" && r[0] !== null && r[0] !== undefined;
+  });
+
+  return { sheet: sheet, headers: headers, rows: rows, lastRow: lastRow };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   K. CACHE HELPERS — TTL configurable por endpoint
+   
+   Envuelve CacheService con manejo de errores y serialización.
+   
+   Uso:
+     var cached = cacheGet("admin_productos_v1");
+     if (cached) return jsonResponse(cached);
+     // ... calcular ...
+     cachePut("admin_productos_v1", resultado, 600); // 10 min
+══════════════════════════════════════════════════════════════ */
+function cacheGet(key) {
+  try {
+    var raw = CacheService.getScriptCache().get(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) {
+    return null;
+  }
+}
+
+function cachePut(key, data, ttlSegundos) {
+  try {
+    var str = JSON.stringify(data);
+    // CacheService tiene límite de 100KB por entrada
+    if (str.length > 95000) return false;
+    CacheService.getScriptCache().put(key, str, ttlSegundos || 300);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function cacheDelete(key) {
+  try { CacheService.getScriptCache().remove(key); } catch(e) {}
+}
+
+// Invalida todos los caches del sistema (usar cuando hay cambio crítico)
+function invalidarTodosLosCaches() {
+  var keys = [
+    "admin_dashboard_v1",
+    "admin_productos_v1",
+    "admin_rentabilidad_v1",
+  ];
+  keys.forEach(cacheDelete);
+  Logger.log("Todos los caches invalidados");
+}
