@@ -22,3 +22,5 @@ Thumbs.db
 # Logs
 npm-debug.log*
 yarn-error.log
+.claude.log
+.claude
