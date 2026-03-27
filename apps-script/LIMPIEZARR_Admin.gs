@@ -11,8 +11,8 @@ function doGet_admin_clientes(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const cSheet = ss.getSheetByName("Clientes");
-    if (!cSheet || cSheet.getLastRow() < 2) {
+    var _s = leerSheet(ss, "Clientes");
+    if (!_s.sheet || _s.rows.length === 0) {
       return jsonResponse({
         ok: true,
         clientes: [],
@@ -22,10 +22,8 @@ function doGet_admin_clientes(e) {
       });
     }
 
-    const cData = cSheet.getDataRange().getValues();
-    const cHdr = cData[0].map(h => String(h).toLowerCase().trim());
     const COL = {};
-    cHdr.forEach((h, i) => COL[h] = i);
+    _s.headers.forEach((h, i) => COL[h] = i);
 
     const pagina = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
     const porPagina = Math.min(100, Math.max(10, parseInt(e.parameter.por || "25", 10)));
@@ -34,7 +32,7 @@ function doGet_admin_clientes(e) {
     const segmentoFiltro = normalizeText(e.parameter.segmento || "");
     const pedidosPorTelefono = buildClientOrdersIndex(ss);
 
-    const clientes = cData.slice(1)
+    const clientes = _s.rows
       .map((row, idx) => mapAdminCliente(row, idx + 2, COL, pedidosPorTelefono))
       .filter(Boolean)
       .filter(cliente => {
@@ -116,12 +114,12 @@ function doPost_admin_clientes_upsert(e) {
 
     const telNorm = normalizePhone(telefono);
     let rowNum = -1;
-    const data = cSheet.getDataRange().getValues();
+    const _s = leerSheet(ss, "Clientes");
 
-    for (let i = 1; i < data.length; i++) {
-      const telRow = normalizePhone(data[i][3]);
+    for (let i = 0; i < _s.rows.length; i++) {
+      const telRow = normalizePhone(_s.rows[i][3]);
       if (telRow === telNorm) {
-        rowNum = i + 1;
+        rowNum = i + 2;  // +2: header + 0-indexed
         break;
       }
     }
@@ -221,19 +219,18 @@ function mapAdminCliente(row, fila, COL, pedidosPorTelefono) {
 }
 
 function buildClientOrdersIndex(ss) {
-  const pSheet = ss.getSheetByName("Pedidos");
-  if (!pSheet || pSheet.getLastRow() < 2) return {};
+  const _s = leerSheet(ss, "Pedidos");
+  if (!_s.sheet || _s.rows.length === 0) return {};
 
-  const pData = pSheet.getDataRange().getValues();
-  const pHdr = pData[0].map(h => String(h).toLowerCase().trim());
-  const telIdx = pHdr.indexOf("telefono");
-  const fechaIdx = pHdr.indexOf("fecha");
-  const totalIdx = pHdr.indexOf("total");
-  const pagoIdx = pHdr.indexOf("estado_pago");
-  const prodIdx = pHdr.indexOf("productos");
+  const telIdx = _s.headers.indexOf("telefono");
+  const fechaIdx = _s.headers.indexOf("fecha");
+  const totalIdx = _s.headers.indexOf("total");
+  const pagoIdx = _s.headers.indexOf("estado_pago");
+  const prodIdx = _s.headers.indexOf("productos");
+  const subtotalIdx = _s.headers.indexOf("subtotal");
   const index = {};
 
-  pData.slice(1).forEach(row => {
+  _s.rows.forEach(row => {
     const telefono = normalizePhone(row[telIdx]);
     if (!telefono) return;
 
@@ -241,8 +238,8 @@ function buildClientOrdersIndex(ss) {
     const bucket = index[telefono];
     const fecha = String(row[fechaIdx] || "");
     let total = Number(row[totalIdx] || 0);
-    if ((!total || isNaN(total)) && pHdr.indexOf("subtotal") >= 0) {
-      total = Number(row[pHdr.indexOf("subtotal")] || 0);
+    if ((!total || isNaN(total)) && subtotalIdx >= 0) {
+      total = Number(row[subtotalIdx] || 0);
     }
     const productos = parseOrderProducts(row[prodIdx]);
 

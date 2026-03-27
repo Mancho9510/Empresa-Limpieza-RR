@@ -14,8 +14,8 @@ function doGet_admin_proveedores(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const pSheet = ss.getSheetByName("Proveedores");
-    if (!pSheet || pSheet.getLastRow() < 2) {
+    var _s = leerSheet(ss, "Proveedores");
+    if (!_s.sheet || _s.rows.length === 0) {
       return jsonResponse({
         ok: true,
         proveedores: [],
@@ -24,10 +24,8 @@ function doGet_admin_proveedores(e) {
       });
     }
 
-    const data = pSheet.getDataRange().getValues();
-    const headers = data[0].map(h => String(h).toLowerCase().trim());
     const COL = {};
-    headers.forEach((h, i) => COL[h] = i);
+    _s.headers.forEach((h, i) => COL[h] = i);
 
     const pagina = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
     const porPagina = Math.min(100, Math.max(10, parseInt(e.parameter.por || "20", 10)));
@@ -35,7 +33,7 @@ function doGet_admin_proveedores(e) {
     const activoRaw = String(e.parameter.activo || "").trim();
     const demanda = buildProviderDemandIndex(ss);
 
-    const proveedores = data.slice(1)
+    const proveedores = _s.rows
       .map((row, idx) => mapAdminProveedor(row, idx + 2, COL, demanda))
       .filter(Boolean)
       .filter(proveedor => {

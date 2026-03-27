@@ -40,15 +40,15 @@
 </div>
 
 <script type="module">
-  // Test 1: ¿Carga el módulo api.js?
+  // Test 1: ¿Carga el módulo config.js?
   try {
-    const { CONFIG } = await import('/js/modules/api.js')
+    const { APPS_URL } = await import('/js/admin/config.js')
     document.getElementById('statusModules').className = 'status ok'
     document.getElementById('statusModules').textContent = '✅ Módulos JS cargan correctamente'
 
     // Test 2: ¿Responde el Apps Script?
     try {
-      const url = `${CONFIG.APPS_SCRIPT_URL}?action=productos&t=${Date.now()}`
+      const url = `${APPS_URL}?action=productos&t=${Date.now()}`
       const res = await fetch(url)
       if (res.ok) {
         const json = await res.json()

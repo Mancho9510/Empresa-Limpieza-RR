@@ -142,14 +142,12 @@ function doGet_productos(e, ss) {
 ────────────────────────────────────────────────────────────── */
 function doGet_cupon(e, ss) {
   var code   = (e.parameter.code || "").toUpperCase().trim();
-  var cSheet = ss.getSheetByName("Cupones");
-  if (!cSheet) return jsonResponse({ ok: false, cupon: null });
-  var cData = cSheet.getDataRange().getValues();
-  var cHdr  = cData[0];
+  var _s = leerSheet(ss, "Cupones");
+  if (!_s.sheet) return jsonResponse({ ok: false, cupon: null });
   var COL   = {};
-  cHdr.forEach(function(h, i) { COL[String(h).toLowerCase().trim()] = i; });
+  _s.headers.forEach(function(h, i) { COL[h] = i; });
   var found = null;
-  cData.slice(1).forEach(function(r) {
+  _s.rows.forEach(function(r) {
     if (String(r[COL["codigo"]] || "").toUpperCase() === code) found = r;
   });
   if (!found) return jsonResponse({ ok: false, cupon: null });
@@ -175,18 +173,16 @@ function doGet_cupon(e, ss) {
 ────────────────────────────────────────────────────────────── */
 function doGet_historial(e, ss) {
   var tel    = normalizarTelefono(e.parameter.telefono || "");
-  var pSheet = ss.getSheetByName("Pedidos");
-  if (!pSheet || !tel) return jsonResponse({ ok: false, pedidos: [] });
-  var pData = pSheet.getDataRange().getValues();
-  var pHdr  = pData[0];
+  var _s = leerSheet(ss, "Pedidos");
+  if (!_s.sheet || !tel) return jsonResponse({ ok: false, pedidos: [] });
   var pCOL  = {};
-  pHdr.forEach(function(h, i) { pCOL[String(h).toLowerCase().trim()] = i; });
-  var pedidos = pData.slice(1)
+  _s.headers.forEach(function(h, i) { pCOL[h] = i; });
+  var pedidos = _s.rows
     .filter(function(r) { return normalizarTelefono(r[pCOL["telefono"]] || "") === tel; })
     .slice(-10).reverse()
     .map(function(r) {
       var obj = {};
-      pHdr.forEach(function(h, i) { obj[String(h).trim()] = r[i]; });
+      _s.headers.forEach(function(h, i) { obj[h] = r[i]; });
       return obj;
     });
   return jsonResponse({ ok: true, pedidos: pedidos });
@@ -197,18 +193,16 @@ function doGet_historial(e, ss) {
 ────────────────────────────────────────────────────────────── */
 function doGet_estado(e, ss) {
   var tel2   = normalizarTelefono(e.parameter.telefono || "");
-  var eSheet = ss.getSheetByName("Pedidos");
-  if (!eSheet || !tel2) return jsonResponse({ ok: false, pedidos: [] });
-  var eData = eSheet.getDataRange().getValues();
-  var eHdr  = eData[0];
+  var _s = leerSheet(ss, "Pedidos");
+  if (!_s.sheet || !tel2) return jsonResponse({ ok: false, pedidos: [] });
   var eCOL  = {};
-  eHdr.forEach(function(h, i) { eCOL[String(h).toLowerCase().trim()] = i; });
-  var ultimos = eData.slice(1)
+  _s.headers.forEach(function(h, i) { eCOL[h] = i; });
+  var ultimos = _s.rows
     .filter(function(r) { return normalizarTelefono(r[eCOL["telefono"]] || "") === tel2; })
     .slice(-3).reverse()
     .map(function(r) {
       var obj = {};
-      eHdr.forEach(function(h, i) { obj[String(h).trim()] = r[i]; });
+      _s.headers.forEach(function(h, i) { obj[h] = r[i]; });
       return obj;
     });
   return jsonResponse({ ok: true, pedidos: ultimos });
@@ -219,12 +213,10 @@ function doGet_estado(e, ss) {
    BUG-14 FIX: filtro bajado a >= 3 estrellas
 ────────────────────────────────────────────────────────────── */
 function doGet_resenas(e, ss) {
-  var rSheet = ss.getSheetByName("Calificaciones");
-  if (!rSheet || rSheet.getLastRow() < 2) return jsonResponse({ ok: true, resenas: [] });
-  var rData = rSheet.getDataRange().getValues();
-  var rHdr  = rData[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var rCOL  = {}; rHdr.forEach(function(h,i){ rCOL[h]=i; });
-  var resenas = rData.slice(1)
+  var _s = leerSheet(ss, "Calificaciones");
+  if (!_s.sheet || _s.rows.length === 0) return jsonResponse({ ok: true, resenas: [] });
+  var rCOL  = {}; _s.headers.forEach(function(h,i){ rCOL[h]=i; });
+  var resenas = _s.rows
     .filter(function(r){ return r[rCOL["estrellas"]] >= 3 && r[0] !== ""; })  // BUG-14: era >= 4
     .map(function(r){
       return {
@@ -254,15 +246,12 @@ function doGet_admin_productos(e, ss) {
     if (cached) { cached.fromCache = true; return jsonResponse(cached); }
   }
 
-  var pSheet = ss.getSheetByName("Productos");
-  if (!pSheet) return jsonResponse({ ok: false, productos: [] });
-  var pData = pSheet.getDataRange().getValues();
-  var pHdr  = pData[0];
-  var pRows = pData.slice(1)
-    .filter(function(r) { return r[0] !== "" && r[0] !== null; })
+  var _s = leerSheet(ss, "Productos");
+  if (!_s.sheet) return jsonResponse({ ok: false, productos: [] });
+  var pRows = _s.rows
     .map(function(r, idx) {
       var obj = { fila: idx + 2 };
-      pHdr.forEach(function(h, i) { obj[String(h).toLowerCase().trim()] = r[i]; });
+      _s.headers.forEach(function(h, i) { obj[h] = r[i]; });
       // BUG-04 FIX: sanitizeDriveUrl ahora definida — ya no lanza ReferenceError
       ["imagen","imagen2","imagen3"].forEach(function(key) {
         if (obj[key]) obj[key] = sanitizeDriveUrl(String(obj[key]));
@@ -795,26 +784,24 @@ function procesarNuevoPedido(ss, body) {
 ────────────────────────────────────────────────────────────── */
 function descontarStock(ss, productosStr, productosJsonStr) {
   if (!productosStr && !productosJsonStr) return;
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) return;
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var nomIdx  = headers.indexOf("nombre");
-  var tamIdx  = headers.indexOf("tamano");
-  var stkIdx  = headers.indexOf("stock");
+  var _s = leerSheet(ss, "Productos");
+  if (!_s.sheet) return;
+  var nomIdx  = _s.headers.indexOf("nombre");
+  var tamIdx  = _s.headers.indexOf("tamano");
+  var stkIdx  = _s.headers.indexOf("stock");
   if (stkIdx < 0) return;
   var alertas = [];
   // parsearProductosPedido prefiere JSON si está disponible
   parsearProductosPedido(productosStr, productosJsonStr).forEach(function(item) {
     var cant   = item.cantidad;
     var nomTam = item.nombre;  // ya en lowercase desde parsearLineaProducto()
-    for (var i = 1; i < data.length; i++) {
-      var clave = (String(data[i][nomIdx]||"").trim() + " " + String(data[i][tamIdx]||"").trim()).trim();
+    for (var i = 0; i < _s.rows.length; i++) {
+      var clave = (String(_s.rows[i][nomIdx]||"").trim() + " " + String(_s.rows[i][tamIdx]||"").trim()).trim();
       if (clave.toLowerCase() === nomTam) {
-        var stockActual = data[i][stkIdx];
+        var stockActual = _s.rows[i][stkIdx];
         if (stockActual !== "" && stockActual !== null && !isNaN(Number(stockActual))) {
           var nuevoStock = Math.max(0, Number(stockActual) - cant);
-          var cell = sheet.getRange(i + 1, stkIdx + 1);
+          var cell = _s.sheet.getRange(i + 2, stkIdx + 1);  // +2 porque rows no incluye header
           cell.setValue(nuevoStock);
           aplicarColorStock(cell, nuevoStock);  // centralizado en Utils
           if (nuevoStock === 0) {
@@ -856,21 +843,18 @@ function alertarStock(alertas) {
 
 function verificarStockCompleto() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var nomIdx  = headers.indexOf("nombre");
-  var tamIdx  = headers.indexOf("tamano");
-  var stkIdx  = headers.indexOf("stock");
+  var _s = leerSheet(ss, "Productos");
+  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var nomIdx  = _s.headers.indexOf("nombre");
+  var tamIdx  = _s.headers.indexOf("tamano");
+  var stkIdx  = _s.headers.indexOf("stock");
   if (stkIdx < 0) { Logger.log("Columna stock no encontrada"); return; }
   var alertas = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][nomIdx]) continue;
-    var sv = data[i][stkIdx];
+  for (var i = 0; i < _s.rows.length; i++) {
+    var sv = _s.rows[i][stkIdx];
     if (sv === "" || sv === null) continue;
     var sn = Number(sv); if (isNaN(sn)) continue;
-    var clave = (String(data[i][nomIdx]||"").trim() + " " + String(data[i][tamIdx]||"").trim()).trim();
+    var clave = (String(_s.rows[i][nomIdx]||"").trim() + " " + String(_s.rows[i][tamIdx]||"").trim()).trim();
     if (sn === 0)     alertas.push({ nombre: clave, stock: 0,  nivel: "AGOTADO" });
     else if (sn <= 5) alertas.push({ nombre: clave, stock: sn, nivel: "BAJO" });
   }
@@ -1121,21 +1105,19 @@ function actualizarPrecioProducto(ss, body) {
    BUG-05/06 FIX: normaliza todas las celdas existentes.
 ────────────────────────────────────────────────────────────── */
 function limpiarGananciaPct() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data  = sheet.getDataRange().getValues();
-  var hdr   = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var col   = hdr.indexOf("ganancia_pct") + 1;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var _s = leerSheet(ss, "Productos");
+  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var col   = _s.headers.indexOf("ganancia_pct") + 1;
   if (!col) { Logger.log("Columna ganancia_pct no encontrada"); return; }
   var count = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var val = data[i][col - 1];
+  for (var i = 0; i < _s.rows.length; i++) {
+    var val = _s.rows[i][col - 1];
     // Normalizar strings tipo "85.7%", "85,7%" o "85.7"
     if (typeof val === "string") {
       var num = parseFloat(val.replace("%", "").replace(",", ".").trim());
       if (!isNaN(num)) {
-        sheet.getRange(i + 1, col).setValue(num).setNumberFormat('0.00"%"');
+        _s.sheet.getRange(i + 2, col).setValue(num).setNumberFormat('0.00"%"');  // +2: header + 0-indexed
         count++;
       }
     }
