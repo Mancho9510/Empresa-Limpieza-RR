@@ -1,325 +1,399 @@
-/* ══════════════════════════════════════════════════════════════
-   REPARAR ESQUEMA DE PEDIDOS v2
-   
-   Problema: la hoja Pedidos fue creada con el esquema antiguo
-   (17 columnas sin cupon, descuento, estado_envio) y los nuevos
-   pedidos se guardaron con el esquema nuevo (20 columnas),
-   desplazando todos los valores.
-   
-   CÓMO FUNCIONA:
-   1. Lee todos los datos actuales
-   2. Identifica qué filas tienen esquema viejo vs nuevo
-   3. Reconstruye toda la hoja correctamente
-   4. Aplica formato profesional
-   
-   EJECUTAR UNA SOLA VEZ.
-   Hacer backup antes con hacerBackup().
-══════════════════════════════════════════════════════════════ */
-function repararEsquemaPedidosV2() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("Pedidos");
-  if (!sheet) { Logger.log("Hoja Pedidos no encontrada"); return; }
+/**
+ * LIMPIEZA RR - CLIENTES
+ * Endpoints admin para consultar, crear, editar y eliminar clientes.
+ */
 
-  // ── Esquemas ──────────────────────────────────────────────
-  const SCHEMA_NUEVO = [
-    "fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
-    "casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio",
-    "subtotal","total","estado_pago","estado_envio","productos","productos_json"
-  ]; // 21 columnas — productos_json agregado en v3 para parsing robusto
-
-  const SCHEMA_VIEJO = [
-    "fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
-    "casa","conjunto","nota","pago","zona_envio","costo_envio",
-    "subtotal","total","estado_pago","productos"
-  ]; // 17 columnas (sin cupon, descuento, estado_envio)
-
-  const SCHEMA_VIEJO2 = [
-    "fecha","nombre","telefono","ciudad","departamento","barrio","direccion",
-    "casa","conjunto","nota","pago","zona_envio","costo_envio",
-    "subtotal","total","estado_pago","estado_envio","productos"
-  ]; // 18 columnas (sin cupon, descuento pero con estado_envio)
-
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0].map(h => String(h).toLowerCase().trim());
-  const filas   = data.slice(1).filter(r => r[0] !== "" && r[0] !== null);
-
-  Logger.log("Encabezados actuales: " + headers.join(" | "));
-  Logger.log("Filas de datos: " + filas.length);
-
-  // ── Detectar esquema actual ───────────────────────────────
-  const tieneCupon      = headers.includes("cupon");
-  const tieneDescuento  = headers.includes("descuento");
-  const tieneEstadoEnv  = headers.includes("estado_envio");
-
-  Logger.log("Tiene cupon: " + tieneCupon + " | descuento: " + tieneDescuento + " | estado_envio: " + tieneEstadoEnv);
-
-  // Si tiene 21 columnas con productos_json ya está en v3
-  var tieneProductosJson = headers.includes("productos_json");
-  if (tieneCupon && tieneDescuento && tieneEstadoEnv && tieneProductosJson && headers.length >= 21) {
-    Logger.log("El esquema ya está correcto (21 columnas con productos_json). No se requiere reparación.");
-    return;
-  }
-  // Si tiene 20 columnas (v2) solo agregar productos_json al final
-  if (tieneCupon && tieneDescuento && tieneEstadoEnv && !tieneProductosJson && headers.length >= 20) {
-    Logger.log("Esquema v2 detectado (20 columnas). Agregando columna productos_json...");
-    var lastCol = sheet.getLastColumn();
-    sheet.insertColumnAfter(lastCol);
-    sheet.getRange(1, lastCol + 1).setValue("productos_json")
-      .setFontWeight("bold").setBackground("#0D9488").setFontColor("#FFFFFF");
-    Logger.log("✅ Columna productos_json agregada. Sin pérdida de datos.");
-    return;
-  }
-
-  // ── Mapear índices del esquema actual ─────────────────────
-  const CI = {}; // Column Index actual
-  headers.forEach((h, i) => CI[h] = i);
-
-  // ── Reconstruir filas al esquema nuevo ────────────────────
-  const filasReparadas = filas.map(r => {
-    const get = (col) => {
-      const idx = CI[col];
-      return (idx !== undefined && r[idx] !== undefined) ? r[idx] : "";
-    };
-
-    return [
-      get("fecha"),
-      get("nombre"),
-      get("telefono"),
-      get("ciudad"),
-      get("departamento"),
-      get("barrio"),
-      get("direccion"),
-      get("casa"),
-      get("conjunto"),
-      get("nota"),
-      get("cupon")       || "",              // nuevo — vacío en filas viejas
-      get("descuento")   || 0,               // nuevo — 0 en filas viejas
-      get("pago")        || get("medio_pago") || "",
-      get("zona_envio"),
-      get("costo_envio") || 0,
-      get("subtotal")    || 0,
-      get("total")       || 0,
-      get("estado_pago") || "PENDIENTE",
-      get("estado_envio")|| "Recibido",      // nuevo — "Recibido" en filas viejas
-      get("productos"),
-    ];
-  });
-
-  // ── Reescribir la hoja ────────────────────────────────────
-  sheet.clearContents();
-
-  // Encabezado
-  sheet.appendRow(SCHEMA_NUEVO);
-  const hdr = sheet.getRange(1, 1, 1, SCHEMA_NUEVO.length);
-  hdr.setFontWeight("bold")
-     .setBackground("#0D9488")
-     .setFontColor("#FFFFFF")
-     .setHorizontalAlignment("center");
-  sheet.setFrozenRows(1);
-  sheet.setRowHeight(1, 32);
-
-  // Datos
-  if (filasReparadas.length > 0) {
-    sheet.getRange(2, 1, filasReparadas.length, SCHEMA_NUEVO.length)
-         .setValues(filasReparadas);
-  }
-
-  // Formato moneda en columnas numéricas (descuento, costo_envio, subtotal, total)
-  const monedaCols = [12, 15, 16, 17]; // base-1
-  monedaCols.forEach(col => {
-    if (filasReparadas.length > 0) {
-      sheet.getRange(2, col, filasReparadas.length, 1)
-           .setNumberFormat("$ #,##0");
+function doGet_admin_clientes(e) {
+  try {
+    const clave = e.parameter.clave || "";
+    if (!verificarClave(clave)) {
+      return jsonResponse({ ok: false, error: "No autorizado" });
     }
-  });
 
-  // Colores alternados en filas
-  for (let r = 2; r <= filasReparadas.length + 1; r++) {
-    const bg = r % 2 === 0 ? "#F0FDF9" : "#FFFFFF";
-    sheet.getRange(r, 1, 1, SCHEMA_NUEVO.length).setBackground(bg);
-  }
-
-  // Color en estado_pago (col 18)
-  for (let r = 2; r <= filasReparadas.length + 1; r++) {
-    const cell  = sheet.getRange(r, 18);
-    const val   = String(cell.getValue()).toUpperCase();
-    if (val.includes("PAGADO")) {
-      cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-    } else if (val.includes("CONTRA")) {
-      cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-    } else {
-      cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const cSheet = ss.getSheetByName("Clientes");
+    if (!cSheet || cSheet.getLastRow() < 2) {
+      return jsonResponse({
+        ok: true,
+        clientes: [],
+        paginacion: { pagina: 1, porPagina: 25, total: 0, totalPaginas: 0 },
+        resumen: { total: 0, nuevos: 0, recurrentes: 0, vip: 0, dormidos: 0 },
+        filtros_disponibles: { tipos: [], segmentos: [] },
+      });
     }
+
+    const cData = cSheet.getDataRange().getValues();
+    const cHdr = cData[0].map(h => String(h).toLowerCase().trim());
+    const COL = {};
+    cHdr.forEach((h, i) => COL[h] = i);
+
+    const pagina = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
+    const porPagina = Math.min(100, Math.max(10, parseInt(e.parameter.por || "25", 10)));
+    const busqueda = normalizeText(e.parameter.q || "");
+    const tipoFiltro = normalizeText(e.parameter.tipo || "");
+    const segmentoFiltro = normalizeText(e.parameter.segmento || "");
+    const pedidosPorTelefono = buildClientOrdersIndex(ss);
+
+    const clientes = cData.slice(1)
+      .map((row, idx) => mapAdminCliente(row, idx + 2, COL, pedidosPorTelefono))
+      .filter(Boolean)
+      .filter(cliente => {
+        if (busqueda) {
+          const hayMatch = [
+            cliente.nombre,
+            cliente.telefono,
+            cliente.ciudad,
+            cliente.barrio,
+            cliente.segmento_retencion,
+            cliente.productos_favoritos,
+          ].some(value => normalizeText(value).includes(busqueda));
+          if (!hayMatch) return false;
+        }
+
+        if (tipoFiltro && !normalizeText(cliente.tipo).includes(tipoFiltro)) return false;
+        if (segmentoFiltro && !normalizeText(cliente.segmento_retencion).includes(segmentoFiltro)) return false;
+        return true;
+      });
+
+    const total = clientes.length;
+    const totalPaginas = Math.ceil(total / porPagina);
+    const inicio = (pagina - 1) * porPagina;
+    const paginaClientes = clientes.slice(inicio, inicio + porPagina);
+
+    return jsonResponse({
+      ok: true,
+      clientes: paginaClientes,
+      paginacion: {
+        pagina: pagina,
+        porPagina: porPagina,
+        total: total,
+        totalPaginas: totalPaginas,
+      },
+      resumen: {
+        total: total,
+        nuevos: clientes.filter(c => normalizeText(c.tipo).includes("nuevo")).length,
+        recurrentes: clientes.filter(c => normalizeText(c.tipo).includes("recurrente")).length,
+        vip: clientes.filter(c => normalizeText(c.tipo).includes("vip")).length,
+        dormidos: clientes.filter(c => normalizeText(c.segmento_retencion).includes("dormido")).length,
+      },
+      filtros_disponibles: {
+        tipos: uniqueSorted(clientes.map(c => c.tipo)),
+        segmentos: uniqueSorted(clientes.map(c => c.segmento_retencion)),
+      },
+    });
+  } catch (err) {
+    Logger.log("Error admin_clientes: " + err.message);
+    return jsonResponse({ ok: false, error: err.message });
   }
-
-  sheet.autoResizeColumns(1, SCHEMA_NUEVO.length);
-
-  const msg = "Reparación completada.\n\n" +
-    "Esquema anterior: " + headers.length + " columnas\n" +
-    "Esquema nuevo: " + SCHEMA_NUEVO.length + " columnas\n" +
-    "Filas reparadas: " + filasReparadas.length;
-
-  Logger.log(msg);
-  Logger.log("✅ " + msg);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   LIMPIEZA RR — Admin: Inicializar, Backup, Formato (LIMPIEZARR_Admin.gs)
-═══════════════════════════════════════════════════════════ */
-
-function inicializarPedidos() {
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName("Pedidos");
-  if (!sheet) sheet = ss.insertSheet("Pedidos");
-
-  asegurarEncabezados(sheet, PEDIDOS_HEADERS);
-  aplicarEstiloBasicoEncabezado(sheet, "#0D9488", "#FFFFFF");
-  aplicarFormatoMonedaPorEncabezado(sheet, ["descuento", "costo_envio", "subtotal", "total"]);
-  if (typeof formatearComoTabla === "function") formatearComoTabla("Pedidos");
-  Logger.log('OK: hoja "Pedidos" lista.');
-}
-
-/* ──────────────────────────────────────────────────────────────
-   INICIALIZAR CLIENTES
-────────────────────────────────────────────────────────────── */
-function inicializarClientes() {
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName("Clientes");
-  if (!sheet) sheet = ss.insertSheet("Clientes");
-
-  asegurarEncabezados(sheet, CLIENTES_HEADERS);
-  aplicarEstiloBasicoEncabezado(sheet, "#14B8A6", "#FFFFFF");
-  aplicarFormatoMonedaPorEncabezado(sheet, ["total_gastado"]);
-  ponerNotaPorEncabezado(sheet, "tipo",
-    "Clasificacion automatica:\n" +
-    "Nuevo      = 1 pedido\n" +
-    "Recurrente = 2+ pedidos o $150.000+\n" +
-    "VIP        = 10+ pedidos o $500.000+"
-  );
-  if (typeof formatearComoTabla === "function") formatearComoTabla("Clientes");
-  Logger.log('OK: hoja "Clientes" lista.');
-}
-
-function inicializarProveedores() {
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName("Proveedores");
-  if (!sheet) sheet = ss.insertSheet("Proveedores");
-
-  asegurarEncabezados(sheet, PROVEEDORES_HEADERS);
-  aplicarEstiloBasicoEncabezado(sheet, "#0F766E", "#FFFFFF");
-  if (typeof formatearComoTabla === "function") formatearComoTabla("Proveedores");
-  Logger.log('OK: hoja "Proveedores" lista.');
-}
-
-/* ══════════════════════════════════════════════════════════════
-   BACKUP MANUAL — ejecutar antes de cualquier cambio grande
-   Crea copias de seguridad de las hojas principales con fecha y hora
-══════════════════════════════════════════════════════════════ */
-function hacerBackup() {
-  const ss      = SpreadsheetApp.getActiveSpreadsheet();
-  const fecha   = Utilities.formatDate(new Date(), "America/Bogota", "yyyy-MM-dd HH:mm");
-  const hojas   = ["Productos", "Pedidos", "Clientes", "Proveedores", "Cupones", "Dashboard", "Resumen"];
-  const creadas = [];
-
-  hojas.forEach(nombre => {
-    const sheet = ss.getSheetByName(nombre);
-    if (!sheet) return;
-    if (creadas.indexOf("BKP " + nombre + " " + fecha) >= 0) return;
-    const copia = sheet.copyTo(ss);
-    copia.setName("BKP " + nombre + " " + fecha);
-    // Mover la copia al final
-    ss.setActiveSheet(copia);
-    ss.moveActiveSheet(ss.getNumSheets());
-    creadas.push("BKP " + nombre + " " + fecha);
-  });
-
-  Logger.log(
-    "=== BACKUP COMPLETADO ===\n" +
-    "Hojas de respaldo creadas:\n" +
-    creadas.join("\n") + "\n\n" +
-    "Puedes eliminarlas cuando ya no las necesites."
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   ELIMINAR BACKUPS ANTIGUOS
-   Borra todas las hojas que empiecen con "BKP"
-══════════════════════════════════════════════════════════════ */
-function limpiarBackups() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const hojas = ss.getSheets();
-  let count   = 0;
-
-  hojas.forEach(sheet => {
-    if (sheet.getName().startsWith("BKP")) {
-      ss.deleteSheet(sheet);
-      count++;
+function doPost_admin_clientes_upsert(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const clave = body.clave || "";
+    if (!verificarClave(clave))
+     {
+      return jsonResponse({ ok: false, error: "No autorizado" });
     }
-  });
 
-  Logger.log("Backups eliminados: " + count);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let cSheet = ss.getSheetByName("Clientes");
+    if (!cSheet || cSheet.getLastColumn() === 0) {
+      inicializarClientes();
+      cSheet = ss.getSheetByName("Clientes");
+    }
+    if (!cSheet) return jsonResponse({ ok: false, error: "Hoja Clientes no encontrada" });
+
+    const nombre = body.nombre;
+    const telefono = body.telefono;
+    const ciudad = body.ciudad;
+    const barrio = body.barrio;
+    const direccion = body.direccion;
+
+    if (!nombre || !telefono) {
+      return jsonResponse({ ok: false, error: "Nombre y telefono requeridos" });
+    }
+
+    const telNorm = normalizePhone(telefono);
+    let rowNum = -1;
+    const data = cSheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      const telRow = normalizePhone(data[i][3]);
+      if (telRow === telNorm) {
+        rowNum = i + 1;
+        break;
+      }
+    }
+
+    const fecha = new Date().toLocaleString("es-CO");
+
+    if (rowNum === -1) {
+      appendRowByHeaders(cSheet, {
+        primera_compra: fecha,
+        ultima_compra: fecha,
+        nombre: nombre,
+        telefono: telNorm,
+        ciudad: ciudad || "",
+        barrio: barrio || "",
+        direccion: direccion || "",
+        total_pedidos: 0,
+        total_gastado: 0,
+        tipo: "Nuevo",
+      });
+      return jsonResponse({ ok: true, mensaje: "Cliente creado", fila: cSheet.getLastRow() });
+    }
+
+    updateRowByHeaders(cSheet, rowNum, {
+      nombre: nombre,
+      telefono: telNorm,
+      ciudad: ciudad || "",
+      barrio: barrio || "",
+      direccion: direccion || "",
+    });
+    return jsonResponse({ ok: true, mensaje: "Cliente actualizado", fila: rowNum });
+  } catch (err) {
+    Logger.log("Error admin_clientes_upsert: " + err.message);
+    return jsonResponse({ ok: false, error: err.message });
+  }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   AUTO-TABLA
-   Aplica formato de tabla profesional a las 3 hojas.
-   Se ejecuta automáticamente cada vez que se agrega una fila
-   gracias al disparador instalado con instalarDisparador().
-══════════════════════════════════════════════════════════════ */
+function doPost_admin_clientes_eliminar(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const clave = body.clave || "";
+    if (!verificarClave(clave)) {
+      return jsonResponse({ ok: false, error: "No autorizado" });
+    }
 
-// Paleta de colores por hoja
-const TEMAS = {
-  "Productos": {
-    hdrBg:   "#0F766E",  // encabezado fondo
-    hdrFg:   "#FFFFFF",  // encabezado texto
-    rowPar:  "#F0FDF9",  // fila par
-    rowImpar:"#FFFFFF",  // fila impar
-    border:  "#99F6E4",  // color de bordes
-    imgCol:  "#FFF9C4",  // columna imagen (amarillo suave)
-  },
-  "Pedidos": {
-    hdrBg:   "#0D9488",
-    hdrFg:   "#FFFFFF",
-    rowPar:  "#F0FDF9",
-    rowImpar:"#FFFFFF",
-    border:  "#99F6E4",
-    imgCol:  null,
-  },
-  "Clientes": {
-    hdrBg:   "#14B8A6",
-    hdrFg:   "#FFFFFF",
-    rowPar:  "#ECFDF5",
-    rowImpar:"#FFFFFF",
-    border:  "#6EE7B7",
-    imgCol:  null,
-  },
-  "Proveedores": {
-    hdrBg:   "#0F766E",
-    hdrFg:   "#FFFFFF",
-    rowPar:  "#F0FDFA",
-    rowImpar:"#FFFFFF",
-    border:  "#99F6E4",
-    imgCol:  null,
-  },
-  "Cupones": {
-    hdrBg:   "#F59E0B",
-    hdrFg:   "#FFFFFF",
-    rowPar:  "#FFFBEB",
-    rowImpar:"#FFFFFF",
-    border:  "#FCD34D",
-    imgCol:  null,
-  },
-  "Calificaciones": {
-    hdrBg:   "#F59E0B",
-    hdrFg:   "#FFFFFF",
-    rowPar:  "#FFFBEB",
-    rowImpar:"#FFFFFF",
-    border:  "#FCD34D",
-    imgCol:  null,
-  },
-};
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const cSheet = ss.getSheetByName("Clientes");
+    if (!cSheet) return jsonResponse({ ok: false, error: "Hoja no encontrada" });
 
-/* ──────────────────────────────────────────────────────────────
-   Formatea una hoja como tabla completa
-────────────────────────────────────────────────────────────── */
-// ── Formato de tablas en LIMPIEZARR_Formato.gs ──
+    const fila = parseInt(body.fila, 10);
+    if (!fila || fila < 2) {
+      return jsonResponse({ ok: false, error: "Fila invalida" });
+    }
+
+    cSheet.deleteRow(fila);
+    return jsonResponse({ ok: true, mensaje: "Cliente eliminado" });
+  } catch (err) {
+    Logger.log("Error eliminar cliente: " + err.message);
+    return jsonResponse({ ok: false, error: err.message });
+  }
+}
+
+function mapAdminCliente(row, fila, COL, pedidosPorTelefono) {
+  const telefono = normalizePhone(getCell(row, COL, "telefono"));
+  const nombre = String(getCell(row, COL, "nombre") || "").trim();
+  if (!telefono && !nombre) return null;
+
+  const resumenPedido = pedidosPorTelefono[telefono] || emptyClientSummary();
+  const primeraCompra = String(getCell(row, COL, "primera_compra") || resumenPedido.primera_compra || "");
+  const ultimaCompra = String(getCell(row, COL, "ultima_compra") || resumenPedido.ultima_compra || "");
+  const totalPedidos = Number(getCell(row, COL, "total_pedidos") || resumenPedido.total_pedidos || 0);
+  const totalGastado = Number(getCell(row, COL, "total_gastado") || resumenPedido.total_gastado || 0);
+  const tipo = String(getCell(row, COL, "tipo") || classifyClient(totalPedidos, totalGastado));
+  const diasSinCompra = daysSince(ultimaCompra);
+  const segmento = retentionSegment(totalPedidos, diasSinCompra);
+
+  return {
+    fila: fila,
+    nombre: nombre || ("Cliente " + telefono),
+    telefono: String(getCell(row, COL, "telefono") || ""),
+    ciudad: String(getCell(row, COL, "ciudad") || ""),
+    barrio: String(getCell(row, COL, "barrio") || ""),
+    direccion: String(getCell(row, COL, "direccion") || ""),
+    primera_compra: primeraCompra,
+    ultima_compra: ultimaCompra,
+    total_pedidos: totalPedidos,
+    total_gastado: totalGastado,
+    tipo: tipo,
+    frecuencia: purchaseFrequency(primeraCompra, ultimaCompra, totalPedidos),
+    dias_sin_compra: diasSinCompra,
+    segmento_retencion: segmento,
+    badge_class: typeBadgeClass(tipo),
+    segmento_class: segmentBadgeClass(segmento),
+    top_productos: resumenPedido.top_productos,
+    ultimos_pedidos: resumenPedido.ultimos_pedidos,
+    productos_favoritos: resumenPedido.top_productos.map(p => p.nombre).join(", "),
+  };
+}
+
+function buildClientOrdersIndex(ss) {
+  const pSheet = ss.getSheetByName("Pedidos");
+  if (!pSheet || pSheet.getLastRow() < 2) return {};
+
+  const pData = pSheet.getDataRange().getValues();
+  const pHdr = pData[0].map(h => String(h).toLowerCase().trim());
+  const telIdx = pHdr.indexOf("telefono");
+  const fechaIdx = pHdr.indexOf("fecha");
+  const totalIdx = pHdr.indexOf("total");
+  const pagoIdx = pHdr.indexOf("estado_pago");
+  const prodIdx = pHdr.indexOf("productos");
+  const index = {};
+
+  pData.slice(1).forEach(row => {
+    const telefono = normalizePhone(row[telIdx]);
+    if (!telefono) return;
+
+    if (!index[telefono]) index[telefono] = emptyClientSummary();
+    const bucket = index[telefono];
+    const fecha = String(row[fechaIdx] || "");
+    let total = Number(row[totalIdx] || 0);
+    if ((!total || isNaN(total)) && pHdr.indexOf("subtotal") >= 0) {
+      total = Number(row[pHdr.indexOf("subtotal")] || 0);
+    }
+    const productos = parseOrderProducts(row[prodIdx]);
+
+    bucket.total_pedidos += 1;
+    bucket.total_gastado += total;
+
+    if (!bucket.primera_compra || compareDateStrings(fecha, bucket.primera_compra) < 0) {
+      bucket.primera_compra = fecha;
+    }
+    if (!bucket.ultima_compra || compareDateStrings(fecha, bucket.ultima_compra) > 0) {
+      bucket.ultima_compra = fecha;
+    }
+
+    bucket.ultimos_pedidos.push({
+      fecha: fecha,
+      total: total,
+      estado_pago: String(row[pagoIdx] || ""),
+      productos: productos.slice(0, 3).map(p => p.nombre).join(", "),
+    });
+
+    productos.forEach(producto => {
+      bucket.productos_count[producto.nombre] = (bucket.productos_count[producto.nombre] || 0) + producto.cantidad;
+    });
+  });
+
+  Object.keys(index).forEach(key => {
+    const bucket = index[key];
+    bucket.ultimos_pedidos = bucket.ultimos_pedidos
+      .sort((a, b) => compareDateStrings(b.fecha, a.fecha))
+      .slice(0, 3);
+
+    bucket.top_productos = Object.keys(bucket.productos_count)
+      .sort((a, b) => bucket.productos_count[b] - bucket.productos_count[a])
+      .slice(0, 3)
+      .map(nombre => ({ nombre: nombre, veces: bucket.productos_count[nombre] }));
+
+    delete bucket.productos_count;
+  });
+
+  return index;
+}
+
+function emptyClientSummary() {
+  return {
+    primera_compra: "",
+    ultima_compra: "",
+    total_pedidos: 0,
+    total_gastado: 0,
+    ultimos_pedidos: [],
+    top_productos: [],
+    productos_count: {},
+  };
+}
+
+function parseOrderProducts(productosStr) {
+  return String(productosStr || "")
+    .split("\n")
+    .map(linea => {
+      const limpia = String(linea || "").trim();
+      if (!limpia) return null;
+      const nombre = limpia.split("|")[0].trim();
+      const qtyMatch = limpia.match(/Cant[^0-9]*([0-9]+)/i);
+      return {
+        nombre: nombre,
+        cantidad: qtyMatch ? Number(qtyMatch[1]) || 1 : 1,
+      };
+    })
+    .filter(item => item && item.nombre);
+}
+
+function purchaseFrequency(primera, ultima, totalPedidos) {
+  try {
+    const inicio = parseLimpiezaDate(primera);
+    const fin = parseLimpiezaDate(ultima);
+    if (totalPedidos <= 1) return "Primer pedido";
+    if (!inicio || !fin || isNaN(inicio.getTime()) || isNaN(fin.getTime())) return "Esporadica";
+
+    const dias = Math.max(0, (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+    if (dias <= 30) return "Alta";
+    if (dias <= 90) return "Media";
+    if (dias <= 180) return "Baja";
+    return "Muy baja";
+  } catch (e) {
+    return "Desconocida";
+  }
+}
+
+function retentionSegment(totalPedidos, diasSinCompra) {
+  if (!totalPedidos) return "Sin compras";
+  if (totalPedidos <= 1) return diasSinCompra !== null && diasSinCompra > 45 ? "Nuevo sin retorno" : "Nuevo";
+  if (diasSinCompra === null) return "Recurrente";
+  if (diasSinCompra <= 30) return "Recurrente activo";
+  if (diasSinCompra <= 90) return "En riesgo";
+  return "Dormido";
+}
+
+function classifyClient(totalPedidos, totalGastado) {
+  if (totalPedidos >= 10 || totalGastado >= 500000) return "VIP";
+  if (totalPedidos >= 2 || totalGastado >= 150000) return "Recurrente";
+  return "Nuevo";
+}
+
+function daysSince(fechaTexto) {
+  const fecha = parseLimpiezaDate(fechaTexto);
+  if (!fecha || isNaN(fecha.getTime())) return null;
+  return Math.max(0, Math.floor((new Date().getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function compareDateStrings(a, b) {
+  const fa = parseLimpiezaDate(a);
+  const fb = parseLimpiezaDate(b);
+  const ta = !fa || isNaN(fa.getTime()) ? 0 : fa.getTime();
+  const tb = !fb || isNaN(fb.getTime()) ? 0 : fb.getTime();
+  return ta - tb;
+}
+
+function typeBadgeClass(tipo) {
+  const valor = normalizeText(tipo);
+  if (valor.includes("vip")) return "bg-yellow-900/50 text-yellow-300";
+  if (valor.includes("recurrente")) return "bg-green-900/50 text-green-300";
+  return "bg-blue-900/50 text-blue-300";
+}
+
+function segmentBadgeClass(segmento) {
+  const valor = normalizeText(segmento);
+  if (valor.includes("dormido")) return "bg-red-900/40 text-red-300";
+  if (valor.includes("riesgo")) return "bg-yellow-900/40 text-yellow-300";
+  if (valor.includes("activo")) return "bg-green-900/40 text-green-300";
+  return "bg-slate-700/50 text-slate-300";
+}
+
+function getCell(row, COL, key) {
+  return COL[key] !== undefined ? row[COL[key]] : "";
+}
+
+function normalizePhone(value) {
+  let tel = String(value || "").replace(/\D/g, "");
+  if (tel.length === 12 && tel.startsWith("57")) {
+    tel = tel.slice(2);
+  }
+  return tel;
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function uniqueSorted(values) {
+  return Array.from(new Set((values || []).filter(Boolean))).sort();
+}

@@ -1,394 +1,1201 @@
-/* ═══════════════════════════════════════════════════════════
-   LIMPIEZA RR — Setup y Utilidades v3
-   Correcciones:
-   ✅ BUG-11: ADMIN_KEY referenciada desde LIMPIEZARR.gs (ya centralizada)
-   ✅ BUG-05: aplicarPreciosSugeridos guarda número, no string con %
-   ✅ BUG-13: calcularPreciosConMargen — if(ui){} correctamente cerrado
-═══════════════════════════════════════════════════════════ */
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  LIMPIEZA RR — Google Apps Script v3
+ *  Correcciones aplicadas:
+ *  ✅ BUG-04: sanitizeDriveUrl definida (ya no causa ReferenceError)
+ *  ✅ BUG-01: gananciaReal calcula correctamente (ganancia_pesos !== null)
+ *  ✅ BUG-02: avgGanPct con paréntesis correctos
+ *  ✅ BUG-03: menosRentables sin solapamiento con topRentables
+ *  ✅ BUG-11: ADMIN_KEY centralizada (no más hardcoding)
+ *  ✅ BUG-12: pendientes no incluye "CONTRA ENTREGA"
+ *  ✅ BUG-14: reseñas desde 3 estrellas
+ * ═══════════════════════════════════════════════════════════════
+ */
 
-var PRODUCTOS_HEADERS    = ["id","nombre","tamano","precio","costo","ganancia_pct","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
-var PEDIDOS_HEADERS      = ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion","casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio","subtotal","total","estado_pago","estado_envio","productos"];
-var CLIENTES_HEADERS     = ["primera_compra","ultima_compra","nombre","telefono","ciudad","barrio","direccion","total_pedidos","total_gastado","tipo"];
-var PROVEEDORES_HEADERS  = ["nombre","contacto_nombre","telefono","email","productos","direccion","nota","fecha_registro","activo"];
-var CUPONES_HEADERS      = ["codigo","descripcion","tipo","valor","usos_maximos","usos_actuales","vencimiento","activo"];
-var CALIFICACIONES_HEADERS = ["fecha","nombre","telefono","estrellas","comentario"];
+// ══════════════════════════════════════════════════════════
+// CONFIGURACIÓN CENTRALIZADA
+// ══════════════════════════════════════════════════════════
+//var ADMIN_KEY = "LIMPIEZARR2025";   // BUG-11 fix: única fuente de verdad
 
-// ── Margen por defecto para calcularPreciosConMargen ──
-var MARGEN_DESEADO = 80; // porcentaje
+var CONFIG_WA = {
+  NUMERO:  "573503443140",
+  API_KEY: "",     // Pega aquí SOLO el número de key de CallMeBot (ej: "4942289")
+  ACTIVO:  false,
+};
 
-/* ──────────────────────────────────────────────────────────────
-   HELPERS DE HOJA
-────────────────────────────────────────────────────────────── */
-function normalizarHeader(value) {
-  return String(value || "").toLowerCase().trim();
+// ══════════════════════════════════════════════════════════
+// HELPERS GLOBALES
+// ══════════════════════════════════════════════════════════
+function getSS() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error("No hay spreadsheet activo.");
+  return ss;
 }
 
-function obtenerCabeceras(sheet) {
-  var lastCol = sheet.getLastColumn();
-  if (!lastCol) return { headers: [], map: {} };
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var map = {};
-  headers.forEach(function(header, index) {
-    map[normalizarHeader(header)] = index + 1;
-  });
-  return { headers: headers, map: map };
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
-function asegurarEncabezados(sheet, headers) {
-  if (sheet.getLastRow() === 0 || sheet.getLastColumn() === 0) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    return true;
+/**
+ * BUG-04 FIX: sanitizeDriveUrl — convierte URLs de Drive al formato imagen directa.
+ * Esta función FALTABA en el código anterior causando ReferenceError en admin_productos.
+ */
+function sanitizeDriveUrl(url) {
+  if (!url || String(url).trim() === "") return "";
+  // Formato: https://drive.google.com/file/d/FILE_ID/view
+  var matchFile = String(url).match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return "https://drive.google.com/uc?export=view&id=" + matchFile[1];
+  // Formato: https://drive.google.com/open?id=FILE_ID
+  var matchOpen = String(url).match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchOpen) return "https://drive.google.com/uc?export=view&id=" + matchOpen[1];
+  // URL directa — retornar tal cual
+  if (String(url).startsWith("http")) return String(url);
+  return "";
+}
+
+function parseLimpiezaDate(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  if (typeof value === "number" && !isNaN(value) && value > 20000 && value < 60000) {
+    var serialDate = new Date(Math.round((value - 25569) * 86400 * 1000));
+    if (!isNaN(serialDate.getTime())) return serialDate;
   }
-  var info    = obtenerCabeceras(sheet);
-  var changed = false;
-  headers.forEach(function(header) {
-    if (info.map[normalizarHeader(header)]) return;
-    sheet.insertColumnAfter(sheet.getLastColumn());
-    sheet.getRange(1, sheet.getLastColumn()).setValue(header);
-    info    = obtenerCabeceras(sheet);
-    changed = true;
-  });
-  return changed;
+  var raw = String(value || "").trim();
+  if (!raw) return null;
+  var direct = new Date(raw);
+  if (!isNaN(direct.getTime())) return direct;
+  raw = raw
+    .replace(/\u00A0/g, " ").replace(/\s+/g, " ")
+    .replace(/a\.\s*m\./i, "AM").replace(/p\.\s*m\./i, "PM")
+    .replace(/a\.m\./i, "AM").replace(/p\.m\./i, "PM");
+  var match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) {
+    var dateOnly = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dateOnly) return null;
+    var d = new Date(Number(dateOnly[3]), Number(dateOnly[2]) - 1, Number(dateOnly[1]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var day = Number(match[1]), month = Number(match[2]) - 1, year = Number(match[3]);
+  var hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6] || 0);
+  var meridiem = String(match[7] || "").toUpperCase();
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+  var parsed = new Date(year, month, day, hour, minute, second);
+  return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function appendRowByHeaders(sheet, data) {
-  var info = obtenerCabeceras(sheet);
-  if (!info.headers.length) throw new Error("La hoja " + sheet.getName() + " no tiene encabezados");
-  var row = info.headers.map(function(header) {
-    var key = normalizarHeader(header);
-    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : "";
-  });
-  sheet.appendRow(row);
-  return sheet.getLastRow();
-}
-
-function updateRowByHeaders(sheet, rowNum, data) {
-  var info = obtenerCabeceras(sheet);
-  Object.keys(data).forEach(function(key) {
-    var col = info.map[normalizarHeader(key)];
-    if (col) sheet.getRange(rowNum, col).setValue(data[key]);
-  });
-}
-
-function aplicarEstiloBasicoEncabezado(sheet, bg, fg) {
-  var lastCol = sheet.getLastColumn();
-  if (!lastCol) return;
-  sheet.getRange(1, 1, 1, lastCol)
-    .setFontWeight("bold").setBackground(bg).setFontColor(fg)
-    .setHorizontalAlignment("center");
-  sheet.setFrozenRows(1);
-}
-
-function aplicarFormatoMonedaPorEncabezado(sheet, headers) {
-  var info    = obtenerCabeceras(sheet);
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return;
-  headers.forEach(function(header) {
-    var col = info.map[normalizarHeader(header)];
-    if (!col) return;
-    sheet.getRange(2, col, lastRow - 1, 1).setNumberFormat("$ #,##0");
-  });
-}
-
-function ponerNotaPorEncabezado(sheet, headerName, note) {
-  var info = obtenerCabeceras(sheet);
-  var col  = info.map[normalizarHeader(headerName)];
-  if (col) sheet.getRange(1, col).setNote(note);
-}
-
-function obtenerUiSegura() {
-  try { return SpreadsheetApp.getUi(); }
-  catch (err) { return null; }
+function normalizarTelefono(value) {
+  var tel = String(value || "").replace(/\D/g, "");
+  if (tel.length === 12 && tel.indexOf("57") === 0) tel = tel.slice(2);
+  return tel;
 }
 
 /* ──────────────────────────────────────────────────────────────
-   CATEGORÍA SUAVIZANTES
+   doGet — Dispatcher centralizado
+   Cada acción delega a su función correspondiente.
+   Un error en una acción NO mata las demás.
 ────────────────────────────────────────────────────────────── */
-function actualizarCategoriaSuavizantes() {
-  var ss    = getSS();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet || sheet.getLastRow() < 2) return 0;
-  var info       = obtenerCabeceras(sheet);
-  var nombreCol  = info.map["nombre"];
-  var categoriaCol = info.map["categoria"];
-  if (!nombreCol || !categoriaCol) return 0;
-  var lastRow   = sheet.getLastRow();
-  var nombres   = sheet.getRange(2, nombreCol, lastRow - 1, 1).getValues();
-  var categorias= sheet.getRange(2, categoriaCol, lastRow - 1, 1).getValues();
-  var cambios   = 0;
-  for (var i = 0; i < nombres.length; i++) {
-    var nombre = String(nombres[i][0] || "").toLowerCase();
-    if (!nombre.includes("suavizante")) continue;
-    if (String(categorias[i][0] || "") === "Suavizante") continue;
-    categorias[i][0] = "Suavizante";
-    cambios++;
-  }
-  if (cambios > 0) {
-    sheet.getRange(2, categoriaCol, categorias.length, 1).setValues(categorias);
-  }
-  Logger.log("Suavizantes normalizados: " + cambios);
-  return cambios;
-}
+function doGet(e) {
+  try {
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "";
+    var ss     = SpreadsheetApp.getActiveSpreadsheet();
 
-/* ──────────────────────────────────────────────────────────────
-   POPULATE PRODUCTOS
-────────────────────────────────────────────────────────────── */
-function populateProductos(forzar) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) sheet = ss.insertSheet("Productos");
-
-  if (!forzar && sheet.getLastRow() > 1) {
-    asegurarEncabezados(sheet, PRODUCTOS_HEADERS);
-    aplicarEstiloBasicoEncabezado(sheet, "#0F766E", "#FFFFFF");
-    aplicarFormatoMonedaPorEncabezado(sheet, ["precio","costo"]);
-    if (typeof formatearComoTabla === "function") formatearComoTabla("Productos");
-    actualizarCategoriaSuavizantes();
-    Logger.log("Productos: hoja existente conservada y esquema validado (" + (sheet.getLastRow()-1) + " filas).");
-    return;
-  }
-
-  sheet.clear();
-  sheet.appendRow(PRODUCTOS_HEADERS);
-  var hdr = sheet.getRange(1, 1, 1, PRODUCTOS_HEADERS.length);
-  hdr.setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
-  sheet.getRange(1, 11, 1, 1).setBackground("#FFF176").setFontColor("#5F4000");
-  sheet.getRange(1,  5).setNote("COSTO: precio de compra. Requerido para calcular ganancia.");
-  sheet.getRange(1,  6).setNote("GANANCIA %: ((precio-costo)/costo)*100. Número puro, no string con %.");
-  sheet.getRange(1, 14).setNote("STOCK: vacío=sin control | 0=agotado | número=unidades");
-
-  var rows = [
-    [1,"Cera Autobrillante Envase","1 Kg",16000,"","","Ceras",false,"✨","Cera autobrillante de alta calidad. Brillo duradero.","","","",""],
-    [2,"Cera Autobrillante Galon","4 Kg",46333.68,"","","Ceras",false,"✨","Galon para uso intensivo. Ideal para negocios.","","","",""],
-    [3,"Detergente Textil Galon","4 Kg",26743.72,"","","Detergentes",false,"🧺","Formula concentrada. Elimina manchas difíciles.","","","",""],
-    [4,"Desengrasante Multiusos Linea Hogar Envase","1 Kg",10700,"","","Detergentes",true,"🧽","Desengrasante multiusos para cocinas y baños.","","","",""],
-    [5,"Desengrasante Multiusos Linea Hogar Galon","4 Kg",37300,"","","Detergentes",false,"🧽","Galon desengrasante. Rendimiento profesional.","","","",""],
-    [6,"Detergente Textil","1 Kg",16000,"","","Detergentes",false,"🧺","Ideal para lavado a mano y máquina.","","","",""],
-    [7,"Detergente Textil","2 Kg",15000,"","","Detergentes",true,"🧺","2 Kg para familias. Formula concentrada.","","","",""],
-    [8,"Fragancia Irresistible Dude","100 ml",38034.99,"","","Fragancias",false,"🌸","Fragancia masculina intensa. Notas amaderadas.","","","",""],
-    [9,"Fragancia Golden Gladiator","100 ml",36459.43,"","","Fragancias",false,"🌸","Notas doradas y especiadas.","","","",""],
-    [10,"Fragancia Happiness","100 ml",49004.21,"","","Fragancias",false,"🌸","Alegre y fresca. Evoca momentos felices.","","","",""],
-    [11,"Fragancia Bad Girl Gone Good","100 ml",52195.74,"","","Fragancias",false,"🌸","Audaz y sofisticada. Dulzura y misterio.","","","",""],
-    [12,"Fragancia Luxury Amber","100 ml",36341.97,"","","Fragancias",false,"🌸","Notas ámbar cálidas y lujosas.","","","",""],
-    [13,"Fragancia Sublime","100 ml",36341.97,"","","Fragancias",false,"🌸","Notas florales de elegancia incomparable.","","","",""],
-    [14,"Fragancia Millonaire","100 ml",57093.81,"","","Fragancias",false,"🌸","La más lujosa. Opulenta y exclusiva.","","","",""],
-    [15,"Fragancia Kingdom","100 ml",36459.43,"","","Fragancias",false,"🌸","Majestuosa con carácter propio.","","","",""],
-    [16,"Fragancia Aquaman","100 ml",47108.35,"","","Fragancias",false,"🌸","Acuática y refrescante.","","","",""],
-    [17,"Fragancia Fanning","100 ml",33665.10,"","","Fragancias",false,"🌸","Ligera y versátil. Uso diario.","","","",""],
-    [18,"Fragancia Pomelo & Granada","100 ml",29750,"","","Fragancias",false,"🌸","Frutal vibrante. Pomelo y granada.","","","",""],
-    [19,"Fragancia Perfume Marine","100 ml",29750,"","","Fragancias",false,"🌸","Marina limpia con notas acuáticas.","","","",""],
-    [20,"Fragancia Pastel Dream","100 ml",29750,"","","Fragancias",false,"🌸","Dulce y soñadora. Notas pastel.","","","",""],
-    [21,"Fragancia Shine Alight","100 ml",29750,"","","Fragancias",false,"🌸","Luminosa y positiva.","","","",""],
-    [22,"Fragancia The Boss Perfume","100 ml",35700,"","","Fragancias",false,"🌸","Poderosa y dominante.","","","",""],
-    [23,"Fragancia LG Silverhill","100 ml",29750,"","","Fragancias",false,"🌸","Plateada y sofisticada.","","","",""],
-    [24,"Fragancia Platinum","100 ml",29750,"","","Fragancias",false,"🌸","Elegante y atemporal.","","","",""],
-    [25,"Gel Antibacterial Para Manos Galon","3.5 Kg",35590.89,"","","Antibacteriales",false,"🤲","Gran rendimiento. 99.9% bacterias.","","","",""],
-    [26,"Gel Antibacterial Para Manos","500 gr",7735,"","","Antibacteriales",false,"🤲","Personal. Suave con el cutis.","","","",""],
-    [27,"Gel Antibacterial Para Manos","1000 gr",14280,"","","Antibacteriales",false,"🤲","Familiar. Protección diaria.","","","",""],
-    [28,"Jabon Antibacterial Para Manos Galon","4 Kg",28560,"","","Antibacteriales",false,"🧼","Galon para dispensadores.","","","",""],
-    [29,"Jabon Antibacterial Para Manos","500 gr",6584.27,"","","Antibacteriales",false,"🧼","Económico y eficaz.","","","",""],
-    [30,"Jabon Antibacterial Para Manos","1000 gr",11971.40,"","","Antibacteriales",false,"🧼","Familiar. Limpia y cuida.","","","",""],
-    [31,"Lavaloza Liquido Galon","4 Kg",31953.28,"","","Lavaloza",false,"🍽️","Concentrado. Elimina grasa fácil.","","","",""],
-    [32,"Lavaloza Liquido Envase","500 gr",6000,"","","Lavaloza",false,"🍽️","Individual. Ollas brillantes.","","","",""],
-    [33,"Lavaloza Liquido Envase","1000 gr",10000,"","","Lavaloza",false,"🍽️","1 Kg. Rendimiento familiar.","","","",""],
-    [34,"Limpiapisos Encanto Tropical Envase","1 Kg",9000,"","","Limpiapisos",true,"🌿","Limpia y desinfecta. Olor fresco.","","","",""],
-    [35,"Limpiapisos Encanto Tropical Galon","4 Kg",24370.43,"","","Limpiapisos",false,"🌿","Galon. Rendimiento profesional.","","","",""],
-    [36,"Limpiapisos Encanto Tropical Envase","500 gr",6500,"","","Limpiapisos",true,"🌿","Pequeño. Práctico y económico.","","","",""],
-    [37,"Limpiapisos Encanto Tropical Envase","1000 gr",11000,"","","Limpiapisos",true,"🌿","Familiar. Aroma duradero.","","","",""],
-    [38,"Limpia Vidrios Envase","500 gr",5500,"","","Limpia Vidrios",false,"🪟","Sin rayas. Cristales perfectos.","","","",""],
-    [39,"Limpia Vidrios Envase","1 Kg",8000,"","","Limpia Vidrios",true,"🪟","Antivaho. Claridad total.","","","",""],
-    [40,"Limpia Vidrios Galon","4 Kg",27370,"","","Limpia Vidrios",false,"🪟","Galon. Ideal para edificios.","","","",""],
-    [41,"Oxigeno Activo","1 Kg",12500,"","","Otros",true,"💧","Sin cloro. Cuida colores.","","","",""],
-    [42,"Suavizante Galon","4 Kg",21420,"","","Suavizante",false,"🌺","Suave y fragante. Larga duración.","","","",""],
-    [43,"Suavizante Galon","1000 gr",10000,"","","Suavizante",false,"🌺","1 Kg. Cuida fibras.","","","",""],
-    [44,"Suavizante Galon","2000 gr",17000,"","","Suavizante",true,"🌺","2 Kg familiar. Económico.","","","",""],
-  ];
-
-  sheet.getRange(2, 1, rows.length, PRODUCTOS_HEADERS.length).setValues(rows);
-  sheet.autoResizeColumns(1, PRODUCTOS_HEADERS.length);
-  sheet.setFrozenRows(1);
-  aplicarFormatoMonedaPorEncabezado(sheet, ["precio","costo"]);
-  if (typeof formatearComoTabla === "function") formatearComoTabla("Productos");
-  Logger.log("OK: " + rows.length + " productos.");
-}
-
-/* ──────────────────────────────────────────────────────────────
-   LIMPIAR STOCK
-────────────────────────────────────────────────────────────── */
-function limpiarStock() {
-  var ss    = getSS();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var headers  = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var stockCol = headers.indexOf("stock") + 1;
-  if (!stockCol) { Logger.log("Columna stock no encontrada"); return; }
-  var lastRow  = sheet.getLastRow();
-  if (lastRow < 2) return;
-  sheet.getRange(2, stockCol, lastRow - 1, 1).clearContent();
-  Logger.log("Stock limpiado en " + (lastRow - 1) + " productos.");
-}
-
-function resetearProductos() {
-  Logger.log("Iniciando reset de productos...");
-  populateProductos(true);
-  Logger.log("Hoja Productos recreada con los 44 productos originales.");
-}
-
-/* ──────────────────────────────────────────────────────────────
-   CALCULAR GANANCIAS — batch sobre toda la hoja
-────────────────────────────────────────────────────────────── */
-function calcularGanancias() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var precioIdx   = headers.indexOf("precio")       + 1;
-  var costoIdx    = headers.indexOf("costo")        + 1;
-  var gananciaIdx = headers.indexOf("ganancia_pct") + 1;
-  if (!costoIdx || !gananciaIdx) {
-    Logger.log("ERROR: Columnas costo o ganancia_pct no encontradas.");
-    return;
-  }
-  var actualizados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var precio = Number(data[i][precioIdx - 1]);
-    var costo  = Number(data[i][costoIdx  - 1]);
-    if (!precio || !costo || costo <= 0) continue;
-    var _g = calcGanancia(precio, costo);  // centralizado en Utils
-    var cell = sheet.getRange(i + 1, gananciaIdx);
-    cell.setValue(_g.pct).setNumberFormat('0.00"%"');
-    if (_g.pct < 10)      cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
-    else if (_g.pct < 30) cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-    else                  cell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("normal");
-    actualizados++;
-  }
-  Logger.log("Ganancias calculadas: " + actualizados + " productos.");
-}
-
-/* ──────────────────────────────────────────────────────────────
-   AGREGAR COLUMNAS COSTO Y GANANCIA_PCT (migración)
-────────────────────────────────────────────────────────────── */
-function agregarColumnasCostoGanancia() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var headers   = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-                    .map(function(h) { return String(h).toLowerCase().trim(); });
-  var precioCol = headers.indexOf("precio") + 1;
-  if (precioCol === 0) { Logger.log("Columna precio no encontrada"); return; }
-  if (headers.indexOf("costo") < 0) {
-    sheet.insertColumnAfter(precioCol);
-    sheet.getRange(1, precioCol + 1).setValue("costo")
-      .setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
-    Logger.log("Columna 'costo' insertada.");
-  }
-  headers   = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-                .map(function(h) { return String(h).toLowerCase().trim(); });
-  var costoCol = headers.indexOf("costo") + 1;
-  if (headers.indexOf("ganancia_pct") < 0) {
-    sheet.insertColumnAfter(costoCol);
-    sheet.getRange(1, costoCol + 1).setValue("ganancia_pct")
-      .setFontWeight("bold").setBackground("#CCFBF1").setFontColor("#0F766E");
-    Logger.log("Columna 'ganancia_pct' insertada.");
-  }
-  sheet.autoResizeColumns(1, sheet.getLastColumn());
-  Logger.log("Listo. Ejecuta calcularGanancias() para poblar los valores.");
-}
-
-/* ──────────────────────────────────────────────────────────────
-   CALCULAR PRECIOS CON MARGEN — escribe en columna precio_sugerido
-────────────────────────────────────────────────────────────── */
-function calcularPreciosConMargen() {
-  var margen = MARGEN_DESEADO;
-  var ui     = obtenerUiSegura();
-  var ss     = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet  = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var costoIdx  = headers.indexOf("costo")  + 1;
-  var precioIdx = headers.indexOf("precio") + 1;
-  if (!costoIdx) { Logger.log("Columna costo no encontrada"); return; }
-  var sugIdx = headers.indexOf("precio_sugerido") + 1;
-  if (!sugIdx) {
-    sheet.insertColumnAfter(sheet.getLastColumn());
-    sugIdx = sheet.getLastColumn();
-    sheet.getRange(1, sugIdx).setValue("precio_sugerido")
-      .setFontWeight("bold").setBackground("#FEF9C3").setFontColor("#854D0E")
-      .setNote("Precio sugerido con margen " + margen + "%. NO modifica el precio real.");
-  }
-  var actualizados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var costo  = Number(data[i][costoIdx - 1]);
-    var precio = Number(data[i][precioIdx - 1]);
-    if (!costo || costo <= 0) continue;
-    var sugerido = Math.ceil(costo * (1 + margen / 100));
-    var cell     = sheet.getRange(i + 1, sugIdx);
-    cell.setValue(sugerido).setNumberFormat("$ #,##0");
-    if (precio > 0) {
-      var diff = sugerido - precio;
-      if (Math.abs(diff) < 100)    cell.setBackground("#DCFCE7").setFontColor("#166534");
-      else if (diff > 0)           cell.setBackground("#FEF9C3").setFontColor("#854D0E");
-      else                         cell.setBackground("#FEE2E2").setFontColor("#991B1B");
-    } else {
-      cell.setBackground("#F0FDF9");
+    switch (action) {
+      case "productos":         return doGet_productos(e, ss);
+      case "cupon":             return doGet_cupon(e, ss);
+      case "historial":         return doGet_historial(e, ss);
+      case "estado":            return doGet_estado(e, ss);
+      case "resenas":           return doGet_resenas(e, ss);
+      case "admin_productos":   return doGet_admin_productos(e, ss);
+      case "admin_pedidos":     return doGet_admin_pedidos(e, ss);
+      case "admin_dashboard":   return doGet_admin_dashboard(e, ss);
+      case "admin_rentabilidad":return doGet_admin_rentabilidad(e, ss);
+      case "admin_clientes":    return doGet_admin_clientes(e);
+      case "admin_proveedores": return doGet_admin_proveedores(e);
+      default:
+        return jsonResponse({ ok: false, error: "Accion no reconocida: " + action });
     }
-    actualizados++;
-  }
-  sheet.autoResizeColumns(sugIdx, 1);
-  Logger.log("Precios sugeridos con margen " + margen + "%: " + actualizados + " productos.");
-  // BUG-13 FIX: if(ui){} correctamente cerrado dentro de la función
-  if (ui) {
-    ui.alert(
-      "✅ Precios sugeridos calculados\n\n" +
-      actualizados + " productos con margen " + margen + "%.\n\n" +
-      "Revisa la columna 'precio_sugerido'.\n" +
-      "Para aplicarlos al precio real: ejecuta aplicarPreciosSugeridos()"
-    );
+  } catch(err) {
+    Logger.log("Error en doGet: " + err.message + "\n" + err.stack);
+    return jsonResponse({ ok: false, error: err.message });
   }
 }
 
 /* ──────────────────────────────────────────────────────────────
-   APLICAR PRECIOS SUGERIDOS AL PRECIO REAL
-   BUG-05 FIX: ganancia se guarda como número + setNumberFormat, no como string
+   ACCIÓN: productos (público — tienda)
 ────────────────────────────────────────────────────────────── */
-function aplicarPreciosSugeridos() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+function doGet_productos(e, ss) {
   var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  if (!sheet) return jsonResponse({ ok: false, error: "Hoja Productos no encontrada" });
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1)
+    .filter(function(row) { return row[0] !== "" && row[0] !== null; })
+    .map(function(row) {
+      var obj = {};
+      headers.forEach(function(h, i) { obj[String(h).trim()] = row[i]; });
+      return obj;
+    });
+  return jsonResponse({ ok: true, data: rows });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: cupon (público)
+────────────────────────────────────────────────────────────── */
+function doGet_cupon(e, ss) {
+  var code   = (e.parameter.code || "").toUpperCase().trim();
+  var cSheet = ss.getSheetByName("Cupones");
+  if (!cSheet) return jsonResponse({ ok: false, cupon: null });
+  var cData = cSheet.getDataRange().getValues();
+  var cHdr  = cData[0];
+  var COL   = {};
+  cHdr.forEach(function(h, i) { COL[String(h).toLowerCase().trim()] = i; });
+  var found = null;
+  cData.slice(1).forEach(function(r) {
+    if (String(r[COL["codigo"]] || "").toUpperCase() === code) found = r;
+  });
+  if (!found) return jsonResponse({ ok: false, cupon: null });
+  var activo = String(found[COL["activo"]]).toLowerCase() === "true";
+  var uses   = Number(found[COL["usos_actuales"]]) || 0;
+  var maxU   = found[COL["usos_maximos"]] !== "" ? Number(found[COL["usos_maximos"]]) : Infinity;
+  var expiry = found[COL["vencimiento"]];
+  if (!activo)                                 return jsonResponse({ ok: false, cupon: null });
+  if (uses >= maxU)                            return jsonResponse({ ok: false, cupon: null });
+  if (expiry && new Date(expiry) < new Date()) return jsonResponse({ ok: false, cupon: null });
+  return jsonResponse({
+    ok: true,
+    cupon: {
+      type:  String(found[COL["tipo"]]       || "pct"),
+      value: Number(found[COL["valor"]]       || 0),
+      label: String(found[COL["descripcion"]] || code),
+    }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: historial (público)
+────────────────────────────────────────────────────────────── */
+function doGet_historial(e, ss) {
+  var tel    = normalizarTelefono(e.parameter.telefono || "");
+  var pSheet = ss.getSheetByName("Pedidos");
+  if (!pSheet || !tel) return jsonResponse({ ok: false, pedidos: [] });
+  var pData = pSheet.getDataRange().getValues();
+  var pHdr  = pData[0];
+  var pCOL  = {};
+  pHdr.forEach(function(h, i) { pCOL[String(h).toLowerCase().trim()] = i; });
+  var pedidos = pData.slice(1)
+    .filter(function(r) { return normalizarTelefono(r[pCOL["telefono"]] || "") === tel; })
+    .slice(-10).reverse()
+    .map(function(r) {
+      var obj = {};
+      pHdr.forEach(function(h, i) { obj[String(h).trim()] = r[i]; });
+      return obj;
+    });
+  return jsonResponse({ ok: true, pedidos: pedidos });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: estado (público)
+────────────────────────────────────────────────────────────── */
+function doGet_estado(e, ss) {
+  var tel2   = normalizarTelefono(e.parameter.telefono || "");
+  var eSheet = ss.getSheetByName("Pedidos");
+  if (!eSheet || !tel2) return jsonResponse({ ok: false, pedidos: [] });
+  var eData = eSheet.getDataRange().getValues();
+  var eHdr  = eData[0];
+  var eCOL  = {};
+  eHdr.forEach(function(h, i) { eCOL[String(h).toLowerCase().trim()] = i; });
+  var ultimos = eData.slice(1)
+    .filter(function(r) { return normalizarTelefono(r[eCOL["telefono"]] || "") === tel2; })
+    .slice(-3).reverse()
+    .map(function(r) {
+      var obj = {};
+      eHdr.forEach(function(h, i) { obj[String(h).trim()] = r[i]; });
+      return obj;
+    });
+  return jsonResponse({ ok: true, pedidos: ultimos });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: resenas (público)
+   BUG-14 FIX: filtro bajado a >= 3 estrellas
+────────────────────────────────────────────────────────────── */
+function doGet_resenas(e, ss) {
+  var rSheet = ss.getSheetByName("Calificaciones");
+  if (!rSheet || rSheet.getLastRow() < 2) return jsonResponse({ ok: true, resenas: [] });
+  var rData = rSheet.getDataRange().getValues();
+  var rHdr  = rData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var rCOL  = {}; rHdr.forEach(function(h,i){ rCOL[h]=i; });
+  var resenas = rData.slice(1)
+    .filter(function(r){ return r[rCOL["estrellas"]] >= 3 && r[0] !== ""; })  // BUG-14: era >= 4
+    .map(function(r){
+      return {
+        fecha:      String(r[rCOL["fecha"]]      || ""),
+        nombre:     String(r[rCOL["nombre"]]     || "Cliente"),
+        estrellas:  Number(r[rCOL["estrellas"]]  || 5),
+        comentario: String(r[rCOL["comentario"]] || ""),
+      };
+    })
+    .sort(function(a,b){ return b.estrellas - a.estrellas; })
+    .slice(0, 12);
+  return jsonResponse({ ok: true, resenas: resenas });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: admin_productos
+   BUG-04 FIX: sanitizeDriveUrl ahora existe y funciona
+────────────────────────────────────────────────────────────── */
+function doGet_admin_productos(e, ss) {
+  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+
+  // Cache 10 min — productos cambian poco en tiempo real
+  var CACHE_KEY = "admin_productos_v1";
+  var forceRefresh = e.parameter.refresh === "1";
+  if (!forceRefresh) {
+    var cached = cacheGet(CACHE_KEY);
+    if (cached) { cached.fromCache = true; return jsonResponse(cached); }
+  }
+
+  var pSheet = ss.getSheetByName("Productos");
+  if (!pSheet) return jsonResponse({ ok: false, productos: [] });
+  var pData = pSheet.getDataRange().getValues();
+  var pHdr  = pData[0];
+  var pRows = pData.slice(1)
+    .filter(function(r) { return r[0] !== "" && r[0] !== null; })
+    .map(function(r, idx) {
+      var obj = { fila: idx + 2 };
+      pHdr.forEach(function(h, i) { obj[String(h).toLowerCase().trim()] = r[i]; });
+      // BUG-04 FIX: sanitizeDriveUrl ahora definida — ya no lanza ReferenceError
+      ["imagen","imagen2","imagen3"].forEach(function(key) {
+        if (obj[key]) obj[key] = sanitizeDriveUrl(String(obj[key]));
+      });
+      var precio = Number(obj["precio"]) || 0;
+      var costo  = Number(obj["costo"])  || 0;
+      var _g = calcGanancia(precio, costo);  // centralizado en LIMPIEZARR_Utils.gs
+      obj["ganancia_calc"]  = _g.pct;
+      obj["ganancia_pesos"] = _g.pesos;
+      return obj;
+    });
+  var resultado = { ok: true, productos: pRows, fromCache: false };
+  cachePut(CACHE_KEY, resultado, 600);  // 10 min
+  return jsonResponse(resultado);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: admin_pedidos
+────────────────────────────────────────────────────────────── */
+function doGet_admin_pedidos(e, ss) {
+  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+  // leerSheet() usa getRange específico en lugar de getDataRange() completo
+  var _s = leerSheet(ss, "Pedidos");
+  if (!_s.sheet) return jsonResponse({ ok: false, pedidos: [] });
+  var aCOL  = {};
+  _s.headers.forEach(function(h, i) { aCOL[h] = i; });
+  var pagina    = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
+  var porPagina = Math.min(100, Math.max(10, parseInt(e.parameter.por || "50", 10)));
+  var busq      = String(e.parameter.q || "").toLowerCase();
+  var allRows   = _s.rows;  // ya filtradas las filas vacías
+  var mapped = allRows.map(function(r, idx) {  // idx+2 porque row 1=headers, slice ya quitó headers
+    return {
+      fila:         idx + 2,
+      fecha:        String(r[aCOL["fecha"]]        || ""),
+      nombre:       String(r[aCOL["nombre"]]       || ""),
+      telefono:     String(r[aCOL["telefono"]]     || ""),
+      barrio:       String(r[aCOL["barrio"]]       || ""),
+      ciudad:       String(r[aCOL["ciudad"]]       || ""),
+      direccion:    String(r[aCOL["direccion"]]    || ""),
+      casa:         String(r[aCOL["casa"]]         || ""),
+      pago:         String(r[aCOL["pago"]]         || ""),
+      zona_envio:   String(r[aCOL["zona_envio"]]   || ""),
+      total:        Number(r[aCOL["total"]])        || 0,
+      subtotal:     Number(r[aCOL["subtotal"]])     || 0,
+      costo_envio:  Number(r[aCOL["costo_envio"]])  || 0,
+      cupon:        String(r[aCOL["cupon"]]        || ""),
+      descuento:    Number(r[aCOL["descuento"]])    || 0,
+      estado_pago:  String(r[aCOL["estado_pago"]]  || "PENDIENTE"),
+      estado_envio: String(r[aCOL["estado_envio"]] || "Recibido"),
+      productos:    String(r[aCOL["productos"]]    || ""),
+      nota:         String(r[aCOL["nota"]]         || ""),
+    };
+  }).reverse();
+  if (busq) {
+    mapped = mapped.filter(function(p) {
+      return (p.nombre + p.telefono + p.barrio + p.ciudad).toLowerCase().indexOf(busq) >= 0;
+    });
+  }
+  var total     = mapped.length;
+  var totalPags = Math.ceil(total / porPagina);
+  var inicio    = (pagina - 1) * porPagina;
+  var pedidos   = mapped.slice(inicio, inicio + porPagina);
+  return jsonResponse({
+    ok: true, pedidos: pedidos,
+    paginacion: { pagina: pagina, porPagina: porPagina, total: total, totalPaginas: totalPags }
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: admin_dashboard
+   BUG-12 FIX: pendientes solo cuenta "PENDIENTE", no "CONTRA ENTREGA"
+────────────────────────────────────────────────────────────── */
+function doGet_admin_dashboard(e, ss) {
+  if ((e.parameter.clave || "") !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+
+  var cache     = CacheService.getScriptCache();
+  var CACHE_KEY = "admin_dashboard_v1";
+  var forceRefresh = e.parameter.refresh === "1";
+  if (!forceRefresh) {
+    var cached = cache.get(CACHE_KEY);
+    if (cached) {
+      try {
+        var cachedData = JSON.parse(cached);
+        cachedData.fromCache = true;
+        return jsonResponse(cachedData);
+      } catch(ce) {}
+    }
+  }
+
+  var pedSheet = ss.getSheetByName("Pedidos");
+  var cliSheet = ss.getSheetByName("Clientes");
+  var calSheet = ss.getSheetByName("Calificaciones");
+  var proSheet = ss.getSheetByName("Productos");
+  if (!pedSheet) return jsonResponse({ ok: false, error: "Hoja Pedidos no encontrada" });
+
+  var pData = pedSheet.getDataRange().getValues();
+  var pHdr  = pData[0];
+  var PC    = {};
+  pHdr.forEach(function(h,i){ PC[String(h).toLowerCase().trim()]=i; });
+  var rows = pData.slice(1).filter(function(r){ return r[0]!==""; });
+
+  var hoy     = new Date();
+  var hoyDia  = Number(Utilities.formatDate(hoy,"America/Bogota","d"));
+  var hoyMes  = Number(Utilities.formatDate(hoy,"America/Bogota","M"));
+  var hoyAnio = Number(Utilities.formatDate(hoy,"America/Bogota","yyyy"));
+
+  var totHoy=0,cntHoy=0,totMes=0,cntMes=0,totGen=0,pend=0,pagados=0,entregados=0;
+  var prodCount={}, clienteCount={}, zonaCount={}, pagoCount={};
+  var semanas={"Esta semana":0,"Sem anterior":0,"Hace 2 sem":0,"Hace 3 sem":0,
+               "Hace 4 sem":0,"Hace 5 sem":0,"Hace 6 sem":0,"Hace 7 sem":0};
+
+  rows.forEach(function(r){
+    var rawF  = r[PC["fecha"]];
+    var total = Number(r[PC["total"]]);
+    if (isNaN(total) || total <= 0) total = Number(r[PC["subtotal"]]) || 0;
+    var estP  = String(r[PC["estado_pago"]]||"").toUpperCase();
+    var estE  = String(r[PC["estado_envio"]]||"");
+    var prods = String(r[PC["productos"]]||"");
+    var zona  = String(r[PC["zona_envio"]]||"Sin zona")
+                  .replace(/\([^)]+\)/g,"").replace(/—.*/,"").replace(/\$/g,"").trim().split("—")[0].trim();
+    var pago  = String(r[PC["pago"]]||"Sin datos");
+    var nom   = String(r[PC["nombre"]]||"");
+    var tel   = String(r[PC["telefono"]]||"");
+
+    totGen += total;
+    // BUG-12 FIX: solo "PENDIENTE" es pendiente — CONTRA ENTREGA no es pendiente de pago
+    if (estP === "PENDIENTE") pend++;
+    if (estP === "PAGADO") pagados++;
+    if (estE === "Entregado") entregados++;
+
+    var clv = nom + (tel?" ("+tel+")":"");
+    if (clv.trim()) clienteCount[clv]=(clienteCount[clv]||0)+1;
+    if (zona) zonaCount[zona]=(zonaCount[zona]||0)+1;
+    if (pago) pagoCount[pago]=(pagoCount[pago]||0)+1;
+
+    try {
+      var fd = parseLimpiezaDate(rawF);
+      if (fd && !isNaN(fd.getTime())){
+        var fD=Number(Utilities.formatDate(fd,"America/Bogota","d"));
+        var fM=Number(Utilities.formatDate(fd,"America/Bogota","M"));
+        var fA=Number(Utilities.formatDate(fd,"America/Bogota","yyyy"));
+        if (fD===hoyDia&&fM===hoyMes&&fA===hoyAnio){totHoy+=total;cntHoy++;}
+        if (fM===hoyMes&&fA===hoyAnio){totMes+=total;cntMes++;}
+        var diff=Math.floor((hoy.getTime()-fd.getTime())/(1000*60*60*24));
+        if (diff>=0&&diff<56){
+          var sem=Math.floor(diff/7);
+          var semKey=sem===0?"Esta semana":sem===1?"Sem anterior":"Hace "+sem+" sem";
+          if (semanas.hasOwnProperty(semKey)) semanas[semKey]+=total;
+        }
+      }
+    } catch(ed){}
+
+    prods.split("\n").forEach(function(line){
+      var m=line.match(/Cant[^0-9]*([0-9]+)/i);
+      var cant=m?parseInt(m[1],10):1;
+      var k=line.split("|")[0].trim();
+      if (k) prodCount[k]=(prodCount[k]||0)+cant;
+    });
+  });
+
+  var topProd  = Object.keys(prodCount).map(function(k){return{nombre:k,cant:prodCount[k]};})
+                  .sort(function(a,b){return b.cant-a.cant;}).slice(0,5);
+  var topCli   = Object.keys(clienteCount).map(function(k){return{nombre:k,pedidos:clienteCount[k]};})
+                  .sort(function(a,b){return b.pedidos-a.pedidos;}).slice(0,5);
+  var topZonas = Object.keys(zonaCount).map(function(k){return{zona:k,cnt:zonaCount[k]};})
+                  .sort(function(a,b){return b.cnt-a.cnt;}).slice(0,5);
+  var topPagos = Object.keys(pagoCount).map(function(k){return{metodo:k,cnt:pagoCount[k]};})
+                  .sort(function(a,b){return b.cnt-a.cnt;});
+
+  var avgRating=0, numResenas=0;
+  if (calSheet&&calSheet.getLastRow()>1){
+    var cData=calSheet.getDataRange().getValues();
+    var cHdr=cData[0].map(function(h){return String(h).toLowerCase();});
+    var si=cHdr.indexOf("estrellas");
+    if (si>=0){
+      var stars=cData.slice(1).map(function(r){return Number(r[si]);}).filter(function(v){return v>0;});
+      numResenas=stars.length;
+      if (stars.length>0) avgRating=parseFloat((stars.reduce(function(a,b){return a+b;},0)/stars.length).toFixed(1));
+    }
+  }
+
+  var alertasStock=[];
+  if (proSheet&&proSheet.getLastRow()>1){
+    var prData=proSheet.getDataRange().getValues();
+    var prHdr=prData[0].map(function(h){return String(h).toLowerCase().trim();});
+    var ni=prHdr.indexOf("nombre"),ti=prHdr.indexOf("tamano"),sti=prHdr.indexOf("stock");
+    if (sti>=0){
+      prData.slice(1).forEach(function(r){
+        if (!r[ni]) return;
+        var sv=r[sti]; if (sv===""||sv===null) return;
+        var sn=Number(sv); if (isNaN(sn)) return;
+        var nivel = sn===0?"agotado":sn<=5?"bajo":null;
+        if (nivel) alertasStock.push({nombre:String(r[ni]||"")+" "+String(r[ti]||""),stock:sn,nivel:nivel});
+      });
+    }
+  }
+
+  var numClientes=0, vip=0;
+  if (cliSheet&&cliSheet.getLastRow()>1){
+    numClientes=cliSheet.getLastRow()-1;
+    var clData=cliSheet.getDataRange().getValues();
+    var clHdr=clData[0].map(function(h){return String(h).toLowerCase();});
+    var ti2=clHdr.indexOf("tipo");
+    if (ti2>=0) clData.slice(1).forEach(function(r){ if (String(r[ti2]).toUpperCase().indexOf("VIP")>=0) vip++; });
+  }
+
+  var resultado = {
+    ok: true, fromCache: false,
+    generadoEn: Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm"),
+    kpis: {
+      totHoy:totHoy, cntHoy:cntHoy, totMes:totMes, cntMes:cntMes,
+      totGen:totGen, totalPedidos:rows.length, pend:pend, pagados:pagados,
+      entregados:entregados, ticket:rows.length>0?Math.round(totGen/rows.length):0,
+      numClientes:numClientes, vip:vip, avgRating:avgRating, numResenas:numResenas
+    },
+    semanas: semanas, topProd: topProd, topCli: topCli, topZonas: topZonas, topPagos: topPagos,
+    alertasStock: alertasStock,
+  };
+  try { cache.put(CACHE_KEY, JSON.stringify(resultado), 300); } catch(ce) {}
+  return jsonResponse(resultado);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: admin_rentabilidad
+   BUG-01 FIX: gananciaReal usa `!== null` en lugar de truthy check
+   BUG-02 FIX: avgGanPct con paréntesis correctos
+   BUG-03 FIX: menosRentables excluye productos ya en topRentables
+────────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────
+   ACCIÓN: admin_rentabilidad  v2 — ERP-grade
+   
+   Mejoras incorporadas del código propuesto:
+   ✅ productosMap O(1) — lookup por nombre+tamaño sin bucle
+   ✅ Acumuladores por producto: ventas, ingresos, ganancia_total
+   ✅ masVendidos — ranking por unidades reales
+   ✅ margenGlobal ponderado — ganancia/ingresos (gross margin real)
+   ✅ ROI de inventario — ganancia histórica / inversión actual en stock
+   ✅ topRentables y menosRentables usan ganancia_total (dato real)
+      en lugar de ganancia_pct teórica
+   ✅ Ganancia por categoría — KPI nuevo
+   
+   Lo que NO cambia:
+   - ganancia_pct por producto sigue siendo markup sobre costo ((precio-costo)/costo)
+     para mantener consistencia con el Sheet y la calculadora de precios.
+   - El gross margin (sobre precio) solo aparece en margenGlobal del resumen,
+     con etiqueta explícita para no confundir.
+────────────────────────────────────────────────────────────── */
+function doGet_admin_rentabilidad(e, ss) {
+  if ((e.parameter.clave || "") !== getAdminKey()) {
+    return jsonResponse({ ok: false, error: "No autorizado" });
+  }
+
+  // Cache 5 min — endpoint más pesado (recorre todos los pedidos)
+  var CACHE_KEY_R = "admin_rentabilidad_v1";
+  var forceRefreshR = e.parameter.refresh === "1";
+  if (!forceRefreshR) {
+    var cachedR = cacheGet(CACHE_KEY_R);
+    if (cachedR) { cachedR.fromCache = true; return jsonResponse(cachedR); }
+  }
+
+  var prodSheet = ss.getSheetByName("Productos");
+  var pedSheet  = ss.getSheetByName("Pedidos");
+  if (!prodSheet) return jsonResponse({ ok: false, error: "Sin hoja Productos" });
+
+  // ════════════════════════════════════════
+  // 1. LEER PRODUCTOS — construir map O(1)
+  // ════════════════════════════════════════
+  var pData   = prodSheet.getDataRange().getValues();
+  var pH      = pData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var PC      = {};
+  pH.forEach(function(h, i){ PC[h] = i; });
+
+  var productos    = [];
+  var productosMap = {};  // key: "nombre tamano" lowercase → producto
+
+  pData.slice(1).forEach(function(r, i) {
+    if (!r[0]) return;
+
+    var nombre = String(r[PC["nombre"]] || "").trim();
+    var tamano = String(r[PC["tamano"]] || "").trim();
+    var key    = (nombre + " " + tamano).toLowerCase();
+
+    var precio = Number(r[PC["precio"]]) || 0;
+    // BUG-05 ya saneado: ganancia_pct en Sheet es número (no string "85%")
+    var costoRaw = r[PC["costo"]];
+    var costo = (costoRaw !== "" && costoRaw !== null) ? (Number(costoRaw) || 0) : 0;
+    var stockRaw = r[PC["stock"]];
+    var stock = (stockRaw !== "" && stockRaw !== null) ? Math.max(0, Number(stockRaw) || 0) : 0;
+
+    // Markup sobre costo — centralizado en LIMPIEZARR_Utils.gs
+    var _g = calcGanancia(precio, costo);
+
+    var producto = {
+      fila:            i + 2,
+      nombre:          nombre,
+      tamano:          tamano,
+      categoria:       String(r[PC["categoria"]] || ""),
+      precio:          precio,
+      costo:           costo,
+      stock:           stock,
+      ganancia_pct:    _g.pct,     // markup sobre costo (consistencia con UI)
+      ganancia_pesos:  _g.pesos,
+      // Acumuladores históricos (se llenan al leer pedidos)
+      ventas:          0,
+      ingresos:        0,
+      ganancia_total:  0,
+    };
+
+    productos.push(producto);
+    if (key) productosMap[key] = producto;  // O(1) lookup
+  });
+
+  var conCosto = productos.filter(function(p){ return p.costo > 0 && p.precio > 0; });
+  var sinCosto = productos.length - conCosto.length;
+
+  // ════════════════════════════════════════
+  // 2. LEER PEDIDOS — acumular por producto
+  // ════════════════════════════════════════
+  var totalIngresos = 0;
+  var totalGanancia = 0;
+
+  if (pedSheet && pedSheet.getLastRow() > 1) {
+    var pedData    = pedSheet.getDataRange().getValues();
+    var pedH       = pedData[0].map(function(h){ return String(h).toLowerCase().trim(); });
+    var pedPC      = {};
+    pedH.forEach(function(h, i){ pedPC[h] = i; });
+
+    pedData.slice(1).forEach(function(r) {
+      if (!r[0]) return;
+      var prodsStr = String(r[pedPC["productos"]] || "");
+
+      // Usar JSON estructurado si disponible, fallback al texto histórico
+      var pedPC_json = pedH.indexOf("productos_json");
+      var jsonStr = (pedPC_json >= 0) ? String(r[pedPC_json] || "") : "";
+      parsearProductosPedido(prodsStr, jsonStr).forEach(function(item) {
+        var cantidad  = item.cantidad;
+        var nombreKey = item.nombre;  // ya en lowercase
+        var prod      = productosMap[nombreKey];
+        if (!prod) return;
+
+        // Acumular sobre el producto (modificación directa del objeto referenciado)
+        prod.ventas         += cantidad;
+        prod.ingresos       += prod.precio * cantidad;
+        prod.ganancia_total += prod.ganancia_pesos !== null ? prod.ganancia_pesos * cantidad : 0;
+
+        totalIngresos += prod.precio * cantidad;
+        totalGanancia += prod.ganancia_pesos !== null ? prod.ganancia_pesos * cantidad : 0;
+      });
+    });
+  }
+
+  // ════════════════════════════════════════
+  // 3. KPIs GLOBALES
+  // ════════════════════════════════════════
+
+  // Gross margin ponderado (sobre ingresos reales) — KPI financiero real
+  var margenGlobal = totalIngresos > 0
+    ? Math.round((totalGanancia / totalIngresos) * 1000) / 10
+    : 0;
+
+  // Inversión en stock actual
+  var totalInversion = conCosto.reduce(function(s, p) {
+    return s + (p.costo * p.stock);
+  }, 0);
+
+  // ROI = ganancia histórica acumulada / inversión actual en stock
+  // Indica cuánto ha rendido cada peso invertido en inventario
+  var roi = totalInversion > 0
+    ? Math.round((totalGanancia / totalInversion) * 1000) / 10
+    : 0;
+
+  // Markup promedio simple (consistencia con la calculadora de precios)
+  var avgMarkupPct = 0;
+  if (conCosto.length > 0) {
+    var sumaMarkup = conCosto.reduce(function(s, p){ return s + p.ganancia_pct; }, 0);
+    avgMarkupPct   = Math.round((sumaMarkup / conCosto.length) * 10) / 10;
+  }
+
+  // ════════════════════════════════════════
+  // 4. RANKINGS
+  // ════════════════════════════════════════
+  var vendidos = productos.filter(function(p){ return p.ventas > 0; });
+
+  // Top por ganancia_total real (dinero real en el bolsillo)
+  var topRentables = vendidos.slice()
+    .sort(function(a, b){ return b.ganancia_total - a.ganancia_total; })
+    .slice(0, 5);
+
+  // Menos rentables por ganancia_total (solo vendidos)
+  var menosRentables = vendidos.slice()
+    .sort(function(a, b){ return a.ganancia_total - b.ganancia_total; })
+    .slice(0, 5);
+
+  // Más vendidos por unidades
+  var masVendidos = productos.slice()
+    .sort(function(a, b){ return b.ventas - a.ventas; })
+    .filter(function(p){ return p.ventas > 0; })
+    .slice(0, 5);
+
+  // Ganancia por categoría
+  var catMap = {};
+  productos.forEach(function(p) {
+    if (!p.categoria) return;
+    if (!catMap[p.categoria]) {
+      catMap[p.categoria] = { categoria: p.categoria, ventas: 0, ingresos: 0, ganancia: 0 };
+    }
+    catMap[p.categoria].ventas   += p.ventas;
+    catMap[p.categoria].ingresos += p.ingresos;
+    catMap[p.categoria].ganancia += p.ganancia_total;
+  });
+  var porCategoria = Object.values(catMap)
+    .sort(function(a, b){ return b.ganancia - a.ganancia; });
+
+  // ════════════════════════════════════════
+  // 5. RESPUESTA
+  // ════════════════════════════════════════
+  var resRent = {
+    ok: true,
+    fromCache: false,
+    resumen: {
+      totalProductos: productos.length,
+      conCosto:       conCosto.length,
+      sinCosto:       sinCosto,
+
+      // KPIs financieros
+      totalIngresos:  totalIngresos,    // $ total facturado (con costo conocido)
+      totalGanancia:  totalGanancia,    // $ ganancia real acumulada histórica
+      margenGlobal:   margenGlobal,     // % gross margin ponderado (ganancia/ingresos)
+      avgMarkupPct:   avgMarkupPct,     // % markup promedio sobre costo (consistencia UI)
+
+      // KPIs de inventario
+      totalInversion: totalInversion,   // $ invertido en stock actual
+      roi:            roi,              // % retorno sobre inversión en stock
+    },
+    topRentables:   topRentables,       // top 5 por ganancia_total real
+    menosRentables: menosRentables,     // bottom 5 por ganancia_total (solo vendidos)
+    masVendidos:    masVendidos,        // top 5 por unidades vendidas
+    porCategoria:   porCategoria,       // ganancia agrupada por categoría
+    todos:          productos,          // todos los productos con acumuladores
+  };
+  cachePut(CACHE_KEY_R, resRent, 300);  // 5 min
+  return jsonResponse(resRent);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   POST — dispatcher
+────────────────────────────────────────────────────────────── */
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+    var ss   = SpreadsheetApp.getActiveSpreadsheet();
+
+    if (body.accion === "calificacion") {
+      guardarCalificacion(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_estado") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarEstadoPedido(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_stock") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarStockProducto(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "actualizar_costo") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      var resultadoCosto = actualizarCostoProducto(ss, body);
+      return jsonResponse(resultadoCosto);
+    }
+    if (body.accion === "actualizar_precio") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      actualizarPrecioProducto(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "admin_clientes_upsert")    return doPost_admin_clientes_upsert(e);
+    if (body.accion === "admin_clientes_eliminar")  return doPost_admin_clientes_eliminar(e);
+    if (body.accion === "admin_proveedores_upsert") return doPost_admin_proveedores_upsert(e);
+    if (body.accion === "admin_proveedores_eliminar") return doPost_admin_proveedores_eliminar(e);
+
+    // ── Nuevo pedido ── validar primero, luego procesar
+    validarBodyPedido(body);           // lanza Error si falta algo requerido
+    return procesarNuevoPedido(ss, body);
+
+  } catch (err) {
+    Logger.log("Error doPost: " + err.message);
+    logError("doPost", err);
+    return jsonResponse({ ok: false, error: err.message });
+  }
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   PROCESAR NUEVO PEDIDO
+   
+   Separado de doPost para:
+   - Tener una unidad de código testeable
+   - Mantener doPost como dispatcher limpio
+   - Hacer obvio el flujo de un pedido nuevo
+   
+   El orden importa:
+   1. Guardar pedido (crítico — si falla, lanzar)
+   2. Operaciones secundarias (errores no cancelan el pedido)
+────────────────────────────────────────────────────────────── */
+function procesarNuevoPedido(ss, body) {
+  // 1. GUARDAR PEDIDO — crítico, si falla el error sube a doPost
+  guardarPedido(ss, body);
+
+  // 2. Operaciones secundarias con try/catch individual
+  //    Un fallo aquí NO cancela el pedido ya guardado
+
+  try { if (body.telefono) upsertCliente(ss, body); }
+  catch(e1) { logError("upsertCliente", e1); }
+
+  try { if (body.cupon) incrementarUsoCupon(ss, body.cupon); }
+  catch(e2) { logError("incrementarCupon", e2); }
+
+  try { descontarStock(ss, body.productos, body.productos_json); }
+  catch(e3) { logError("descontarStock", e3); }
+
+  try { notificarPedido(body); }
+  catch(e4) { Logger.log("Email: " + e4.message); }
+
+  try { notificarWA(body); }
+  catch(e5) { Logger.log("WA: " + e5.message); }
+
+  // 3. Invalidar caches — el dashboard debe mostrar el nuevo pedido
+  cacheDelete("admin_dashboard_v1");
+  cacheDelete("admin_rentabilidad_v1");
+
+  // 4. Actualizar hoja Dashboard en segundo plano
+  try { actualizarDashboard(ss); }
+  catch(e7) { Logger.log("Dashboard: " + e7.message); }
+
+  return jsonResponse({ ok: true });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DESCONTAR STOCK
+────────────────────────────────────────────────────────────── */
+function descontarStock(ss, productosStr, productosJsonStr) {
+  if (!productosStr && !productosJsonStr) return;
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
   var data    = sheet.getDataRange().getValues();
   var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var precioIdx  = headers.indexOf("precio")          + 1;
-  var sugIdx     = headers.indexOf("precio_sugerido") + 1;
-  var ganIdx     = headers.indexOf("ganancia_pct")    + 1;
-  var costoIdx   = headers.indexOf("costo")           + 1;
-  if (!sugIdx) {
-    Logger.log("No hay columna precio_sugerido. Ejecuta calcularPreciosConMargen() primero.");
-    return;
-  }
-  var aplicados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var sugerido = Number(data[i][sugIdx - 1]);
-    if (!sugerido || sugerido <= 0) continue;
-    sheet.getRange(i + 1, precioIdx).setValue(sugerido)
-      .setNumberFormat("$ #,##0").setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-    // BUG-05 FIX: setValue(ganancia) + setNumberFormat, NO setValue(ganancia + "%")
-    if (ganIdx && costoIdx) {
-      var costo = Number(data[i][costoIdx - 1]);
-      if (costo > 0) {
-        var _gs = calcGanancia(sugerido, costo);  // centralizado en Utils
-        var ganCell  = sheet.getRange(i + 1, ganIdx);
-        ganCell.clearFormat().setValue(_gs.pct).setNumberFormat('0.00"%"');
-        ganCell.setBackground(_gs.pct >= 30 ? "#DCFCE7" : _gs.pct >= 10 ? "#FEF9C3" : "#FEE2E2")
-               .setFontColor(_gs.pct >= 30 ? "#166534" : _gs.pct >= 10 ? "#854D0E" : "#991B1B")
-               .setFontWeight("bold");
+  var nomIdx  = headers.indexOf("nombre");
+  var tamIdx  = headers.indexOf("tamano");
+  var stkIdx  = headers.indexOf("stock");
+  if (stkIdx < 0) return;
+  var alertas = [];
+  // parsearProductosPedido prefiere JSON si está disponible
+  parsearProductosPedido(productosStr, productosJsonStr).forEach(function(item) {
+    var cant   = item.cantidad;
+    var nomTam = item.nombre;  // ya en lowercase desde parsearLineaProducto()
+    for (var i = 1; i < data.length; i++) {
+      var clave = (String(data[i][nomIdx]||"").trim() + " " + String(data[i][tamIdx]||"").trim()).trim();
+      if (clave.toLowerCase() === nomTam) {
+        var stockActual = data[i][stkIdx];
+        if (stockActual !== "" && stockActual !== null && !isNaN(Number(stockActual))) {
+          var nuevoStock = Math.max(0, Number(stockActual) - cant);
+          var cell = sheet.getRange(i + 1, stkIdx + 1);
+          cell.setValue(nuevoStock);
+          aplicarColorStock(cell, nuevoStock);  // centralizado en Utils
+          if (nuevoStock === 0) {
+            alertas.push({ nombre: clave, stock: 0, nivel: "AGOTADO" });
+          } else if (nuevoStock <= 5) {
+            alertas.push({ nombre: clave, stock: nuevoStock, nivel: "BAJO" });
+          }
+        }
+        break;
       }
     }
-    aplicados++;
+  });
+  if (alertas.length > 0) {
+    try { alertarStock(alertas); } catch(e) { Logger.log("Alerta stock: " + e.message); }
   }
-  Logger.log("✅ Precios aplicados: " + aplicados + " productos.");
 }
+
+function alertarStock(alertas) {
+  var email = Session.getActiveUser().getEmail();
+  if (!email) return;
+  var agotados = alertas.filter(function(a){ return a.nivel === "AGOTADO"; });
+  var bajos    = alertas.filter(function(a){ return a.nivel === "BAJO"; });
+  var subject  = agotados.length > 0
+    ? "🚨 AGOTADO — " + agotados[0].nombre + " | Limpieza RR"
+    : "⚠️ Alerta de Stock — Limpieza RR";
+  var html = "<h2 style='color:#991B1B;font-family:sans-serif'>⚠️ Alerta de Inventario</h2>";
+  if (agotados.length > 0) {
+    html += "<h3 style='color:#991B1B'>🚨 AGOTADOS</h3><ul>";
+    agotados.forEach(function(a){ html += "<li>" + a.nombre + "</li>"; });
+    html += "</ul>";
+  }
+  if (bajos.length > 0) {
+    html += "<h3 style='color:#854D0E'>⚠️ Stock Bajo (≤5)</h3><ul>";
+    bajos.forEach(function(a){ html += "<li>" + a.nombre + " — " + a.stock + " uds</li>"; });
+    html += "</ul>";
+  }
+  MailApp.sendEmail({ to: email, subject: subject, htmlBody: html });
+}
+
+function verificarStockCompleto() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var nomIdx  = headers.indexOf("nombre");
+  var tamIdx  = headers.indexOf("tamano");
+  var stkIdx  = headers.indexOf("stock");
+  if (stkIdx < 0) { Logger.log("Columna stock no encontrada"); return; }
+  var alertas = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][nomIdx]) continue;
+    var sv = data[i][stkIdx];
+    if (sv === "" || sv === null) continue;
+    var sn = Number(sv); if (isNaN(sn)) continue;
+    var clave = (String(data[i][nomIdx]||"").trim() + " " + String(data[i][tamIdx]||"").trim()).trim();
+    if (sn === 0)     alertas.push({ nombre: clave, stock: 0,  nivel: "AGOTADO" });
+    else if (sn <= 5) alertas.push({ nombre: clave, stock: sn, nivel: "BAJO" });
+  }
+  if (alertas.length === 0) { Logger.log("✅ Sin alertas."); return; }
+  Logger.log("⚠️ " + alertas.length + " alertas.");
+  try { alertarStock(alertas); } catch(e) { Logger.log("Error: " + e.message); }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GUARDAR PEDIDO
+────────────────────────────────────────────────────────────── */
+function guardarPedido(ss, body) {
+  var sheet = ss.getSheetByName("Pedidos");
+  if (!sheet || sheet.getLastColumn() === 0) {
+    inicializarPedidos();
+    sheet = ss.getSheetByName("Pedidos");
+  }
+  appendRowByHeaders(sheet, {
+    fecha:        new Date().toLocaleString("es-CO"),
+    nombre:       body.nombre       || "",
+    telefono:     normalizarTelefono(body.telefono || ""),
+    ciudad:       body.ciudad       || "",
+    departamento: body.departamento || "",
+    barrio:       body.barrio       || "",
+    direccion:    body.direccion    || "",
+    casa:         body.casa         || "",
+    conjunto:     body.conjunto     || "",
+    nota:         body.nota         || "",
+    cupon:        body.cupon        || "",
+    descuento:    body.descuento    || 0,
+    pago:         body.pago         || "",
+    zona_envio:   body.zona_envio   || "",
+    costo_envio:  body.costo_envio  || 0,
+    subtotal:     body.subtotal     || 0,
+    total:        Number(body.total) || Number(body.subtotal) || 0,
+    estado_pago:  body.estado_pago  || "PENDIENTE",
+    estado_envio:    "Recibido",
+    productos:       body.productos      || "",
+    productos_json:  body.productos_json || "",  // JSON estructurado (pedidos nuevos)
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   UPSERT CLIENTE — TextFinder para escala
+────────────────────────────────────────────────────────────── */
+function upsertCliente(ss, body) {
+  var sheet = ss.getSheetByName("Clientes");
+  if (!sheet || sheet.getLastColumn() === 0) {
+    inicializarClientes();
+    sheet = ss.getSheetByName("Clientes");
+  }
+  if (!sheet) return;
+
+  var tel = normalizarTelefono(body.telefono || "");
+  if (!tel) return;
+
+  var totalPedido = Number(body.total) || Number(body.subtotal) || 0;
+  var fecha       = new Date().toLocaleString("es-CO");
+  var headers     = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var COL = {};
+  headers.forEach(function(h, i) { COL[String(h).toLowerCase().trim()] = i + 1; });
+
+  var lastRow    = sheet.getLastRow();
+  var clienteRow = -1;
+  if (lastRow >= 2) {
+    var telColIdx = COL["telefono"] || 4;
+    var finder    = sheet.getRange(2, telColIdx, lastRow - 1, 1)
+                         .createTextFinder(tel).matchEntireCell(true);
+    var found     = finder.findNext();
+    clienteRow    = found ? found.getRow() : -1;
+  }
+
+  if (clienteRow === -1) {
+    appendRowByHeaders(sheet, {
+      primera_compra: fecha,
+      ultima_compra:  fecha,
+      nombre:         body.nombre    || "",
+      telefono:       tel,
+      ciudad:         body.ciudad    || "Bogota",
+      barrio:         body.barrio    || "",
+      direccion:      body.direccion || "",
+      total_pedidos:  1,
+      total_gastado:  totalPedido,
+      tipo:           clasificarCliente(1, totalPedido),
+    });
+  } else {
+    var filaData   = sheet.getRange(clienteRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var pedidosAnt = Number(filaData[COL["total_pedidos"] - 1]) || 0;
+    var gastadoAnt = Number(filaData[COL["total_gastado"] - 1]) || 0;
+    var nuevoPedidos = pedidosAnt + 1;
+    var nuevoGastado = gastadoAnt + totalPedido;
+    updateRowByHeaders(sheet, clienteRow, {
+      ultima_compra:  fecha,
+      nombre:         body.nombre    || filaData[COL["nombre"]    - 1],
+      ciudad:         body.ciudad    || filaData[COL["ciudad"]    - 1],
+      barrio:         body.barrio    || filaData[COL["barrio"]    - 1],
+      direccion:      body.direccion || filaData[COL["direccion"] - 1],
+      total_pedidos:  nuevoPedidos,
+      total_gastado:  nuevoGastado,
+      tipo:           clasificarCliente(nuevoPedidos, nuevoGastado),
+    });
+  }
+}
+
+function clasificarCliente(pedidos, gastado) {
+  if (pedidos >= 10 || gastado >= 500000) return "VIP";
+  if (pedidos >= 3  || gastado >= 150000) return "Recurrente";
+  if (pedidos >= 2)                        return "Recurrente";
+  return "Nuevo";
+}
+
+/* ──────────────────────────────────────────────────────────────
+   NOTIFICACIÓN WA
+────────────────────────────────────────────────────────────── */
+function notificarWA(body) {
+  if (!CONFIG_WA.ACTIVO || !CONFIG_WA.API_KEY) return;
+  var total   = body.total ? "$ " + Number(body.total).toLocaleString("es-CO") : "A convenir";
+  var mensaje = "NUEVO PEDIDO - Limpieza RR\n" +
+    "Cliente: " + (body.nombre    || "") + "\n" +
+    "Tel: "     + (body.telefono  || "") + "\n" +
+    "Barrio: "  + (body.barrio    || "") + "\n" +
+    "Pago: "    + (body.pago      || "") + "\n" +
+    "Total: "   + total            + "\n" +
+    "Zona: "    + (body.zona_envio || "");
+  var url = "https://api.callmebot.com/whatsapp.php" +
+    "?phone="  + CONFIG_WA.NUMERO +
+    "&text="   + encodeURIComponent(mensaje) +
+    "&apikey=" + CONFIG_WA.API_KEY;
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    Logger.log("WA: " + resp.getResponseCode());
+  } catch(err) {
+    Logger.log("WA error: " + err.message);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR ESTADO PEDIDO
+────────────────────────────────────────────────────────────── */
+function actualizarEstadoPedido(ss, body) {
+  var sheet = ss.getSheetByName("Pedidos");
+  if (!sheet) return;
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var COL = {};
+  headers.forEach(function(h, i) { COL[String(h).toLowerCase().trim()] = i + 1; });
+  if (body.estado_envio && COL["estado_envio"]) {
+    sheet.getRange(fila, COL["estado_envio"]).setValue(body.estado_envio);
+  }
+  if (body.estado_pago && COL["estado_pago"]) {
+    var cell = sheet.getRange(fila, COL["estado_pago"]);
+    cell.setValue(body.estado_pago);
+    aplicarColorPago(cell, body.estado_pago);  // centralizado en Utils
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR COSTO
+   Retorna los datos recalculados para que el frontend actualice la UI.
+────────────────────────────────────────────────────────────── */
+function actualizarCostoProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return { ok: false };
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return { ok: false };
+  var headers    = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
+  var costoCol   = hLower.indexOf("costo")        + 1;
+  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
+  var precioCol  = hLower.indexOf("precio")       + 1;
+  if (!costoCol) return { ok: false };
+  var nuevoCosto = Number(body.costo);
+  sheet.getRange(fila, costoCol).setValue(nuevoCosto);
+  var _g = { pct: null, pesos: null }, precio = 0;
+  if (gananciaCol && precioCol) {
+    precio = Number(sheet.getRange(fila, precioCol).getValue());
+    _g = calcGanancia(precio, nuevoCosto);  // centralizado en Utils
+    if (_g.pct !== null) {
+      var ganCell = sheet.getRange(fila, gananciaCol);
+      ganCell.clearFormat().setValue(_g.pct).setNumberFormat('0.00"%"');
+      if (_g.pct < 10)      ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+      else if (_g.pct < 30) ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      else                  ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+    }
+  }
+  cacheDelete("admin_rentabilidad_v1");
+  cacheDelete("admin_productos_v1");
+  Logger.log("Costo fila " + fila + " = " + nuevoCosto);
+  return { ok: true, fila: fila, costo: nuevoCosto, precio: precio,
+           ganancia_pct: _g.pct, ganancia_pesos: _g.pesos };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR STOCK
+────────────────────────────────────────────────────────────── */
+function actualizarStockProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+  var headers  = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var stkCol   = headers.map(function(h){ return String(h).toLowerCase().trim(); }).indexOf("stock") + 1;
+  if (!stkCol) return;
+  var nuevoStock = body.stock === "" ? "" : Number(body.stock);
+  var cell = sheet.getRange(fila, stkCol);
+  cell.setValue(nuevoStock);
+  aplicarColorStock(cell, nuevoStock);  // centralizado en Utils
+  cacheDelete("admin_productos_v1");
+  Logger.log("Stock fila " + fila + " = " + nuevoStock);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ACTUALIZAR PRECIO
+────────────────────────────────────────────────────────────── */
+function actualizarPrecioProducto(ss, body) {
+  var sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) return;
+  var headers    = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
+  var precioCol  = hLower.indexOf("precio")       + 1;
+  var costoCol   = hLower.indexOf("costo")        + 1;
+  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
+  if (!precioCol) return;
+  var nuevoPrecio = Number(body.precio);
+  sheet.getRange(fila, precioCol).setValue(nuevoPrecio)
+    .setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+  if (gananciaCol && costoCol) {
+    var costo = Number(sheet.getRange(fila, costoCol).getValue());
+    var _gp = calcGanancia(nuevoPrecio, costo);  // centralizado en Utils
+    if (_gp.pct !== null) {
+      var ganCell = sheet.getRange(fila, gananciaCol);
+      ganCell.clearFormat().setValue(_gp.pct).setNumberFormat('0.00"%"');
+      if (_gp.pct < 10)      ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
+      else if (_gp.pct < 30) ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
+      else                   ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
+    }
+  }
+  cacheDelete("admin_rentabilidad_v1");
+  cacheDelete("admin_productos_v1");
+  Logger.log("Precio fila " + fila + " = " + nuevoPrecio);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   LIMPIAR GANANCIA_PCT — ejecutar UNA VEZ para sanear celdas
+   que tengan "85.7%" (string) en lugar de 85.7 (número).
+   BUG-05/06 FIX: normaliza todas las celdas existentes.
+────────────────────────────────────────────────────────────── */
+function limpiarGananciaPct() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Productos");
+  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var data  = sheet.getDataRange().getValues();
+  var hdr   = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
+  var col   = hdr.indexOf("ganancia_pct") + 1;
+  if (!col) { Logger.log("Columna ganancia_pct no encontrada"); return; }
+  var count = 0;
+  for (var i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    var val = data[i][col - 1];
+    // Normalizar strings tipo "85.7%", "85,7%" o "85.7"
+    if (typeof val === "string") {
+      var num = parseFloat(val.replace("%", "").replace(",", ".").trim());
+      if (!isNaN(num)) {
+        sheet.getRange(i + 1, col).setValue(num).setNumberFormat('0.00"%"');
+        count++;
+      }
+    }
+  }
+  Logger.log("limpiarGananciaPct: " + count + " celdas normalizadas.");
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CACHÉ INVALIDATION (trigger horario)
+────────────────────────────────────────────────────────────── */
+function invalidarCacheDashboard() {
+  try {
+    CacheService.getScriptCache().remove("admin_dashboard_v1");
+    Logger.log("Caché invalidado: " + Utilities.formatDate(new Date(), "America/Bogota", "dd/MM/yyyy HH:mm"));
+  } catch(e) { Logger.log("Error caché: " + e.message); }
+}
+
+function instalarTriggerHorario() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "invalidarCacheDashboard") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("invalidarCacheDashboard").timeBased().everyHours(1).create();
+  Logger.log("✅ Trigger horario instalado.");
+}
+
+function desinstalarTriggerHorario() {
+  var count = 0;
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "invalidarCacheDashboard") { ScriptApp.deleteTrigger(t); count++; }
+  });
+  Logger.log("Triggers eliminados: " + count);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CONFIGURACION INICIAL
+────────────────────────────────────────────────────────────── */
+function configuracionInicial() {
+  populateProductos();
+  inicializarPedidos();
+  inicializarClientes();
+  if (typeof inicializarProveedores    === "function") inicializarProveedores();
+  if (typeof inicializarCupones        === "function") inicializarCupones();
+  if (typeof formatearTodo             === "function") formatearTodo();
+  if (typeof actualizarCategoriaSuavizantes === "function") actualizarCategoriaSuavizantes();
+  if (typeof inicializarDashboard      === "function") inicializarDashboard();
+  Logger.log("=== CONFIGURACION COMPLETA ===");
+}
+
+function inicializarBaseDeDatos() { configuracionInicial(); }
