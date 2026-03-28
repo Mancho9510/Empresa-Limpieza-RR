@@ -75,6 +75,16 @@ self.addEventListener("fetch", event => {
   const req = event.request;
   const url = new URL(req.url);
 
+  /* ── EXCLUSIONES CRÍTICAS ── */
+if (
+  url.pathname === "/manifest.json" ||
+  url.pathname === "/favicon.ico" ||
+  url.pathname.startsWith("/icons/")||
+  url.pathname.endsWith(".webmanifest")
+) {
+  return;
+}
+
   // Solo GET
   if (req.method !== "GET") return;
 
