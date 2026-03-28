@@ -607,7 +607,7 @@ function updQty(id, d) {
   else { refreshCart(); saveCart(); }
 }
 function remItem(id) { cart = cart.filter(x => x.id !== id); refreshCart(); saveCart(); }
-function subtotal()  { return cart.reduce((s, it) => s + products.find(x => x.id === it.id).price * it.qty, 0); }
+function subtotal()  { return cart.reduce((s, it) => { const p = products.find(x => x.id === it.id); return s + (p ? p.price * it.qty : 0); }, 0); }
 
 /* ════════════════════════════════════════════════════════════
    CUPONES DE DESCUENTO
@@ -733,12 +733,13 @@ async function confirmOrder() {
   // Productos separados para Sheets — texto legible (WhatsApp, recibo, historial)
   const productosLineas = cart.map(it => {
     const p = products.find(x => x.id === it.id);
+    if (!p) return '';
     return `${p.name} ${p.size} | Cant: ${it.qty} | P.Unit: ${fmt(p.price)} | Subtotal: ${fmt(p.price * it.qty)}`;
-  }).join("\n");
+  }).filter(Boolean).join("\n");
 
   // Productos estructurados — para lookup O(1) en rentabilidad/stock del backend
   // Incluye id numérico para que el backend no dependa del parsing de texto
-  const productosJson = JSON.stringify(cart.map(it => {
+  const productosJson = JSON.stringify(cart.filter(it => products.find(x => x.id === it.id)).map(it => {
     const p = products.find(x => x.id === it.id);
     return { id: p.id, nombre: p.name, tamano: p.size, cantidad: it.qty, precio: p.price };
   }));
@@ -779,6 +780,7 @@ async function confirmOrder() {
   msg += `📦 *PRODUCTOS:*\n`;
   cart.forEach(it => {
     const p = products.find(x => x.id === it.id);
+    if (!p) return;
     msg += `▪️ ${p.name} ${p.size}\n`;
     msg += `   Cantidad: ${it.qty}  |  ${fmt(p.price * it.qty)}\n`;
   });
@@ -1599,6 +1601,7 @@ function getShippingLabel() {
 function updateOrderSummary() {
   $("sumItems").innerHTML = cart.map(it => {
     const p = products.find(x => x.id === it.id);
+    if (!p) return '';
     return `<div class="si">
       <span>${p.name} ${p.size} ×${it.qty}</span>
       <span>${fmt(p.price * it.qty)}</span>

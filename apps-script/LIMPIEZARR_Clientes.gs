@@ -452,13 +452,12 @@ function notificarPedido(body) {
    CUPONES — validar
 ────────────────────────────────────────────────────────────── */
 function validarCupon(code) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Cupones");
-  if (!sheet) return null;
-  var data = sheet.getDataRange().getValues();
-  var hdr  = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var COL  = {}; hdr.forEach(function(h,i){ COL[h]=i; });
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var _s = leerSheet(ss, "Cupones");
+  if (!_s.sheet) return null;
+  var COL  = {}; _s.headers.forEach(function(h,i){ COL[h]=i; });
   var found = null;
-  data.slice(1).forEach(function(r){ if (String(r[COL["codigo"]]||"").toUpperCase()===code.toUpperCase()) found=r; });
+  _s.rows.forEach(function(r){ if (String(r[COL["codigo"]]||"").toUpperCase()===code.toUpperCase()) found=r; });
   if (!found) return null;
   if (String(found[COL["activo"]]).toLowerCase()!=="true") return null;
   var uses=Number(found[COL["usos_actuales"]])||0, maxU=found[COL["usos_maximos"]]!==""?Number(found[COL["usos_maximos"]]):Infinity;
@@ -473,13 +472,11 @@ function validarCupon(code) {
 ────────────────────────────────────────────────────────────── */
 function incrementarUsoCupon(ss, code) {
   if (!code) return;
-  var sheet = ss.getSheetByName("Cupones"); if (!sheet) return;
-  var data = sheet.getDataRange().getValues();
-  var hdr  = data[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var COL  = {}; hdr.forEach(function(h,i){ COL[h]=i+1; });
-  for (var i=1;i<data.length;i++){
-    if (String(data[i][COL["codigo"]-1]).toUpperCase()===code.toUpperCase()){
-      var cell=sheet.getRange(i+1,COL["usos_actuales"]); cell.setValue((Number(cell.getValue())||0)+1); break;
+  var _s = leerSheet(ss, "Cupones"); if (!_s.sheet) return;
+  var COL  = {}; _s.headers.forEach(function(h,i){ COL[h]=i+1; });
+  for (var i=0;i<_s.rows.length;i++){
+    if (String(_s.rows[i][COL["codigo"]-1]).toUpperCase()===code.toUpperCase()){
+      var cell=_s.sheet.getRange(i+2,COL["usos_actuales"]); cell.setValue((Number(cell.getValue())||0)+1); break;
     }
   }
 }

@@ -259,26 +259,24 @@ function recalcularStockDesdePedidos() {
   }
 
   // Construir mapa de ventas por producto
-  var pedData = pedSheet.getDataRange().getValues();
-  var pedH    = pedData[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var pedPC   = {}; pedH.forEach(function(h,i){ pedPC[h]=i; });
+  var _ped = leerSheet(ss, "Pedidos");
+  if (!_ped.sheet) { Logger.log("ERROR: Hoja Pedidos no encontrada"); return; }
+  var pedPC   = {}; _ped.headers.forEach(function(h,i){ pedPC[h]=i; });
 
   var ventasPorProducto = {};
-  pedData.slice(1).forEach(function(r) {
-    if (!r[0]) return;
+  _ped.rows.forEach(function(r) {
     parsearProductosPedido(r[pedPC["productos"]]).forEach(function(item) {
       ventasPorProducto[item.nombre] = (ventasPorProducto[item.nombre] || 0) + item.cantidad;
     });
   });
 
   // Generar reporte — NO modifica el stock automáticamente
-  var prodData = prodSheet.getDataRange().getValues();
-  var prodH    = prodData[0].map(function(h){ return String(h).toLowerCase().trim(); });
-  var pPC      = {}; prodH.forEach(function(h,i){ pPC[h]=i; });
+  var _prod = leerSheet(ss, "Productos");
+  if (!_prod.sheet) { Logger.log("ERROR: Hoja Productos no encontrada"); return; }
+  var pPC      = {}; _prod.headers.forEach(function(h,i){ pPC[h]=i; });
 
   var reporte = ["Producto | Stock actual | Ventas registradas | Diferencia"];
-  prodData.slice(1).forEach(function(r) {
-    if (!r[0]) return;
+  _prod.rows.forEach(function(r) {
     var nombre   = String(r[pPC["nombre"]]||"").trim();
     var tamano   = String(r[pPC["tamano"]]||"").trim();
     var key      = (nombre + " " + tamano).toLowerCase();

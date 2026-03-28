@@ -246,25 +246,22 @@ function resetearProductos() {
 ────────────────────────────────────────────────────────────── */
 function calcularGanancias() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var precioIdx   = headers.indexOf("precio")       + 1;
-  var costoIdx    = headers.indexOf("costo")        + 1;
-  var gananciaIdx = headers.indexOf("ganancia_pct") + 1;
+  var _s    = leerSheet(ss, "Productos");
+  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var precioIdx   = _s.headers.indexOf("precio")       + 1;
+  var costoIdx    = _s.headers.indexOf("costo")        + 1;
+  var gananciaIdx = _s.headers.indexOf("ganancia_pct") + 1;
   if (!costoIdx || !gananciaIdx) {
     Logger.log("ERROR: Columnas costo o ganancia_pct no encontradas.");
     return;
   }
   var actualizados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var precio = Number(data[i][precioIdx - 1]);
-    var costo  = Number(data[i][costoIdx  - 1]);
+  for (var i = 0; i < _s.rows.length; i++) {
+    var precio = Number(_s.rows[i][precioIdx - 1]);
+    var costo  = Number(_s.rows[i][costoIdx  - 1]);
     if (!precio || !costo || costo <= 0) continue;
     var _g = calcGanancia(precio, costo);  // centralizado en Utils
-    var cell = sheet.getRange(i + 1, gananciaIdx);
+    var cell = _s.sheet.getRange(i + 2, gananciaIdx);
     cell.setValue(_g.pct).setNumberFormat('0.00"%"');
     if (_g.pct < 10)      cell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
     else if (_g.pct < 30) cell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
@@ -311,29 +308,26 @@ function calcularPreciosConMargen() {
   var margen = MARGEN_DESEADO;
   var ui     = obtenerUiSegura();
   var ss     = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet  = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var costoIdx  = headers.indexOf("costo")  + 1;
-  var precioIdx = headers.indexOf("precio") + 1;
+  var _s     = leerSheet(ss, "Productos");
+  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var costoIdx  = _s.headers.indexOf("costo")  + 1;
+  var precioIdx = _s.headers.indexOf("precio") + 1;
   if (!costoIdx) { Logger.log("Columna costo no encontrada"); return; }
-  var sugIdx = headers.indexOf("precio_sugerido") + 1;
+  var sugIdx = _s.headers.indexOf("precio_sugerido") + 1;
   if (!sugIdx) {
-    sheet.insertColumnAfter(sheet.getLastColumn());
-    sugIdx = sheet.getLastColumn();
-    sheet.getRange(1, sugIdx).setValue("precio_sugerido")
+    _s.sheet.insertColumnAfter(_s.sheet.getLastColumn());
+    sugIdx = _s.sheet.getLastColumn();
+    _s.sheet.getRange(1, sugIdx).setValue("precio_sugerido")
       .setFontWeight("bold").setBackground("#FEF9C3").setFontColor("#854D0E")
       .setNote("Precio sugerido con margen " + margen + "%. NO modifica el precio real.");
   }
   var actualizados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var costo  = Number(data[i][costoIdx - 1]);
-    var precio = Number(data[i][precioIdx - 1]);
+  for (var i = 0; i < _s.rows.length; i++) {
+    var costo  = Number(_s.rows[i][costoIdx - 1]);
+    var precio = Number(_s.rows[i][precioIdx - 1]);
     if (!costo || costo <= 0) continue;
     var sugerido = Math.ceil(costo * (1 + margen / 100));
-    var cell     = sheet.getRange(i + 1, sugIdx);
+    var cell     = _s.sheet.getRange(i + 2, sugIdx);
     cell.setValue(sugerido).setNumberFormat("$ #,##0");
     if (precio > 0) {
       var diff = sugerido - precio;
@@ -345,7 +339,7 @@ function calcularPreciosConMargen() {
     }
     actualizados++;
   }
-  sheet.autoResizeColumns(sugIdx, 1);
+  _s.sheet.autoResizeColumns(sugIdx, 1);
   Logger.log("Precios sugeridos con margen " + margen + "%: " + actualizados + " productos.");
   // BUG-13 FIX: if(ui){} correctamente cerrado dentro de la función
   if (ui) {
@@ -364,31 +358,28 @@ function calcularPreciosConMargen() {
 ────────────────────────────────────────────────────────────── */
 function aplicarPreciosSugeridos() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Productos");
-  if (!sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var precioIdx  = headers.indexOf("precio")          + 1;
-  var sugIdx     = headers.indexOf("precio_sugerido") + 1;
-  var ganIdx     = headers.indexOf("ganancia_pct")    + 1;
-  var costoIdx   = headers.indexOf("costo")           + 1;
+  var _s    = leerSheet(ss, "Productos");
+  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
+  var precioIdx  = _s.headers.indexOf("precio")          + 1;
+  var sugIdx     = _s.headers.indexOf("precio_sugerido") + 1;
+  var ganIdx     = _s.headers.indexOf("ganancia_pct")    + 1;
+  var costoIdx   = _s.headers.indexOf("costo")           + 1;
   if (!sugIdx) {
     Logger.log("No hay columna precio_sugerido. Ejecuta calcularPreciosConMargen() primero.");
     return;
   }
   var aplicados = 0;
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    var sugerido = Number(data[i][sugIdx - 1]);
+  for (var i = 0; i < _s.rows.length; i++) {
+    var sugerido = Number(_s.rows[i][sugIdx - 1]);
     if (!sugerido || sugerido <= 0) continue;
-    sheet.getRange(i + 1, precioIdx).setValue(sugerido)
+    _s.sheet.getRange(i + 2, precioIdx).setValue(sugerido)
       .setNumberFormat("$ #,##0").setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
     // BUG-05 FIX: setValue(ganancia) + setNumberFormat, NO setValue(ganancia + "%")
     if (ganIdx && costoIdx) {
-      var costo = Number(data[i][costoIdx - 1]);
+      var costo = Number(_s.rows[i][costoIdx - 1]);
       if (costo > 0) {
         var _gs = calcGanancia(sugerido, costo);  // centralizado en Utils
-        var ganCell  = sheet.getRange(i + 1, ganIdx);
+        var ganCell  = _s.sheet.getRange(i + 2, ganIdx);
         ganCell.clearFormat().setValue(_gs.pct).setNumberFormat('0.00"%"');
         ganCell.setBackground(_gs.pct >= 30 ? "#DCFCE7" : _gs.pct >= 10 ? "#FEF9C3" : "#FEE2E2")
                .setFontColor(_gs.pct >= 30 ? "#166534" : _gs.pct >= 10 ? "#854D0E" : "#991B1B")
