@@ -1,4 +1,4 @@
-import '/tienda.css';
+  import '/tienda.css';
 
 /* ═══════════════════════════════════════════════════════════
    LIMPIEZA RR — Lógica de la aplicación
