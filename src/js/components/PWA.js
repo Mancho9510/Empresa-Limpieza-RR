@@ -3,6 +3,12 @@ import { $ } from '../utils/dom.js';
 let deferredPrompt = null;
 
 export function initPWA() {
+  const btnInstall = $("pwaBtnInstall");
+  const btnDismiss = $("pwaBtnDismiss");
+  
+  if (btnInstall) btnInstall.addEventListener("click", installPWA);
+  if (btnDismiss) btnDismiss.addEventListener("click", dismissPWA);
+
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;

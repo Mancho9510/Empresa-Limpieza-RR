@@ -370,7 +370,13 @@ function doGet_admin_dashboard(e, ss) {
     var nom   = String(r[PC["nombre"]]||"");
     var tel   = String(r[PC["telefono"]]||"");
 
-    totGen += total;
+    var esVentaReal = (estP === "PAGADO" || estP === "CONTRA ENTREGA");
+    
+    // Solo reflejar en métricas de venta pura (monto en dinero) a los pedidos válidos
+    if (esVentaReal) {
+      totGen += total;
+    }
+
     // BUG-12 FIX: solo "PENDIENTE" es pendiente — CONTRA ENTREGA no es pendiente de pago
     if (estP === "PENDIENTE") pend++;
     if (estP === "PAGADO") pagados++;
@@ -387,13 +393,20 @@ function doGet_admin_dashboard(e, ss) {
         var fD=Number(Utilities.formatDate(fd,"America/Bogota","d"));
         var fM=Number(Utilities.formatDate(fd,"America/Bogota","M"));
         var fA=Number(Utilities.formatDate(fd,"America/Bogota","yyyy"));
-        if (fD===hoyDia&&fM===hoyMes&&fA===hoyAnio){totHoy+=total;cntHoy++;}
-        if (fM===hoyMes&&fA===hoyAnio){totMes+=total;cntMes++;}
+        if (fD===hoyDia&&fM===hoyMes&&fA===hoyAnio){
+          cntHoy++; // Contamos el pedido para el tráfico del día
+          if (esVentaReal) totHoy += total;
+        }
+        if (fM===hoyMes&&fA===hoyAnio){
+          cntMes++; // Contamos el pedido para el tráfico del mes
+          if (esVentaReal) totMes += total;
+        }
         var diff=Math.floor((hoy.getTime()-fd.getTime())/(1000*60*60*24));
         if (diff>=0&&diff<56){
           var sem=Math.floor(diff/7);
           var semKey=sem===0?"Esta semana":sem===1?"Sem anterior":"Hace "+sem+" sem";
-          if (semanas.hasOwnProperty(semKey)) semanas[semKey]+=total;
+          // Total de dinero semanal solo para ventas reales
+          if (semanas.hasOwnProperty(semKey) && esVentaReal) semanas[semKey] += total;
         }
       }
     } catch(ed){}
@@ -557,7 +570,7 @@ function doGet_admin_rentabilidad(e, ss) {
   var sinCosto = productos.length - conCosto.length;
 
   // ════════════════════════════════════════
-  // 2. LEER PEDIDOS — acumular por producto
+  // 2. LEER PEDIDOS — acumular por producto y descontar cupones
   // ════════════════════════════════════════
   var totalIngresos = 0;
   var totalGanancia = 0;
@@ -569,24 +582,59 @@ function doGet_admin_rentabilidad(e, ss) {
     _pedR.headers.forEach(function(h, i){ pedPC[h] = i; });
 
     _pedR.rows.forEach(function(r) {
-      var prodsStr = String(r[pedPC["productos"]] || "");
+      // REGLA 3: Solo historial contable de pedidos convertidos a dinero
+      var estP = String(r[pedPC["estado_pago"]] || "").toUpperCase();
+      if (estP !== "PAGADO" && estP !== "CONTRA ENTREGA") {
+        return; // Ignorar PENDIENTE, CANCELADO, RECHAZADO, etc.
+      }
 
-      // Usar JSON estructurado si disponible, fallback al texto histórico
+      var descuentoPedido = Number(r[pedPC["descuento"]]) || 0;
+      var subtotalPedido  = Number(r[pedPC["subtotal"]])  || 0;
+      
+      var prodsStr = String(r[pedPC["productos"]] || "");
       var pedPC_json = _pedR.headers.indexOf("productos_json");
       var jsonStr = (pedPC_json >= 0) ? String(r[pedPC_json] || "") : "";
-      parsearProductosPedido(prodsStr, jsonStr).forEach(function(item) {
+      
+      var productosDelPedido = parsearProductosPedido(prodsStr, jsonStr);
+
+      // Si no existe subtotal histórico pero hay descuento, calculamos el subtotal base 
+      // para hacer un prorrateo perfecto del cupón sobre el volumen de compra de cada producto.
+      if (subtotalPedido <= 0 && descuentoPedido > 0) {
+        subtotalPedido = productosDelPedido.reduce(function(acc, item) {
+          var _p = productosMap[item.nombre];
+          return acc + (_p ? _p.precio * item.cantidad : 0);
+        }, 0);
+      }
+
+      productosDelPedido.forEach(function(item) {
         var cantidad  = item.cantidad;
         var nombreKey = item.nombre;  // ya en lowercase
         var prod      = productosMap[nombreKey];
         if (!prod) return;
 
-        // Acumular sobre el producto (modificación directa del objeto referenciado)
-        prod.ventas         += cantidad;
-        prod.ingresos       += prod.precio * cantidad;
-        prod.ganancia_total += prod.ganancia_pesos !== null ? prod.ganancia_pesos * cantidad : 0;
+        // Ingreso teórico si pagaran precio full
+        var ingresoPrBruto = (prod.precio * cantidad);
+        
+        // REGLA 1: Descontar cupones (prorrateo para no castigar un solo producto)
+        var descuentoProrrateado = 0;
+        if (descuentoPedido > 0 && subtotalPedido > 0) {
+          descuentoProrrateado = (descuentoPedido * (ingresoPrBruto / subtotalPedido));
+        } else if (descuentoPedido > 0 && subtotalPedido <= 0) { // Fallback de emergencia
+          descuentoProrrateado = (descuentoPedido / productosDelPedido.length);
+        }
 
-        totalIngresos += prod.precio * cantidad;
-        totalGanancia += prod.ganancia_pesos !== null ? prod.ganancia_pesos * cantidad : 0;
+        var ingresoNetoProducto = ingresoPrBruto - descuentoProrrateado;
+        var gananciaNeta        = ingresoNetoProducto - (prod.costo * cantidad);
+
+        // Acumular históricamente sobre el producto
+        prod.ventas         += cantidad;
+        prod.ingresos       += ingresoNetoProducto;
+        prod.ganancia_total += gananciaNeta;
+
+        // Acumular rentabilidad global de tienda
+        // REGLA 2: Al ciclar solo productos, excluimos el "Costo de Envio" ya que se pasó directo al domiciliero
+        totalIngresos += ingresoNetoProducto;
+        totalGanancia += gananciaNeta;
       });
     });
     }  // if (_pedR.sheet)
