@@ -45,17 +45,13 @@ function actualizarDashboard(ss) {
     dash.clearContents();
     dash.clearFormats();
 
-    var pedidos  = ss.getSheetByName("Pedidos");
-    var clientes = ss.getSheetByName("Clientes");
-    var califs   = ss.getSheetByName("Calificaciones");
-    var prods    = ss.getSheetByName("Productos");
-    if (!pedidos) { Logger.log("Hoja Pedidos no encontrada"); return; }
-
-    var pData    = pedidos.getDataRange().getValues();
-    var pHeaders = pData[0];
+    var _ped = leerSheet(ss, "Pedidos");
+    var clientes = ss.getSheetByName("Clientes"); // Mantenido para uso posterior
+    if (!_ped.sheet) { Logger.log("Hoja Pedidos no encontrada"); return; }
+    
     var PC = {};
-    pHeaders.forEach(function(h, i) { PC[String(h).toLowerCase().trim()] = i; });
-    var rows = pData.slice(1).filter(function(r) { return r[0] !== "" && r[0] !== null; });
+    _ped.headers.forEach(function(h, i) { PC[h] = i; });
+    var rows = _ped.rows;
 
     var hoy     = new Date();
     var hoyDia  = Number(Utilities.formatDate(hoy, "America/Bogota", "d"));
@@ -154,12 +150,11 @@ function actualizarDashboard(ss) {
 
     // ── Calificaciones ───────────────────────────────────
     var avgRating = 0, numResenas = 0;
-    if (califs && califs.getLastRow() > 1) {
-      var cData   = califs.getDataRange().getValues();
-      var cHdr    = cData[0].map(function(h) { return String(h).toLowerCase(); });
-      var starIdx = cHdr.indexOf("estrellas");
+    var _cal = leerSheet(ss, "Calificaciones");
+    if (_cal.sheet && _cal.rows.length > 0) {
+      var starIdx = _cal.headers.indexOf("estrellas");
       if (starIdx >= 0) {
-        var stars = cData.slice(1).map(function(r) { return Number(r[starIdx]); }).filter(function(v) { return v > 0; });
+        var stars = _cal.rows.map(function(r) { return Number(r[starIdx]); }).filter(function(v) { return v > 0; });
         numResenas = stars.length;
         if (stars.length > 0) avgRating = (stars.reduce(function(a,b){return a+b;},0) / stars.length);
       }
@@ -167,14 +162,13 @@ function actualizarDashboard(ss) {
 
     // ── Stock bajo/agotado ────────────────────────────────
     var agotados = [], stockBajo = [];
-    if (prods && prods.getLastRow() > 1) {
-      var pProd    = prods.getDataRange().getValues();
-      var pHdrP    = pProd[0].map(function(h) { return String(h).toLowerCase().trim(); });
-      var nomIdxP  = pHdrP.indexOf("nombre");
-      var tamIdxP  = pHdrP.indexOf("tamano");
-      var stkIdxP  = pHdrP.indexOf("stock");
+    var _pro = leerSheet(ss, "Productos");
+    if (_pro.sheet && _pro.rows.length > 0) {
+      var nomIdxP  = _pro.headers.indexOf("nombre");
+      var tamIdxP  = _pro.headers.indexOf("tamano");
+      var stkIdxP  = _pro.headers.indexOf("stock");
       if (stkIdxP >= 0) {
-        pProd.slice(1).forEach(function(r) {
+        _pro.rows.forEach(function(r) {
           if (!r[nomIdxP]) return;
           var sv = r[stkIdxP];
           if (sv === "" || sv === null) return;
@@ -288,13 +282,12 @@ function actualizarDashboard(ss) {
       var bg = idx%2===0 ? "#F0FDF9" : "#FFFFFF";
       // Buscar total acumulado en hoja Clientes
       var totalAcum = "";
-      if (clientes && clientes.getLastRow() > 1) {
-        var clData = clientes.getDataRange().getValues();
-        var clHdr  = clData[0].map(function(h){ return String(h).toLowerCase().trim(); });
-        var nomIdx = clHdr.indexOf("nombre"); var gastIdx = clHdr.indexOf("total_gastado");
+      var _cli = leerSheet(ss, "Clientes");
+      if (_cli.sheet && _cli.rows.length > 0) {
+        var nomIdx = _cli.headers.indexOf("nombre"); var gastIdx = _cli.headers.indexOf("total_gastado");
         if (nomIdx >= 0 && gastIdx >= 0) {
           var nombreBusq = item[0].replace(/\s*\([^)]+\)/, "").trim();
-          clData.slice(1).forEach(function(cr){
+          _cli.rows.forEach(function(cr){
             if (String(cr[nomIdx]).trim().toLowerCase() === nombreBusq.toLowerCase()) {
               totalAcum = "$ " + Number(cr[gastIdx]).toLocaleString();
             }

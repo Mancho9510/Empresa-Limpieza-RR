@@ -39,9 +39,9 @@ function repararEsquemaPedidosV2() {
     "subtotal","total","estado_pago","estado_envio","productos"
   ]; // 18 columnas (sin cupon, descuento pero con estado_envio)
 
-  const data    = sheet.getDataRange().getValues();
-  const headers = data[0].map(h => String(h).toLowerCase().trim());
-  const filas   = data.slice(1).filter(r => r[0] !== "" && r[0] !== null);
+  const _s      = leerSheet(ss, "Pedidos");
+  const headers = _s.headers || [];
+  const filas   = _s.rows || [];
 
   Logger.log("Encabezados actuales: " + headers.join(" | "));
   Logger.log("Filas de datos: " + filas.length);

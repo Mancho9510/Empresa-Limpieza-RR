@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════
    AUTH — Login / Logout del panel admin
 ══════════════════════════════════════════ */
-import { ADMIN_KEY } from './config.js';
+import { AUTH_URL, LOGOUT_URL } from './config.js';
 import { showToast } from './admin-toast.js';
 
 export function initAuth({ onLogin, onLogout }) {
@@ -10,16 +10,29 @@ export function initAuth({ onLogin, onLogout }) {
   const logoutBtn  = document.getElementById('logoutBtn');
   const loginErr   = document.getElementById('loginErr');
 
-  function doLogin() {
-    if (loginInput.value.trim() === ADMIN_KEY) {
-      // Usar style.display para evitar conflicto con Tailwind flex/hidden
-      document.getElementById('loginWrap').style.display = 'none';
-      const app = document.getElementById('app');
-      app.classList.remove('hidden');
-      app.classList.add('flex');
-      app.style.display = 'flex';
-      onLogin();
-    } else {
+  async function doLogin() {
+    const clave = loginInput.value.trim();
+    if (!clave) return;
+
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clave })
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        document.getElementById('loginWrap').style.display = 'none';
+        const app = document.getElementById('app');
+        app.classList.remove('hidden');
+        app.classList.add('flex');
+        app.style.display = 'flex';
+        onLogin();
+      } else {
+        throw new Error('Clave incorrecta');
+      }
+    } catch (e) {
       loginErr.textContent = '❌ Clave incorrecta';
       setTimeout(() => { loginErr.textContent = ''; }, 2000);
     }
@@ -29,7 +42,8 @@ export function initAuth({ onLogin, onLogout }) {
   if (loginInput) loginInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', async () => {
+      try { await fetch(LOGOUT_URL, { method: 'POST' }); } catch(err) {}
       const app = document.getElementById('app');
       app.classList.add('hidden');
       app.classList.remove('flex');

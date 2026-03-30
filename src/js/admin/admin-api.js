@@ -1,12 +1,12 @@
 /* ══════════════════════════════════════════
    ADMIN API — Capa de acceso a Apps Script
 ══════════════════════════════════════════ */
-import { APPS_URL, ADMIN_KEY } from './config.js';
+import { APPS_URL } from './config.js';
 
 function buildUrl(action, params = {}) {
-  const url = new URL(APPS_URL);
+  // Ahora APPS_URL es relativo (/api/proxy)
+  const url = new URL(APPS_URL, window.location.origin);
   url.searchParams.set('action', action);
-  url.searchParams.set('clave', ADMIN_KEY);
   url.searchParams.set('t', Date.now());
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
@@ -26,8 +26,8 @@ async function postJson(payload) {
   const res  = await fetch(APPS_URL, {
     method:   'POST',
     redirect: 'follow',
-    headers:  { 'Content-Type': 'text/plain' },
-    body:     JSON.stringify({ ...payload, clave: ADMIN_KEY }),
+    headers:  { 'Content-Type': 'application/json' },
+    body:     JSON.stringify(payload),
   });
 
   const text = await res.text();
