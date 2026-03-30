@@ -150,4 +150,88 @@ document.addEventListener("DOMContentLoaded", () => {
   }));
 
   initPWA();
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('vis');
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.fi').forEach(el => observer.observe(el));
+
+  const bindClick = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+  
+  bindClick('btnCart', openCart);
+  bindClick('cartCloseBtn', closeCart);
+  bindClick('btnOrder', openOrder);
+  bindClick('orderCloseBtn', closeOrder);
+  bindClick('btnConfirm', confirmOrder);
+  bindClick('couponBtn', applyCoupon);
+  bindClick('overlay', overlayClick);
+  bindClick('historyCloseBtn', closeHistory);
+  bindClick('historySearchBtn', searchHistory);
+  bindClick('statusCloseBtn', closeStatus);
+  bindClick('statusSearchBtn', searchStatus);
+  bindClick('reciboClosBtn', closeRecibo);
+  bindClick('reciboShareBtn', compartirRecibo);
+  bindClick('ratingCloseBtn', closeRating);
+  bindClick('ratingSubmitBtn', submitRating);
+  bindClick('searchClear', clearSearch);
+  bindClick('cBtnPrev', cPrev);
+  bindClick('cBtnNext', cNext);
+  bindClick('themeToggle', toggleTheme);
+  bindClick('pwaBtnInstall', installPWA);
+  bindClick('pwaBtnDismiss', dismissPWA);
+
+  ['navHistoryBtn', 'mmHistory', 'footerHistoryBtn'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('click', e => { e.preventDefault(); openHistory(); });
+  });
+
+  ['navStatusBtn', 'mmStatus', 'footerStatusBtn'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('click', e => { e.preventDefault(); openStatus(); });
+  });
+
+  const hp = $("historyPhone");
+  if (hp) hp.addEventListener("keydown", e => { if (e.key === "Enter") searchHistory(); });
+  
+  const sp = $("statusPhone");
+  if (sp) sp.addEventListener("keydown", e => { if (e.key === "Enter") searchStatus(); });
+
+  const fEnvio = $("fEnvio");
+  if (fEnvio) fEnvio.addEventListener("change", onEnvioChange);
+
+  document.querySelectorAll(".star-btn").forEach(btn => {
+    btn.addEventListener("click", () => setRating(Number(btn.dataset.rating)));
+  });
+
+  const hamburger = $("hamburger");
+  const mobileMenu = $("mobileMenu");
+  
+  function toggleMenu() {
+    if(!hamburger) return;
+    const isAct = hamburger.classList.toggle("is-active");
+    if(mobileMenu) mobileMenu.classList.toggle("open", isAct);
+    hamburger.setAttribute("aria-expanded", isAct);
+  }
+  
+  function closeMenu() {
+    if(hamburger) {
+      hamburger.classList.remove("is-active");
+      hamburger.setAttribute("aria-expanded", "false");
+    }
+    if(mobileMenu) mobileMenu.classList.remove("open");
+  }
+
+  if (hamburger) hamburger.addEventListener("click", toggleMenu);
+  ["mmInicio", "mmProductos", "mmContacto", "mmHistory", "mmStatus"].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener("click", closeMenu);
+  });
+  
+  document.addEventListener("click", e => {
+    if (mobileMenu && hamburger && !mobileMenu.contains(e.target) && !hamburger.contains(e.target)) {
+      closeMenu();
+    }
+  });
 });
