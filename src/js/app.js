@@ -1,3 +1,4 @@
+import '../tienda.css';
 import { $ } from './utils/dom.js';
 import { state } from './store/state.js';
 import { loadCart } from './store/cart.js';
