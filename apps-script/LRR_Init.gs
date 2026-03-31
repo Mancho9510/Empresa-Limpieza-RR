@@ -319,7 +319,21 @@ const TEMAS = {
   },
 };
 
-/* ──────────────────────────────────────────────────────────────
-   Formatea una hoja como tabla completa
-────────────────────────────────────────────────────────────── */
 // ── Formato de tablas en LIMPIEZARR_Formato.gs ──
+
+/* ──────────────────────────────────────────────────────────────
+   CONFIGURACION INICIAL (movido de Setup)
+────────────────────────────────────────────────────────────── */
+function configuracionInicial() {
+  populateProductos();
+  inicializarPedidos();
+  inicializarClientes();
+  if (typeof inicializarProveedores    === "function") inicializarProveedores();
+  if (typeof inicializarCupones        === "function") inicializarCupones();
+  if (typeof formatearTodo             === "function") formatearTodo();
+  if (typeof actualizarCategoriaSuavizantes === "function") actualizarCategoriaSuavizantes();
+  if (typeof inicializarDashboard      === "function") inicializarDashboard();
+  Logger.log("=== CONFIGURACION COMPLETA ===");
+}
+
+function inicializarBaseDeDatos() { configuracionInicial(); }

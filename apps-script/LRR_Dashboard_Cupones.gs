@@ -531,3 +531,54 @@ function setupCompleto() {
   configuracionInicial();
   Logger.log("=== Setup v2 completo desde configuracionInicial() ===");
 }
+
+/* ──────────────────────────────────────────────────────────────
+   doGet_cupon y doGet_resenas (movidos de Setup)
+────────────────────────────────────────────────────────────── */
+
+function doGet_cupon(e, ss) {
+  var code   = (e.parameter.code || "").toUpperCase().trim();
+  var _s = leerSheet(ss, "Cupones");
+  if (!_s.sheet) return jsonResponse({ ok: false, cupon: null });
+  var COL   = {};
+  _s.headers.forEach(function(h, i) { COL[h] = i; });
+  var found = null;
+  _s.rows.forEach(function(r) {
+    if (String(r[COL["codigo"]] || "").toUpperCase() === code) found = r;
+  });
+  if (!found) return jsonResponse({ ok: false, cupon: null });
+  var activo = String(found[COL["activo"]]).toLowerCase() === "true";
+  var uses   = Number(found[COL["usos_actuales"]]) || 0;
+  var maxU   = found[COL["usos_maximos"]] !== "" ? Number(found[COL["usos_maximos"]]) : Infinity;
+  var expiry = found[COL["vencimiento"]];
+  if (!activo)                                 return jsonResponse({ ok: false, cupon: null });
+  if (uses >= maxU)                            return jsonResponse({ ok: false, cupon: null });
+  if (expiry && new Date(expiry) < new Date()) return jsonResponse({ ok: false, cupon: null });
+  return jsonResponse({
+    ok: true,
+    cupon: {
+      type:  String(found[COL["tipo"]]       || "pct"),
+      value: Number(found[COL["valor"]]       || 0),
+      label: String(found[COL["descripcion"]] || code),
+    }
+  });
+}
+
+function doGet_resenas(e, ss) {
+  var _s = leerSheet(ss, "Calificaciones");
+  if (!_s.sheet || _s.rows.length === 0) return jsonResponse({ ok: true, resenas: [] });
+  var rCOL  = {}; _s.headers.forEach(function(h,i){ rCOL[h]=i; });
+  var resenas = _s.rows
+    .filter(function(r){ return r[rCOL["estrellas"]] >= 3 && r[0] !== ""; }) 
+    .map(function(r){
+      return {
+        fecha:      String(r[rCOL["fecha"]]      || ""),
+        nombre:     String(r[rCOL["nombre"]]     || "Cliente"),
+        estrellas:  Number(r[rCOL["estrellas"]]  || 5),
+        comentario: String(r[rCOL["comentario"]] || ""),
+      };
+    })
+    .sort(function(a,b){ return b.estrellas - a.estrellas; })
+    .slice(0, 12);
+  return jsonResponse({ ok: true, resenas: resenas });
+}

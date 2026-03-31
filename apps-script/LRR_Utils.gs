@@ -418,3 +418,64 @@ function invalidarTodosLosCaches() {
   keys.forEach(cacheDelete);
   Logger.log("Todos los caches invalidados");
 }
+
+/* ──────────────────────────────────────────────────────────────
+   L. HELPERS GLOBALES MOVIDOS DE SETUP
+────────────────────────────────────────────────────────────── */
+
+function getSS() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error("No hay spreadsheet activo.");
+  return ss;
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function sanitizeDriveUrl(url) {
+  if (!url || String(url).trim() === "") return "";
+  var matchFile = String(url).match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return "https://drive.google.com/uc?export=view&id=" + matchFile[1];
+  var matchOpen = String(url).match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchOpen) return "https://drive.google.com/uc?export=view&id=" + matchOpen[1];
+  if (String(url).startsWith("http")) return String(url);
+  return "";
+}
+
+function parseLimpiezaDate(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  if (typeof value === "number" && !isNaN(value) && value > 20000 && value < 60000) {
+    var serialDate = new Date(Math.round((value - 25569) * 86400 * 1000));
+    if (!isNaN(serialDate.getTime())) return serialDate;
+  }
+  var raw = String(value || "").trim();
+  if (!raw) return null;
+  var direct = new Date(raw);
+  if (!isNaN(direct.getTime())) return direct;
+  raw = raw
+    .replace(/\u00A0/g, " ").replace(/\s+/g, " ")
+    .replace(/a\.\s*m\./i, "AM").replace(/p\.\s*m\./i, "PM")
+    .replace(/a\.m\./i, "AM").replace(/p\.m\./i, "PM");
+  var match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) {
+    var dateOnly = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dateOnly) return null;
+    var d = new Date(Number(dateOnly[3]), Number(dateOnly[2]) - 1, Number(dateOnly[1]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var day = Number(match[1]), month = Number(match[2]) - 1, year = Number(match[3]);
+  var hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6] || 0);
+  var meridiem = String(match[7] || "").toUpperCase();
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+  var parsed = new Date(year, month, day, hour, minute, second);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizarTelefono(value) {
+  var tel = String(value || "").replace(/\D/g, "");
+  if (tel.length === 12 && tel.indexOf("57") === 0) tel = tel.slice(2);
+  return tel;
+}

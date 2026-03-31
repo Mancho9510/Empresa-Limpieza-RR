@@ -112,12 +112,12 @@ function doPost_admin_clientes_upsert(e) {
       return jsonResponse({ ok: false, error: "Nombre y telefono requeridos" });
     }
 
-    const telNorm = normalizePhone(telefono);
+    const telNorm = normalizarTelefono(telefono);
     let rowNum = -1;
     const _s = leerSheet(ss, "Clientes");
 
     for (let i = 0; i < _s.rows.length; i++) {
-      const telRow = normalizePhone(_s.rows[i][3]);
+      const telRow = normalizarTelefono(_s.rows[i][3]);
       if (telRow === telNorm) {
         rowNum = i + 2;  // +2: header + 0-indexed
         break;
@@ -182,7 +182,7 @@ function doPost_admin_clientes_eliminar(e) {
 }
 
 function mapAdminCliente(row, fila, COL, pedidosPorTelefono) {
-  const telefono = normalizePhone(getCell(row, COL, "telefono"));
+  const telefono = normalizarTelefono(getCell(row, COL, "telefono"));
   const nombre = String(getCell(row, COL, "nombre") || "").trim();
   if (!telefono && !nombre) return null;
 
@@ -231,7 +231,7 @@ function buildClientOrdersIndex(ss) {
   const index = {};
 
   _s.rows.forEach(row => {
-    const telefono = normalizePhone(row[telIdx]);
+    const telefono = normalizarTelefono(row[telIdx]);
     if (!telefono) return;
 
     if (!index[telefono]) index[telefono] = emptyClientSummary();
@@ -375,7 +375,7 @@ function getCell(row, COL, key) {
   return COL[key] !== undefined ? row[COL[key]] : "";
 }
 
-function normalizePhone(value) {
+function normalizarTelefono(value) {
   let tel = String(value || "").replace(/\D/g, "");
   if (tel.length === 12 && tel.startsWith("57")) {
     tel = tel.slice(2);
