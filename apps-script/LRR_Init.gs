@@ -179,6 +179,67 @@ function inicializarPedidos() {
   Logger.log('OK: hoja "Pedidos" lista.');
 }
 
+/* ══════════════════════════════════════════════════════════════
+   REPARAR ESQUEMA PRODUCTOS (Fase 4)
+   Elimina ganancia_pct (si está en la hoja física) y asigna ID único.
+══════════════════════════════════════════════════════════════ */
+function repararEsquemaProductos() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Productos");
+  if (!sheet) return;
+
+  const _p = leerSheet(ss, "Productos");
+  const headers = _p.headers || [];
+  const filas = _p.rows || [];
+
+  const CI = {};
+  headers.forEach((h, i) => CI[h] = i);
+
+  const generarId = () => "P-" + Math.random().toString(36).substring(2, 9).toUpperCase();
+
+  const filasReparadas = filas.map(r => {
+    const get = (col) => (CI[col] !== undefined && r[CI[col]] !== undefined) ? r[CI[col]] : "";
+    let idActual = get("id");
+    if (!idActual || String(idActual).trim() === "") idActual = generarId();
+    
+    return [
+      idActual,
+      get("nombre"),
+      get("tamano"),
+      get("precio") || 0,
+      get("costo") || 0,
+      get("categoria"),
+      get("destacado"),
+      get("emoji"),
+      get("descripcion"),
+      get("imagen"),
+      get("imagen2"),
+      get("imagen3"),
+      get("stock")
+    ];
+  });
+
+  sheet.clearContents();
+  sheet.appendRow(PRODUCTOS_HEADERS);
+  const hdr = sheet.getRange(1, 1, 1, PRODUCTOS_HEADERS.length);
+  hdr.setFontWeight("bold").setBackground("#0F766E").setFontColor("#FFFFFF").setHorizontalAlignment("center");
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 40);
+
+  if (filasReparadas.length > 0) {
+    sheet.getRange(2, 1, filasReparadas.length, PRODUCTOS_HEADERS.length).setValues(filasReparadas);
+  }
+
+  const colPrecio = PRODUCTOS_HEADERS.indexOf("precio") + 1;
+  const colCosto  = PRODUCTOS_HEADERS.indexOf("costo") + 1;
+  if (colPrecio > 0 && filasReparadas.length > 0) sheet.getRange(2, colPrecio, filasReparadas.length, 1).setNumberFormat("$ #,##0");
+  if (colCosto > 0 && filasReparadas.length > 0) sheet.getRange(2, colCosto, filasReparadas.length, 1).setNumberFormat("$ #,##0");
+
+  sheet.autoResizeColumns(1, PRODUCTOS_HEADERS.length);
+
+  Logger.log("✅ Reparación Productos (Fase 4) completa. Se eliminó ganancia_pct física y se asignaron IDs.");
+}
+
 /* ──────────────────────────────────────────────────────────────
    INICIALIZAR CLIENTES
 ────────────────────────────────────────────────────────────── */

@@ -328,25 +328,6 @@ function doGet_admin_rentabilidad(e, ss) {
   return jsonResponse(resRent);
 }
 
-function limpiarGananciaPct() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var _s = leerSheet(ss, "Productos");
-  if (!_s.sheet) { Logger.log("Hoja Productos no encontrada"); return; }
-  var col   = _s.headers.indexOf("ganancia_pct") + 1;
-  if (!col) { Logger.log("Columna ganancia_pct no encontrada"); return; }
-  var count = 0;
-  for (var i = 0; i < _s.rows.length; i++) {
-    var val = _s.rows[i][col - 1];
-    if (typeof val === "string") {
-      var num = parseFloat(val.replace("%", "").replace(",", ".").trim());
-      if (!isNaN(num)) {
-        _s.sheet.getRange(i + 2, col).setValue(num).setNumberFormat('0.00"%"');
-        count++;
-      }
-    }
-  }
-  Logger.log("limpiarGananciaPct: " + count + " celdas normalizadas.");
-}
 
 function invalidarCacheDashboard() {
   try {

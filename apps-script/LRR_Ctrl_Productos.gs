@@ -136,22 +136,14 @@ function actualizarCostoProducto(ss, body) {
   var headers    = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
   var costoCol   = hLower.indexOf("costo")        + 1;
-  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
   var precioCol  = hLower.indexOf("precio")       + 1;
   if (!costoCol) return { ok: false };
   var nuevoCosto = Number(body.costo);
   sheet.getRange(fila, costoCol).setValue(nuevoCosto);
   var _g = { pct: null, pesos: null }, precio = 0;
-  if (gananciaCol && precioCol) {
+  if (precioCol) {
     precio = Number(sheet.getRange(fila, precioCol).getValue());
     _g = calcGanancia(precio, nuevoCosto);
-    if (_g.pct !== null) {
-      var ganCell = sheet.getRange(fila, gananciaCol);
-      ganCell.clearFormat().setValue(_g.pct).setNumberFormat('0.00"%"');
-      if (_g.pct < 10)      ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
-      else if (_g.pct < 30) ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-      else                  ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-    }
   }
   cacheDelete("admin_rentabilidad_v1");
   cacheDelete("admin_productos_v1");
@@ -184,21 +176,13 @@ function actualizarPrecioProducto(ss, body) {
   var hLower     = headers.map(function(h){ return String(h).toLowerCase().trim(); });
   var precioCol  = hLower.indexOf("precio")       + 1;
   var costoCol   = hLower.indexOf("costo")        + 1;
-  var gananciaCol= hLower.indexOf("ganancia_pct") + 1;
   if (!precioCol) return;
   var nuevoPrecio = Number(body.precio);
   sheet.getRange(fila, precioCol).setValue(nuevoPrecio)
     .setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-  if (gananciaCol && costoCol) {
+  if (costoCol) {
     var costo = Number(sheet.getRange(fila, costoCol).getValue());
     var _gp = calcGanancia(nuevoPrecio, costo);
-    if (_gp.pct !== null) {
-      var ganCell = sheet.getRange(fila, gananciaCol);
-      ganCell.clearFormat().setValue(_gp.pct).setNumberFormat('0.00"%"');
-      if (_gp.pct < 10)      ganCell.setBackground("#FEE2E2").setFontColor("#991B1B").setFontWeight("bold");
-      else if (_gp.pct < 30) ganCell.setBackground("#FEF9C3").setFontColor("#854D0E").setFontWeight("bold");
-      else                   ganCell.setBackground("#DCFCE7").setFontColor("#166534").setFontWeight("bold");
-    }
   }
   cacheDelete("admin_rentabilidad_v1");
   cacheDelete("admin_productos_v1");

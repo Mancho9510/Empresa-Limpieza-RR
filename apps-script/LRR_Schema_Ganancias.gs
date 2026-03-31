@@ -6,8 +6,8 @@
    ✅ BUG-13: calcularPreciosConMargen — if(ui){} correctamente cerrado
 ═══════════════════════════════════════════════════════════ */
 
-var PRODUCTOS_HEADERS    = ["id","nombre","tamano","precio","costo","ganancia_pct","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
-var PEDIDOS_HEADERS      = ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion","casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio","subtotal","total","estado_pago","estado_envio","productos"];
+var PRODUCTOS_HEADERS    = ["id","nombre","tamano","precio","costo","categoria","destacado","emoji","descripcion","imagen","imagen2","imagen3","stock"];
+var PEDIDOS_HEADERS      = ["fecha","nombre","telefono","ciudad","departamento","barrio","direccion","casa","conjunto","nota","cupon","descuento","pago","zona_envio","costo_envio","subtotal","total","estado_pago","estado_envio","productos","productos_json"];
 var CLIENTES_HEADERS     = ["primera_compra","ultima_compra","nombre","telefono","ciudad","barrio","direccion","total_pedidos","total_gastado","tipo"];
 var PROVEEDORES_HEADERS  = ["nombre","contacto_nombre","telefono","email","productos","direccion","nota","fecha_registro","activo"];
 var CUPONES_HEADERS      = ["codigo","descripcion","tipo","valor","usos_maximos","usos_actuales","vencimiento","activo"];
