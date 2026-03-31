@@ -25,6 +25,7 @@ function doGet(e) {
     }
   } catch(err) {
     Logger.log("Error en doGet: " + err.message + "\n" + err.stack);
+    logError("doGet", err);
     return jsonResponse({ ok: false, error: err.message });
   }
 }

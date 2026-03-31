@@ -417,6 +417,7 @@ function invalidarTodosLosCaches() {
     "admin_dashboard_v1",
     "admin_productos_v1",
     "admin_rentabilidad_v1",
+    "public_productos_v1"
   ];
   keys.forEach(cacheDelete);
   Logger.log("Todos los caches invalidados");

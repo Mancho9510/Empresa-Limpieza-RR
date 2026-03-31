@@ -111,6 +111,7 @@ function procesarNuevoPedido(ss, body) {
 
   cacheDelete("admin_dashboard_v1");
   cacheDelete("admin_rentabilidad_v1");
+  cacheDelete("public_productos_v1");
   return jsonResponse({ ok: true });
 }
 

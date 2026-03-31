@@ -4,6 +4,16 @@
 ────────────────────────────────────────────────────────────── */
 
 function doGet_productos(e, ss) {
+  var CACHE_KEY = "public_productos_v1";
+  var forceRefresh = (e && e.parameter && e.parameter.refresh === "1");
+  if (!forceRefresh) {
+    var cached = cacheGet(CACHE_KEY);
+    if (cached) {
+      cached.fromCache = true;
+      return jsonResponse(cached);
+    }
+  }
+
   var _s = leerSheet(ss, "Productos");
   if (!_s.sheet) return jsonResponse({ ok: false, error: "Hoja Productos no encontrada" });
   var COL = {};
@@ -13,7 +23,10 @@ function doGet_productos(e, ss) {
     _s.headers.forEach(function(h, i) { obj[h] = row[i]; });
     return obj;
   });
-  return jsonResponse({ ok: true, data: rows });
+  
+  var resp = { ok: true, data: rows, fromCache: false };
+  cachePut(CACHE_KEY, resp, 900); // 15 minutos en caché pública
+  return jsonResponse(resp);
 }
 
 function doGet_admin_productos(e, ss) {
@@ -147,6 +160,7 @@ function actualizarCostoProducto(ss, body) {
   }
   cacheDelete("admin_rentabilidad_v1");
   cacheDelete("admin_productos_v1");
+  cacheDelete("public_productos_v1");
   Logger.log("Costo fila " + fila + " = " + nuevoCosto);
   return { ok: true, fila: fila, costo: nuevoCosto, precio: precio, ganancia_pct: _g.pct, ganancia_pesos: _g.pesos };
 }
@@ -164,6 +178,7 @@ function actualizarStockProducto(ss, body) {
   cell.setValue(nuevoStock);
   aplicarColorStock(cell, nuevoStock);
   cacheDelete("admin_productos_v1");
+  cacheDelete("public_productos_v1");
   Logger.log("Stock fila " + fila + " = " + nuevoStock);
 }
 
@@ -186,5 +201,6 @@ function actualizarPrecioProducto(ss, body) {
   }
   cacheDelete("admin_rentabilidad_v1");
   cacheDelete("admin_productos_v1");
+  cacheDelete("public_productos_v1");
   Logger.log("Precio fila " + fila + " = " + nuevoPrecio);
 }
