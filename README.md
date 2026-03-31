@@ -1,6 +1,8 @@
-# 🧴 Limpieza RR — Tienda Web + Panel de Administración
+# 🧴 Limpieza RR — Tienda Web + Panel de Administración (V3 Backend Refactor)
 
-> Plataforma completa de e-commerce para productos de aseo premium en Colombia. Los clientes navegan el catálogo, agregan al carrito y realizan pedidos por **WhatsApp**. Cada pedido se registra automáticamente en **Google Sheets** como base de datos, con panel de administración full para gestión de pedidos, inventario, clientes, proveedores, dashboard y rentabilidad.
+> Plataforma completa de e-commerce para productos de aseo premium en Colombia. Los clientes navegan el catálogo, agregan al carrito y realizan pedidos por **WhatsApp**. Cada pedido se registra automáticamente en **Google Sheets** como base de datos de alto rendimiento, con un panel de administración full para control en tiempo real.
+>
+> ⚡ **¡Nuevo en V3!**: El backend fue re-arquitecturado en micro-controladores para Google Apps Script. Cuenta con sistema de caché de 15 minutos en productos para máxima velocidad en Vercel, invalidación al momento de compras e índices estructurados para robustez extrema.
 
 [![Deploy con Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com)
 [![Apps Script](https://img.shields.io/badge/Backend-Google%20Apps%20Script-4285F4?logo=google)](https://script.google.com)
@@ -140,14 +142,20 @@ limpieza-rr/
 │           ├── dashboard.js    ← Dashboard de métricas
 │           └── rentabilidad.js ← Análisis de rentabilidad con edición inline
 │
-├── apps-script/                ← Backend Google Apps Script
-│   ├── LIMPIEZARR.gs           ← doGet, doPost, endpoints principales
-│   ├── LIMPIEZARR_Setup.gs     ← Setup, helpers, populateProductos
-│   ├── LIMPIEZARR_Admin.gs     ← Inicialización de hojas, backups
-│   ├── LIMPIEZARR_Clientes.gs  ← Endpoints de clientes
-│   ├── LIMPIEZARR_Dashboard.gs ← Dashboard, cupones, calificaciones, email
-│   ├── LIMPIEZARR_Formato.gs   ← Formato de tablas, triggers
-│   └── LIMPIEZARR_Proveedores.gs ← Endpoints de proveedores
+├── apps-script/                ← Backend Google Apps Script (Arquitectura LRR V3)
+│   ├── LRR_Router.gs           ← Dispatcher web central (doGet, doPost)
+│   ├── LRR_Ctrl_Pedidos.gs     ← Controlador: Procesamiento de carrito y estados
+│   ├── LRR_Ctrl_Productos.gs   ← Controlador: Inventario, precios, stock y Caché
+│   ├── LRR_Ctrl_Clientes.gs    ← Controlador: CRM y fidelidad
+│   ├── LRR_Ctrl_Proveedores.gs ← Controlador: Surtidores
+│   ├── LRR_Ctrl_Dashboard.gs   ← Controlador: Métricas y analíticas
+│   ├── LRR_Dashboard_Cupones.gs← Controlador: Cupones y reseñas
+│   ├── LRR_Schema_Ganancias.gs ← Esquema formal de cabeceras de columnas
+│   ├── LRR_Utils.gs            ← Lógica core: cálculos, logs estructurados, colores
+│   ├── LRR_Init.gs             ← Setup e inicialización de hojas y backups
+│   ├── LRR_Triggers.gs         ← Disparadores onChange y alertas visuales
+│   ├── LRR_View_Dashboard.gs   ← UI interna
+│   └── SCHEMA.md               ← Documentación formal del modelo de base de datos
 │
 ├── public/                     ← Assets estáticos (copiados tal cual al dist/)
 │   └── icons/
@@ -182,17 +190,22 @@ limpieza-rr/
 
 ### Paso 2 — Crear los archivos del script
 
-En el editor de Apps Script, crea **7 archivos** con estos nombres exactos y pega el contenido de la carpeta `apps-script/`:
+En el editor de Apps Script, crea **12 archivos** con estos nombres exactos y pega el contenido respectivo de la carpeta `apps-script/` (¡o usa la herramienta `clasp push` de los programadores modernos de Google!):
 
 | Archivo | Descripción |
 |---|---|
-| `LIMPIEZARR` | Endpoints principales (`doGet`, `doPost`) |
-| `LIMPIEZARR_Setup` | Configuración inicial y helpers |
-| `LIMPIEZARR_Admin` | Inicialización de hojas y backups |
-| `LIMPIEZARR_Clientes` | Gestión de clientes |
-| `LIMPIEZARR_Dashboard` | Dashboard, cupones y calificaciones |
-| `LIMPIEZARR_Formato` | Formato de tablas y triggers |
-| `LIMPIEZARR_Proveedores` | Gestión de proveedores |
+| `LRR_Router` | Recepción de endpoints web principales |
+| `LRR_Ctrl_Pedidos` | Manejo de ventas y carritos |
+| `LRR_Ctrl_Productos` | Catálogos y sistema de Caché de memoria |
+| `LRR_Ctrl_Clientes` | Creación y actualización de perfiles |
+| `LRR_Ctrl_Proveedores` | Lista de proveedores corporativos |
+| `LRR_Ctrl_Dashboard` | Data y gráficos gerenciales |
+| `LRR_Dashboard_Cupones`| Códigos de descuento e interacciones |
+| `LRR_Utils` | Cálculos unificados, loggers de Google Drive |
+| `LRR_Init` | Mantenimiento, migraciones y automatizaciones |
+| `LRR_Schema_Ganancias`| Declaración de columnas de Google Sheets |
+| `LRR_Triggers` | Validación de colores onEdit in-Sheets |
+| `LRR_View_Dashboard` | Interfaz gráfica in-Sheets |
 
 ### Paso 3 — Ejecutar setup (en orden)
 
@@ -390,16 +403,18 @@ Luego en tu repo: **Settings → Pages → Source: GitHub Actions**.
 
 ## 📊 Estructura de Google Sheets
 
-### Hoja `Productos` — 14 columnas
+### Hoja `Productos` — 13 columnas principales
+
+*(Nota: Para un detalle técnico y exhaustivo programático, consulta el archivo `apps-script/SCHEMA.md`)*
 
 ```
-id | nombre | tamano | precio | costo | ganancia_pct | categoria | destacado | emoji | descripcion | imagen | imagen2 | imagen3 | stock
+id | nombre | tamano | precio | costo | categoria | destacado | emoji | descripcion | imagen | imagen2 | imagen3 | stock
 ```
 
 - `destacado`: `TRUE` → aparece en el carrusel del hero
 - `imagen/imagen2/imagen3`: URL de Google Drive o cualquier URL directa
 - `stock`: vacío = sin control · número = unidades · `0` = agotado
-- `costo` y `ganancia_pct`: se usan en la pestaña Rentabilidad del admin
+- `costo`: se procesa y el **% de ganancia** se genera automáticamente "al vuelo" dinámicamente en el servidor en la versión V3, ahorrando recursos operativos físicos a Google Sheets.
 
 ### Hoja `Pedidos` — 20 columnas
 
@@ -552,11 +567,10 @@ instalarTriggerHorario()   → Refresca dashboard cada hora (ejecutar una vez)
 ### Reparaciones
 
 ```
-repararEsquemaPedidosV2()  → Migra hoja Pedidos a 20 columnas sin perder datos
+repararEsquemaProductos()  → Pone el formato final si existía la columna física `ganancia_pct` y le crea un ID único a artículos viejos sin él.
+repararEsquemaPedidosV2()  → Migra hoja Pedidos a la última versión de columnas sin perder datos
 limpiarStock()             → Deja todo el stock en blanco (sin control)
-limpiarGananciaPct()       → Normaliza celdas de ganancia con formato incorrecto
 verificarStockCompleto()   → Envía email con todos los productos en alerta
-calcularGanancias()        → Recalcula ganancia_pct para todos los productos
 ```
 
 ### Backups
