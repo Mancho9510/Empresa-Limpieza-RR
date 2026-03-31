@@ -363,9 +363,12 @@ function leerSheet(ss, nombreHoja) {
   var allData = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
-  // Filtrar filas vacías (primer campo vacío = fila sin datos)
+  // Filtrar filas completamente vacías (en lugar de solo la primera columna)
   var rows = allData.slice(1).filter(function(r) {
-    return r[0] !== "" && r[0] !== null && r[0] !== undefined;
+    for (var j = 0; j < r.length; j++) {
+      if (r[j] !== "" && r[j] !== null && r[j] !== undefined) return true;
+    }
+    return false;
   });
 
   return { sheet: sheet, headers: headers, rows: rows, lastRow: lastRow };
