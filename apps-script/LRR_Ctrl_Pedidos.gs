@@ -5,8 +5,8 @@
 
 var CONFIG_WA = {
   NUMERO:  "573503443140",
-  API_KEY: "",     // Pega aquí SOLO el número de key de CallMeBot (ej: "4942289")
-  ACTIVO:  false,
+  API_KEY: "4942289",     // Pega aquí SOLO el número de key de CallMeBot (ej: "4942289")
+  ACTIVO:  true,
 };
 
 function doGet_historial(e, ss) {
@@ -49,11 +49,15 @@ function doGet_admin_pedidos(e, ss) {
   if (!_s.sheet) return jsonResponse({ ok: false, pedidos: [] });
   var aCOL  = {};
   _s.headers.forEach(function(h, i) { aCOL[h] = i; });
-  var pagina    = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
-  var porPagina = Math.min(100, Math.max(10, parseInt(e.parameter.por || "50", 10)));
-  var busq      = String(e.parameter.q || "").toLowerCase();
-  var allRows   = _s.rows;
+  var pagina        = Math.max(1, parseInt(e.parameter.pagina || "1", 10));
+  var porPagina     = Math.min(100, Math.max(10, parseInt(e.parameter.por || "50", 10)));
+  var busq          = String(e.parameter.q || "").toLowerCase();
+  // verArchivados=true → solo archivados | verArchivados=false → solo activos (default)
+  var verArchivados = e.parameter.archivados === "1";
+  var allRows       = _s.rows;
   var mapped = allRows.map(function(r, idx) {
+    var archivadoVal = aCOL.hasOwnProperty("archivado") ? r[aCOL["archivado"]] : false;
+    var esArchivado  = (archivadoVal === true || String(archivadoVal).toUpperCase() === "TRUE");
     return {
       fila:         idx + 2,
       fecha:        String(r[aCOL["fecha"]]        || ""),
@@ -74,8 +78,11 @@ function doGet_admin_pedidos(e, ss) {
       estado_envio: String(r[aCOL["estado_envio"]] || "Recibido"),
       productos:    String(r[aCOL["productos"]]    || ""),
       nota:         String(r[aCOL["nota"]]         || ""),
+      archivado:    esArchivado,
     };
-  }).reverse();
+  }).reverse().filter(function(p) {
+    return verArchivados ? p.archivado : !p.archivado;
+  });
   if (busq) {
     mapped = mapped.filter(function(p) {
       return (p.nombre + p.telefono + p.barrio + p.ciudad).toLowerCase().indexOf(busq) >= 0;
@@ -86,7 +93,7 @@ function doGet_admin_pedidos(e, ss) {
   var inicio    = (pagina - 1) * porPagina;
   var pedidos   = mapped.slice(inicio, inicio + porPagina);
   return jsonResponse({
-    ok: true, pedidos: pedidos,
+    ok: true, pedidos: pedidos, verArchivados: verArchivados,
     paginacion: { pagina: pagina, porPagina: porPagina, total: total, totalPaginas: totalPags }
   });
 }
@@ -249,4 +256,54 @@ function actualizarEstadoPedido(ss, body) {
     cell.setValue(body.estado_pago);
     aplicarColorPago(cell, body.estado_pago);
   }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ARCHIVAR / RECUPERAR PEDIDO
+   
+   Archivar: flag archivado=TRUE en la columna "archivado".
+     - No borra el pedido ni cambia sus estados originales.
+     - Lo oculta de la vista principal del admin.
+     - El Dashboard sigue excluyendo el pedido si no era PAGADO/CE.
+   
+   Recuperar: flag archivado=FALSE — vuelve a la lista normal.
+   
+   La columna "archivado" se crea automáticamente si no existe.
+────────────────────────────────────────────────────────────── */
+function _asegurarColumnaArchivado(sheet) {
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var idx     = headers.map(function(h){ return String(h).toLowerCase().trim(); }).indexOf("archivado");
+  if (idx >= 0) return idx + 1;  // columna ya existe → retornar número (1-indexed)
+  // Crear al final
+  var newCol = sheet.getLastColumn() + 1;
+  sheet.getRange(1, newCol).setValue("archivado")
+    .setFontWeight("bold").setBackground("#374151").setFontColor("#9CA3AF")
+    .setNote("TRUE = archivado (oculto en la lista). FALSE/vacío = activo.");
+  return newCol;
+}
+
+function archivarPedido(ss, body) {
+  var sheet = ss.getSheetByName("Pedidos");
+  if (!sheet) throw new Error("Hoja Pedidos no encontrada");
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) throw new Error("Fila inválida");
+  var col = _asegurarColumnaArchivado(sheet);
+  sheet.getRange(fila, col).setValue(true)
+    .setBackground("#1F2937").setFontColor("#6B7280");
+  logInfo("archivarPedido", "Fila " + fila + " archivada");
+  invalidarCacheDashboard();
+  cacheDelete("admin_rentabilidad_v1");
+}
+
+function recuperarPedido(ss, body) {
+  var sheet = ss.getSheetByName("Pedidos");
+  if (!sheet) throw new Error("Hoja Pedidos no encontrada");
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) throw new Error("Fila inválida");
+  var col = _asegurarColumnaArchivado(sheet);
+  sheet.getRange(fila, col).setValue(false)
+    .clearFormat();
+  logInfo("recuperarPedido", "Fila " + fila + " recuperada");
+  invalidarCacheDashboard();
+  cacheDelete("admin_rentabilidad_v1");
 }

@@ -18,18 +18,30 @@
 /* ──────────────────────────────────────────────────────────────
    A. GANANCIA — única fuente de verdad
    
-   Markup sobre costo: ((precio - costo) / costo) × 100
-   Consistente con la calculadora de precios y el Sheet.
+   Retorna AMBAS métricas claramente separadas:
    
-   Devuelve: { pct: number|null, pesos: number|null }
+   • markup_pct  = ((precio - costo) / costo)  × 100   ← % sobre lo que pagas (MARKUP)
+   • margen_pct  = ((precio - costo) / precio) × 100   ← % de utilidad sobre precio de venta (MARGEN)
+   
+   Ejemplo:  costo=$3.500  precio=$6.500
+     markup_pct = (3.000/3.500)×100 = 85.7%   ← "ganas 85.7% sobre tu costo"
+     margen_pct = (3.000/6.500)×100 = 46.2%   ← "el 46.2% del precio es ganancia"
+   
+   Alias pct = markup_pct   (compatibilidad con código existente)
+   
+   Devuelve: { pct, markup_pct, margen_pct, pesos }
 ────────────────────────────────────────────────────────────── */
 function calcGanancia(precio, costo) {
   var p = Number(precio) || 0;
   var c = Number(costo)  || 0;
-  if (p <= 0 || c <= 0) return { pct: null, pesos: null };
+  if (p <= 0 || c <= 0) return { pct: null, markup_pct: null, margen_pct: null, pesos: null };
+  var markup = Math.round(((p - c) / c) * 100 * 10) / 10;   // % sobre costo
+  var margen = Math.round(((p - c) / p) * 100 * 10) / 10;   // % sobre precio de venta
   return {
-    pct:   Math.round(((p - c) / c) * 100 * 10) / 10,   // ej: 66.7
-    pesos: p - c,                                         // ej: 4000
+    pct:        markup,   // alias — compatibilidad código existente
+    markup_pct: markup,   // ej: 85.7
+    margen_pct: margen,   // ej: 46.2
+    pesos:      p - c,    // ganancia bruta por unidad
   };
 }
 

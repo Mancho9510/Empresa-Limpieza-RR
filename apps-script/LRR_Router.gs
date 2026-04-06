@@ -63,6 +63,16 @@ function doPost(e) {
     if (body.accion === "admin_clientes_eliminar")  return doPost_admin_clientes_eliminar(e);
     if (body.accion === "admin_proveedores_upsert") return doPost_admin_proveedores_upsert(e);
     if (body.accion === "admin_proveedores_eliminar") return doPost_admin_proveedores_eliminar(e);
+    if (body.accion === "archivar_pedido") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      archivarPedido(ss, body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.accion === "recuperar_pedido") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      recuperarPedido(ss, body);
+      return jsonResponse({ ok: true });
+    }
 
     // ── Nuevo pedido ── validar primero, luego procesar
     validarBodyPedido(body);           // lanza Error si falta algo requerido

@@ -83,17 +83,27 @@ function renderTablaRent(lista) {
     return;
   }
   tbody.innerHTML = lista.map((p, i) => {
-    const pct      = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
-    const ganPesos = (p.ganancia_pesos != null && p.costo > 0)               ? Number(p.ganancia_pesos) : null;
+    // Markup = (P-C)/C × 100  — lo que ganas sobre tu inversión
+    const markup   = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
+    // Margen = (P-C)/P × 100  — porcentaje del precio que es ganancia
+    const margen   = (markup !== null && p.precio > 0)
+      ? Math.round(((p.precio - p.costo) / p.precio) * 100 * 10) / 10
+      : null;
+    const ganPesos = (p.ganancia_pesos != null && p.costo > 0) ? Number(p.ganancia_pesos) : null;
     const ventas   = p.ventas       || 0;
     const ganTotal = p.ganancia_total || 0;
 
-    const color   = pct === null ? 'text-slate-500'
-      : pct >= 30 ? 'text-green-400' : pct >= 10 ? 'text-yellow-400' : 'text-red-400';
-    const bgBadge = pct === null ? 'bg-slate-700/40'
-      : pct >= 30 ? 'bg-green-900/40' : pct >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
+    // Colores basados en markup (la métrica principal del sistema)
+    const colorMarkup = markup === null ? 'text-slate-500'
+      : markup >= 30 ? 'text-teal-400' : markup >= 10 ? 'text-yellow-400' : 'text-red-400';
+    const bgMarkup    = markup === null ? 'bg-slate-700/40'
+      : markup >= 30 ? 'bg-teal-900/40' : markup >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
+    const colorMargen = margen === null ? 'text-slate-500'
+      : margen >= 25 ? 'text-emerald-400' : margen >= 8 ? 'text-amber-400' : 'text-rose-400';
+    const bgMargen    = margen === null ? 'bg-slate-700/40'
+      : margen >= 25 ? 'bg-emerald-900/40' : margen >= 8 ? 'bg-amber-900/40' : 'bg-rose-900/40';
     const rowBg = i % 2 === 0 ? '' : 'bg-slate-800/30';
-    const margenActual = pct !== null ? pct.toFixed(1) : '';
+    const markupStr = markup !== null ? markup.toFixed(1) : '';
 
     return `
     <tr class="${rowBg} hover:bg-teal-900/10 border-b border-slate-800/60" data-fila="${p.fila}">
@@ -116,34 +126,44 @@ function renderTablaRent(lista) {
           data-fila="${p.fila}"
           aria-label="Costo de ${escapeHtml(p.nombre)}">
       </td>
+      <!-- MARKUP % (sobre costo) — campo editable -->
       <td class="py-2 px-2">
-        <div class="flex items-center gap-1">
-          <input type="number" min="0" max="1000"
-            class="rent-margen-input w-20 bg-slate-700 border border-teal-600/50 hover:border-teal-500
-                   focus:border-teal-400 rounded-lg px-2 py-1.5 text-xs text-white text-center
-                   outline-none transition placeholder-slate-500"
-            placeholder="${margenActual || 'ej: 80'}"
-            value="${margenActual}"
-            data-fila="${p.fila}"
-            aria-label="Margen % de ${escapeHtml(p.nombre)}">
-          <span class="text-xs text-slate-500">%</span>
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-1">
+            <input type="number" min="0" max="1000"
+              class="rent-margen-input w-18 bg-slate-700 border border-teal-600/50 hover:border-teal-500
+                     focus:border-teal-400 rounded-lg px-2 py-1 text-xs text-center
+                     outline-none transition placeholder-slate-500 ${colorMarkup}"
+              placeholder="${markupStr || 'ej: 80'}"
+              value="${markupStr}"
+              data-fila="${p.fila}"
+              aria-label="Markup de ${escapeHtml(p.nombre)}">
+            <span class="text-xs text-slate-600 leading-none">%<br><span class="text-[9px] text-teal-700">mkup</span></span>
+          </div>
+          <!-- Margen sobre precio (solo lectura, auto calculado) -->
+          <div class="text-[10px] text-center" id="rent-margen-${p.fila}">
+            ${margen !== null
+              ? `<span class="${bgMargen} ${colorMargen} rounded-full px-1.5 py-0.5 font-bold">${margen.toFixed(1)}% mg</span>`
+              : '<span class="text-slate-700">— mg</span>'}
+          </div>
         </div>
       </td>
-      <td class="py-2 px-2 text-right ${color} font-semibold text-sm" id="rent-ganpesos-${p.fila}">
+      <td class="py-2 px-2 text-right ${colorMarkup} font-semibold text-sm" id="rent-ganpesos-${p.fila}">
         ${ganPesos !== null ? fmt(ganPesos) : '—'}
       </td>
+      <!-- % markup badge -->
       <td class="py-2 px-2 text-center" id="rent-pct-${p.fila}">
-        ${pct !== null
-          ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgBadge} ${color}">
-               ${(Number.isFinite(pct) ? pct : 0).toFixed(1)}%
+        ${markup !== null
+          ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgMarkup} ${colorMarkup}">
+               ${(Number.isFinite(markup) ? markup : 0).toFixed(1)}%
              </span>`
           : '<span class="text-slate-600 text-xs">—</span>'}
       </td>
-      <!-- NUEVO: unidades vendidas -->
+      <!-- Unidades vendidas -->
       <td class="py-2 px-2 text-center text-xs font-semibold ${ventas > 0 ? 'text-blue-300' : 'text-slate-600'}">
         ${ventas > 0 ? ventas + ' ud' : '—'}
       </td>
-      <!-- NUEVO: ganancia total histórica -->
+      <!-- Ganancia total histórica -->
       <td class="py-2 px-2 text-right text-xs font-bold ${ganTotal > 0 ? 'text-teal-300' : 'text-slate-600'}">
         ${ganTotal > 0 ? fmt(ganTotal) : '—'}
       </td>
@@ -241,28 +261,41 @@ async function guardarFilaRent(filaStr) {
 
 /* ── Actualizar fila en DOM sin re-render ────────────────── */
 function _actualizarFilaDOM(fila, p) {
-  const pct      = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
-  const ganPesos = (p.ganancia_pesos != null && p.costo > 0)               ? Number(p.ganancia_pesos) : null;
-  const color    = pct === null ? 'text-slate-500'
-    : pct >= 30 ? 'text-green-400' : pct >= 10 ? 'text-yellow-400' : 'text-red-400';
-  const bgBadge  = pct === null ? 'bg-slate-700/40'
-    : pct >= 30 ? 'bg-green-900/40' : pct >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
+  const markup   = (p.ganancia_pct != null && p.costo > 0 && p.precio > 0) ? Number(p.ganancia_pct) : null;
+  const margen   = (markup !== null && p.precio > 0)
+    ? Math.round(((p.precio - p.costo) / p.precio) * 100 * 10) / 10
+    : null;
+  const ganPesos = (p.ganancia_pesos != null && p.costo > 0) ? Number(p.ganancia_pesos) : null;
+
+  const colorMarkup = markup === null ? 'text-slate-500'
+    : markup >= 30 ? 'text-teal-400' : markup >= 10 ? 'text-yellow-400' : 'text-red-400';
+  const bgMarkup    = markup === null ? 'bg-slate-700/40'
+    : markup >= 30 ? 'bg-teal-900/40' : markup >= 10 ? 'bg-yellow-900/40' : 'bg-red-900/40';
+  const colorMargen = margen === null ? 'text-slate-500'
+    : margen >= 25 ? 'text-emerald-400' : margen >= 8 ? 'text-amber-400' : 'text-rose-400';
+  const bgMargen    = margen === null ? 'bg-slate-700/40'
+    : margen >= 25 ? 'bg-emerald-900/40' : margen >= 8 ? 'bg-amber-900/40' : 'bg-rose-900/40';
 
   const precioEl = document.getElementById(`rent-precio-${fila}`);
   if (precioEl) precioEl.textContent = p.precio > 0 ? fmt(p.precio) : '—';
 
   const pctEl = document.getElementById(`rent-pct-${fila}`);
-  if (pctEl) pctEl.innerHTML = pct !== null
-    ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgBadge} ${color}">${(Number.isFinite(pct)?pct:0).toFixed(1)}%</span>`
+  if (pctEl) pctEl.innerHTML = markup !== null
+    ? `<span class="rounded-full px-2 py-0.5 font-bold text-xs ${bgMarkup} ${colorMarkup}">${(Number.isFinite(markup)?markup:0).toFixed(1)}%</span>`
     : '<span class="text-slate-600 text-xs">—</span>';
 
+  const margenEl = document.getElementById(`rent-margen-${fila}`);
+  if (margenEl) margenEl.innerHTML = margen !== null
+    ? `<span class="${bgMargen} ${colorMargen} rounded-full px-1.5 py-0.5 font-bold">${margen.toFixed(1)}% mg</span>`
+    : '<span class="text-slate-700">— mg</span>';
+
   const ganEl = document.getElementById(`rent-ganpesos-${fila}`);
-  if (ganEl) { ganEl.textContent = ganPesos !== null ? fmt(ganPesos) : '—'; ganEl.className = `py-2 px-2 text-right font-semibold text-sm ${color}`; }
+  if (ganEl) { ganEl.textContent = ganPesos !== null ? fmt(ganPesos) : '—'; ganEl.className = `py-2 px-2 text-right font-semibold text-sm ${colorMarkup}`; }
 
   const costoInp = document.querySelector(`.rent-costo-input[data-fila="${fila}"]`);
   if (costoInp) { costoInp.value = p.costo > 0 ? p.costo : ''; costoInp.placeholder = p.costo > 0 ? String(p.costo) : 'ej: 3500'; }
   const margenInp = document.querySelector(`.rent-margen-input[data-fila="${fila}"]`);
-  if (margenInp && pct !== null) { margenInp.value = pct.toFixed(1); margenInp.placeholder = pct.toFixed(1); }
+  if (margenInp && markup !== null) { margenInp.value = markup.toFixed(1); margenInp.placeholder = markup.toFixed(1); }
 }
 
 /* ══════════════════════════════════════════

@@ -613,3 +613,125 @@ button.text-sm { font-size:.88rem !important; }
 /* Rentabilidad tabla */
 #rentTabla td, #rentTabla th { font-size:.82rem !important; }
 #calcMasivoTabla td { font-size:.82rem !important; }
+
+/* ══════════════════════════════════════════════════════
+   20. TOGGLE BUTTONS — Ocultar completados / Ver archivados
+══════════════════════════════════════════════════════ */
+/* El selector [&.active-toggle]:... de Tailwind puede no funcionar en builds Vite,
+   así que añadimos la clase CSS directamente */
+.active-toggle {
+  background: rgba(13,148,136,.25) !important;
+  border-color: rgba(45,212,191,.45) !important;
+  color: #2DD4BF !important;
+  box-shadow: 0 0 0 2px rgba(20,184,166,.15);
+}
+/* El toggle de archivados usa morado */
+#btnVerArchivados.active-toggle {
+  background: rgba(147,51,234,.2) !important;
+  border-color: rgba(167,139,250,.4) !important;
+  color: #C4B5FD !important;
+  box-shadow: 0 0 0 2px rgba(147,51,234,.12);
+}
+
+/* ══════════════════════════════════════════════════════
+   21. CARDS DE PEDIDOS — Estados de urgencia
+══════════════════════════════════════════════════════ */
+/* Pedidos PENDIENTES tienen borde dorado */
+#pedidosWrap [id^="card-"].border-yellow-600\/40 {
+  box-shadow: 0 0 0 1px rgba(234,179,8,.18), var(--g-sh-card);
+}
+/* Pedidos archivados se muestran más tenues */
+#pedidosWrap [id^="card-"].opacity-75 {
+  filter: saturate(0.6);
+}
+
+/* ══════════════════════════════════════════════════════
+   22. RENTABILIDAD — Dual Metric (Markup + Margen)
+══════════════════════════════════════════════════════ */
+/* El margen (mg%) es más pequeño y secundario */
+[id^="rent-margen-"] {
+  font-size: .68rem;
+  line-height: 1.2;
+}
+/* Columna de markup editable destaca con un borde superior sutil */
+.rent-margen-input {
+  min-width: 52px;
+}
+
+/* ══════════════════════════════════════════════════════
+   23. LIGHT MODE — Overrides globales
+══════════════════════════════════════════════════════ */
+html[data-admin-theme="light"] {
+  /* Inputs */
+  select,
+  input[type="text"],
+  input[type="date"],
+  input[type="number"],
+  input[type="password"] {
+    background: rgba(240,253,249,.9) !important;
+    border-color: rgba(13,148,136,.25) !important;
+    color: #0F172A !important;
+  }
+  select option { background:#E6F7F4; color:#0F172A; }
+
+  /* Cards */
+  .bg-slate-800.border.border-slate-700.rounded-xl,
+  .bg-slate-800.border.border-slate-700.rounded-2xl {
+    background: rgba(255,255,255,.85) !important;
+    border-color: rgba(13,148,136,.15) !important;
+    box-shadow: 0 2px 16px rgba(13,148,136,.08), 0 1px 4px rgba(0,0,0,.06);
+  }
+
+  /* Textos */
+  .text-white     { color:#0F172A !important; }
+  .text-slate-300 { color:#334155 !important; }
+  .text-slate-400 { color:#475569 !important; }
+  .text-slate-500 { color:#64748B !important; }
+
+  /* Tabla */
+  td { color:#1E293B !important; }
+  thead tr { background:rgba(13,148,136,.06) !important; }
+  th { color:#0D9488 !important; }
+  tr:hover td { background:rgba(13,148,136,.04) !important; }
+
+  /* KPIs */
+  .text-teal-400  { color:#0D9488 !important; }
+  .text-teal-300  { color:#0F766E !important; }
+
+  /* Toggle */
+  .active-toggle {
+    background: rgba(13,148,136,.15) !important;
+    border-color: rgba(13,148,136,.45) !important;
+    color: #0D9488 !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   24. MOBILE NAV — Bottom nav mejorado (8 items caben bien)
+══════════════════════════════════════════════════════ */
+@media (max-width:640px) {
+  .login-card { padding:34px 22px 28px; }
+  .login-title { font-size:1.45rem; }
+  th:nth-child(n+5), td:nth-child(n+5) { display:none; }
+
+  /* Bottom nav más compacta y con scroll horizontal si hay muchos tabs */
+  nav.fixed > div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0 !important;
+    justify-content: flex-start !important;
+    padding: 0 4px;
+  }
+  nav.fixed > div::-webkit-scrollbar { display:none; }
+  nav.fixed button {
+    min-width: 64px;
+    flex-shrink: 0;
+  }
+
+  /* Botones toggle en móvil: solo ícono */
+  #btnOcultarCompletados span,
+  #btnVerArchivados span {
+    display: none;
+  }
+}

@@ -49,14 +49,17 @@ async function postJson(payload) {
 }
 
 export const adminApi = {
-  getPedidos:      (p) => getJson('admin_pedidos',      p),
-  getProductos:    ()  => getJson('admin_productos'),
-  getDashboard:    (f) => getJson('admin_dashboard',    f ? { refresh: 1 } : {}),
-  getRentabilidad: (f) => getJson('admin_rentabilidad', f ? { refresh: 1 } : {}),
-  getClientes:     (p) => getJson('admin_clientes',     p),
-  getProveedores:  (p) => getJson('admin_proveedores',  p),
-  updateEstado:    (p) => postJson({ accion: 'actualizar_estado',   ...p }),
-  updateStock:     (p) => postJson({ accion: 'actualizar_stock',    ...p }),
-  updateCosto:     (p) => postJson({ accion: 'actualizar_costo',    ...p }),
-  updatePrecio:    (p) => postJson({ accion: 'actualizar_precio',   ...p }),
-};
+  getPedidos:          (p) => getJson('admin_pedidos',      p),
+  getPedidosArchivados:(p) => getJson('admin_pedidos',      { ...p, archivados: 1 }),
+  getProductos:        ()  => getJson('admin_productos'),
+  getDashboard:        (f) => getJson('admin_dashboard',    f ? { refresh: 1 } : {}),
+  getRentabilidad:     (f) => getJson('admin_rentabilidad', f ? { refresh: 1 } : {}),
+  getClientes:         (p) => getJson('admin_clientes',     p),
+  getProveedores:      (p) => getJson('admin_proveedores',  p),
+  updateEstado:        (p) => postJson({ accion: 'actualizar_estado',   ...p }),
+  updateStock:         (p) => postJson({ accion: 'actualizar_stock',    ...p }),
+  updateCosto:         (p) => postJson({ accion: 'actualizar_costo',    ...p }),
+  updatePrecio:        (p) => postJson({ accion: 'actualizar_precio',   ...p }),
+  archivarPedido:      (p) => postJson({ accion: 'archivar_pedido',     ...p }),
+  recuperarPedido:     (p) => postJson({ accion: 'recuperar_pedido',    ...p }),
+};

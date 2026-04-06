@@ -207,8 +207,30 @@
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4"><div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">ENTREGADOS</div><div id="sEntregado" class="font-display font-extrabold text-2xl text-green-400">—</div></div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 col-span-2 sm:col-span-1"><div class="text-xs text-slate-400 font-semibold tracking-wide mb-1">RECAUDADO</div><div id="sTotal" class="font-display font-extrabold text-xl text-teal-300">—</div></div>
     </div>
+    <!-- Barra de herramientas -->
+    <div class="px-4 pb-2 flex flex-wrap gap-2 items-center border-b border-slate-700/50 pb-3">
+      <!-- Toggle Ocultar completados -->
+      <button id="btnOcultarCompletados"
+              title="Ocultar pedidos completados (PAGADO + Entregado) para ver solo los activos"
+              class="flex items-center gap-1.5 bg-slate-700/60 hover:bg-slate-600/80 border border-slate-600/50 text-slate-300 rounded-lg px-3 py-2 text-xs font-semibold transition-all [&.active-toggle]:bg-teal-900/60 [&.active-toggle]:border-teal-600/60 [&.active-toggle]:text-teal-300">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        Ocultar completados
+      </button>
+      <!-- Toggle Archivados -->
+      <button id="btnVerArchivados"
+              title="Ver pedidos archivados"
+              class="flex items-center gap-1.5 bg-slate-700/60 hover:bg-slate-600/80 border border-slate-600/50 text-slate-300 rounded-lg px-3 py-2 text-xs font-semibold transition-all [&.active-toggle]:bg-purple-900/50 [&.active-toggle]:border-purple-600/50 [&.active-toggle]:text-purple-300">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+        🗄️ Archivados
+      </button>
+      <div class="ml-auto flex gap-2">
+        <button id="btnExportarCSV" class="flex items-center gap-1.5 bg-slate-700 hover:bg-green-700 border border-slate-600 hover:border-green-600 text-slate-300 hover:text-white rounded-lg px-3 py-2 text-xs font-semibold transition-all">
+          📥 Exportar CSV
+        </button>
+      </div>
+    </div>
     <!-- Filtros -->
-    <div class="px-4 pb-3 flex flex-col gap-2">
+    <div class="px-4 py-3 flex flex-col gap-2">
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="filterSearch" type="text" placeholder="🔍 Buscar nombre, teléfono, barrio..."
                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal-500 transition">
@@ -233,12 +255,7 @@
         <span class="text-slate-500 text-xs">hasta</span>
         <input id="filterFechaHasta" type="date" aria-label="Fecha hasta" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition">
         <button id="btnLimpiarFiltros" class="text-xs text-slate-400 hover:text-white underline transition">Limpiar</button>
-        <div class="ml-auto flex gap-2">
-          <span id="filterCount" class="text-xs text-slate-500 self-center whitespace-nowrap"></span>
-          <button id="btnExportarCSV" class="flex items-center gap-1.5 bg-slate-700 hover:bg-green-700 border border-slate-600 hover:border-green-600 text-slate-300 hover:text-white rounded-lg px-3 py-2 text-xs font-semibold transition-all">
-            📥 Exportar CSV
-          </button>
-        </div>
+        <span id="filterCount" class="text-xs text-slate-500 self-center whitespace-nowrap ml-auto"></span>
       </div>
     </div>
     <!-- Lista -->
@@ -255,6 +272,7 @@
       <button id="btnPagSiguiente" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-600 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all">Siguiente →</button>
     </div>
   </div>
+
 
   <!-- ══════════════════════════════════════
        PANEL INVENTARIO
@@ -598,12 +616,43 @@
         </div>
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
           <div class="text-xs text-slate-400 font-semibold tracking-wide mb-3">📐 CÓMO SE CALCULA</div>
-          <div class="space-y-2 text-xs text-slate-400">
-            <div class="flex items-start gap-2"><span class="text-teal-400 font-bold flex-shrink-0">Ganancia %</span><span>= ((Precio venta − Costo) / Costo) × 100</span></div>
-            <div class="flex items-start gap-2"><span class="text-teal-400 font-bold flex-shrink-0">Ejemplo</span><span>Vendes a $6.500, te costó $3.500 → 85.7%</span></div>
-            <div class="flex items-start gap-2"><span class="text-teal-400 font-bold flex-shrink-0">Cupones</span><span>Los descuentos aplicados en caja reducen tu ganancia neta total.</span></div>
-            <div class="flex items-start gap-2"><span class="text-teal-400 font-bold flex-shrink-0">Envíos</span><span>Se omiten como ingreso (se asume de cobro directo para el domiciliero).</span></div>
-            <div class="flex items-start gap-2"><span class="text-teal-400 font-bold flex-shrink-0">Colores</span><span><span class="text-red-400">🔴 &lt;10%</span> · <span class="text-yellow-400">🟡 10–30%</span> · <span class="text-green-400">🟢 &gt;30%</span></span></div>
+          <div class="space-y-3 text-xs">
+            <!-- Markup -->
+            <div class="bg-teal-900/20 border border-teal-700/30 rounded-xl p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="bg-teal-500/20 text-teal-300 font-bold rounded-full px-2 py-0.5">MARKUP (mkup%)</span>
+                <span class="text-slate-500">— sobre tu inversión</span>
+              </div>
+              <div class="text-slate-300 font-mono">= (Precio − Costo) / Costo × 100</div>
+              <div class="text-slate-500 mt-1">Ej: vendes $6.500, costo $3.500 → <span class="text-teal-400 font-bold">85.7% mkup</span></div>
+              <div class="text-slate-600 mt-0.5">"Por cada peso que invertiste, ganas 0.857 más"</div>
+            </div>
+            <!-- Margen -->
+            <div class="bg-emerald-900/20 border border-emerald-700/30 rounded-xl p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="bg-emerald-500/20 text-emerald-300 font-bold rounded-full px-2 py-0.5">MARGEN (mg%)</span>
+                <span class="text-slate-500">— sobre el precio de venta</span>
+              </div>
+              <div class="text-slate-300 font-mono">= (Precio − Costo) / Precio × 100</div>
+              <div class="text-slate-500 mt-1">Ej: vendes $6.500, costo $3.500 → <span class="text-emerald-400 font-bold">46.2% mg</span></div>
+              <div class="text-slate-600 mt-0.5">"El 46.2% del precio es ganancia tuya"</div>
+            </div>
+            <div class="flex flex-col gap-1.5 pt-1 border-t border-slate-700">
+              <div class="flex items-start gap-2"><span class="text-yellow-400 font-bold flex-shrink-0">Cupones</span><span class="text-slate-400">Los descuentos aplicados reducen tu ganancia neta total.</span></div>
+              <div class="flex items-start gap-2"><span class="text-yellow-400 font-bold flex-shrink-0">Envíos</span><span class="text-slate-400">Se omiten como ingreso (cobro directo para el domiciliario).</span></div>
+              <div class="flex items-start gap-2 flex-wrap gap-y-1">
+                <span class="text-yellow-400 font-bold flex-shrink-0">Colores mkup</span>
+                <span class="text-red-400">🔴 &lt;10%</span>
+                <span class="text-yellow-400">🟡 10–30%</span>
+                <span class="text-teal-400">🟢 &gt;30%</span>
+              </div>
+              <div class="flex items-start gap-2 flex-wrap gap-y-1">
+                <span class="text-emerald-400 font-bold flex-shrink-0">Colores mg</span>
+                <span class="text-rose-400">🔴 &lt;8%</span>
+                <span class="text-amber-400">🟡 8–25%</span>
+                <span class="text-emerald-400">🟢 &gt;25%</span>
+              </div>
+            </div>
           </div>
         </div>
         <!-- Rankings -->

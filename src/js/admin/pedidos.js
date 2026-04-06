@@ -1,17 +1,21 @@
 /* ══════════════════════════════════════════
    PEDIDOS — Panel admin
+   v3: Archivar/Recuperar + Ocultar completados + Markup/Margen
 ══════════════════════════════════════════ */
 import { adminApi }  from './admin-api.js';
 import { showToast } from './admin-toast.js';
 import { fmt, badgePago, badgeEnvio } from './helpers.js';
 import { WA_NUMBER } from './config.js';
 
-let pedidos      = [];
-let paginaActual = 1;
-let totalPaginas = 1;
-let totalPedidos = 0;
-let porPagina    = 50;
-let _searchTimer = null;
+let pedidos         = [];
+let pedidosArchivados = [];
+let verArchivados   = false;       // false = lista normal | true = archivados
+let ocultarCompletados = false;    // filtra PAGADO+ENTREGADO de la lista
+let paginaActual    = 1;
+let totalPaginas    = 1;
+let totalPedidos    = 0;
+let porPagina       = 50;
+let _searchTimer    = null;
 
 export function initPedidos() {
   document.getElementById('filterSearch')?.addEventListener('input', () => {
@@ -26,26 +30,55 @@ export function initPedidos() {
   document.getElementById('btnExportarCSV')?.addEventListener('click',    exportarCSV);
   document.getElementById('btnPagAnterior')?.addEventListener('click',  () => cambiarPagina(-1));
   document.getElementById('btnPagSiguiente')?.addEventListener('click', () => cambiarPagina(1));
+
+  // Toggle ocultar completados
+  document.getElementById('btnOcultarCompletados')?.addEventListener('click', () => {
+    ocultarCompletados = !ocultarCompletados;
+    const btn = document.getElementById('btnOcultarCompletados');
+    btn.classList.toggle('active-toggle', ocultarCompletados);
+    btn.title = ocultarCompletados ? 'Mostrando solo en curso' : 'Mostrando todos';
+    renderPedidos();
+  });
+
+  // Toggle ver archivados
+  document.getElementById('btnVerArchivados')?.addEventListener('click', () => {
+    verArchivados = !verArchivados;
+    const btn = document.getElementById('btnVerArchivados');
+    btn.classList.toggle('active-toggle', verArchivados);
+    btn.textContent = verArchivados ? '📋 Activos' : '🗄️ Archivados';
+    loadPedidos(1);
+  });
 }
 
 export async function loadPedidos(pagina) {
   if (pagina !== undefined) paginaActual = pagina;
   const wrap = document.getElementById('pedidosWrap');
   wrap.innerHTML = '<div class="text-center text-slate-500 py-10 animate-pulse">⏳ Cargando pedidos...</div>';
+
   try {
-    const q   = document.getElementById('filterSearch')?.value.trim() || '';
-    const data = await adminApi.getPedidos({ pagina: paginaActual, por: porPagina, q: q || undefined });
-    pedidos = data.pedidos || [];
-    if (data.paginacion) {
-      paginaActual  = data.paginacion.pagina;
-      totalPaginas  = data.paginacion.totalPaginas;
-      totalPedidos  = data.paginacion.total;
-      porPagina     = data.paginacion.porPagina;
+    const q    = document.getElementById('filterSearch')?.value.trim() || '';
+    const apiFn = verArchivados ? adminApi.getPedidosArchivados : adminApi.getPedidos;
+    const data  = await apiFn({ pagina: paginaActual, por: porPagina, q: q || undefined });
+
+    if (verArchivados) {
+      pedidosArchivados = data.pedidos || [];
+    } else {
+      pedidos = data.pedidos || [];
     }
+
+    if (data.paginacion) {
+      paginaActual = data.paginacion.pagina;
+      totalPaginas = data.paginacion.totalPaginas;
+      totalPedidos = data.paginacion.total;
+      porPagina    = data.paginacion.porPagina;
+    }
+
     actualizarPaginacion();
     updateStats();
     renderPedidos();
-    showToast('✅ ' + pedidos.length + ' pedidos cargados');
+
+    const lista = verArchivados ? pedidosArchivados : pedidos;
+    showToast(`✅ ${lista.length} pedidos ${verArchivados ? 'archivados' : 'cargados'}`);
   } catch (err) {
     wrap.innerHTML = `
       <div class="text-center py-16 space-y-2">
@@ -58,21 +91,29 @@ export async function loadPedidos(pagina) {
 }
 
 function updateStats() {
-  document.getElementById('sTotPed').textContent    = pedidos.length;
-  document.getElementById('sPend').textContent      = pedidos.filter(p => p.estado_pago?.toUpperCase() === 'PENDIENTE').length;
-  document.getElementById('sCamino').textContent    = pedidos.filter(p => p.estado_envio === 'En camino').length;
-  document.getElementById('sEntregado').textContent = pedidos.filter(p => p.estado_envio === 'Entregado').length;
-  document.getElementById('sTotal').textContent     = fmt(pedidos.reduce((s, p) => s + (Number(p.total) || 0), 0));
+  const lista = verArchivados ? pedidosArchivados : pedidos;
+  document.getElementById('sTotPed').textContent    = lista.length;
+  document.getElementById('sPend').textContent      = lista.filter(p => p.estado_pago?.toUpperCase() === 'PENDIENTE').length;
+  document.getElementById('sCamino').textContent    = lista.filter(p => p.estado_envio === 'En camino').length;
+  document.getElementById('sEntregado').textContent = lista.filter(p => p.estado_envio === 'Entregado').length;
+  document.getElementById('sTotal').textContent     = fmt(lista.reduce((s, p) => s + (Number(p.total) || 0), 0));
 }
 
 export function renderPedidos() {
-  const q      = (document.getElementById('filterSearch')?.value || '').toLowerCase();
-  const fP     = document.getElementById('filterPago')?.value || '';
-  const fE     = document.getElementById('filterEnvio')?.value || '';
-  const fDesde = document.getElementById('filterFechaDesde')?.value || '';
-  const fHasta = document.getElementById('filterFechaHasta')?.value || '';
+  const lista = verArchivados ? pedidosArchivados : pedidos;
+  const q       = (document.getElementById('filterSearch')?.value || '').toLowerCase();
+  const fP      = document.getElementById('filterPago')?.value || '';
+  const fE      = document.getElementById('filterEnvio')?.value || '';
+  const fDesde  = document.getElementById('filterFechaDesde')?.value || '';
+  const fHasta  = document.getElementById('filterFechaHasta')?.value || '';
 
-  const lista = pedidos.filter(p => {
+  const filtrada = lista.filter(p => {
+    // Ocultar completados (PAGADO + Entregado)
+    if (ocultarCompletados && !verArchivados) {
+      const pagado    = (p.estado_pago || '').toUpperCase() === 'PAGADO';
+      const entregado = (p.estado_envio || '') === 'Entregado';
+      if (pagado && entregado) return false;
+    }
     if (q && ![(p.nombre||''),(String(p.telefono||'')),(p.barrio||'')].join(' ').toLowerCase().includes(q)) return false;
     if (fP && (p.estado_pago||'').toUpperCase() !== fP) return false;
     if (fE && (p.estado_envio||'') !== fE) return false;
@@ -89,98 +130,147 @@ export function renderPedidos() {
   });
 
   document.getElementById('filterCount').textContent =
-    lista.length !== pedidos.length ? `${lista.length}/${pedidos.length}` : `${pedidos.length}`;
+    filtrada.length !== lista.length ? `${filtrada.length}/${lista.length}` : `${lista.length}`;
 
-  if (!lista.length) {
-    document.getElementById('pedidosWrap').innerHTML = '<div class="text-center text-slate-500 py-16">📭 Sin resultados</div>';
+  if (!filtrada.length) {
+    document.getElementById('pedidosWrap').innerHTML = `
+      <div class="text-center text-slate-500 py-16 space-y-3">
+        <div class="text-4xl">${verArchivados ? '🗄️' : '📭'}</div>
+        <div>${verArchivados ? 'No hay pedidos archivados' : 'Sin resultados'}</div>
+        ${ocultarCompletados && !verArchivados ? '<div class="text-xs text-slate-600">Los pedidos completados están ocultos</div>' : ''}
+      </div>`;
     return;
   }
 
-  document.getElementById('pedidosWrap').innerHTML = lista.map(p => {
-    const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : (p.total || '');
-    const prodLines = String(p.productos||'').split(/\n|\\n/).filter(l=>l.trim())
-      .map(l => `<div class="text-xs text-slate-400 py-0.5 border-b border-slate-700/50 last:border-0">▪ ${l.trim()}</div>`).join('');
-    const selPago  = ['PENDIENTE','PAGADO','CONTRA ENTREGA'].map(v =>
-      `<option value="${v}" ${(p.estado_pago||'')===v?'selected':''}>${v}</option>`).join('');
-    const selEnvio = ['Recibido','En preparación','En camino','Entregado'].map(v =>
-      `<option value="${v}" ${(p.estado_envio||'Recibido')===v?'selected':''}>${v}</option>`).join('');
-    const waMsg = encodeURIComponent(`Hola ${p.nombre||''}, tu pedido de Limpieza RR está: ${p.estado_envio||'Recibido'}`);
-    const telLimpio = String(p.telefono||'').replace(/[^0-9]/g,'');
+  document.getElementById('pedidosWrap').innerHTML = filtrada.map(p => buildCard(p)).join('');
+  attachCardEvents();
+}
 
-    return `
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden hover:border-teal-600/50 transition-all animate-fade-up" id="card-${p.fila}">
-      <button class="card-toggle w-full text-left p-4 flex items-start justify-between gap-3" data-fila="${p.fila}">
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm truncate">${p.nombre||'Sin nombre'}</div>
-          <div class="text-xs text-slate-400 mt-0.5 truncate">${String(p.telefono||'')} · ${p.barrio||''}</div>
-          <div class="flex flex-wrap gap-1.5 mt-2">
-            <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgePago(p.estado_pago)}">${p.estado_pago||'Pendiente'}</span>
-            <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgeEnvio(p.estado_envio)}">${p.estado_envio||'Recibido'}</span>
-          </div>
+function buildCard(p) {
+  const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : (p.total || '');
+  const prodLines = String(p.productos||'').split(/\n|\\n/).filter(l=>l.trim())
+    .map(l => `<div class="text-xs text-slate-400 py-0.5 border-b border-slate-700/50 last:border-0">▪ ${l.trim()}</div>`).join('');
+  const selPago  = ['PENDIENTE','PAGADO','CONTRA ENTREGA'].map(v =>
+    `<option value="${v}" ${(p.estado_pago||'')=== v?'selected':''}>${v}</option>`).join('');
+  const selEnvio = ['Recibido','En preparación','En camino','Entregado'].map(v =>
+    `<option value="${v}" ${(p.estado_envio||'Recibido')===v?'selected':''}>${v}</option>`).join('');
+  const waMsg     = encodeURIComponent(`Hola ${p.nombre||''}, tu pedido de Limpieza RR está: ${p.estado_envio||'Recibido'}`);
+  const telLimpio = String(p.telefono||'').replace(/[^0-9]/g,'');
+
+  const esCompletado = (p.estado_pago||'').toUpperCase() === 'PAGADO' && p.estado_envio === 'Entregado';
+
+  // Colores de borde para estados urgentes
+  const borderClass = (p.estado_pago||'').toUpperCase() === 'PENDIENTE'
+    ? 'border-yellow-600/40 hover:border-yellow-500/60'
+    : esCompletado
+      ? 'border-green-700/30 hover:border-green-600/40 opacity-75'
+      : 'border-slate-700 hover:border-teal-600/50';
+
+  const archivedBadge = p.archivado
+    ? '<span class="text-[10px] bg-slate-700 text-slate-400 rounded-full px-2 py-0.5 font-semibold">ARCHIVADO</span>'
+    : '';
+
+  const actionBtn = p.archivado
+    ? `<button class="btn-recuperar flex items-center gap-1.5 bg-teal-900/40 hover:bg-teal-700/60 border border-teal-700/40 text-teal-300 rounded-lg px-3 py-2 text-xs font-bold transition-all" data-fila="${p.fila}" title="Mover de vuelta a activos">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12l6-6m-6 6l6 6m-6-6h18"/></svg>
+        Recuperar
+       </button>`
+    : `<button class="btn-archivar flex items-center gap-1.5 bg-slate-700/60 hover:bg-slate-600/80 border border-slate-600/40 text-slate-400 hover:text-slate-200 rounded-lg px-3 py-2 text-xs font-bold transition-all" data-fila="${p.fila}" title="Archivar pedido (no se elimina)">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+        Archivar
+       </button>`;
+
+  return `
+  <div class="bg-slate-800 border ${borderClass} rounded-2xl overflow-hidden transition-all animate-fade-up" id="card-${p.fila}">
+    <button class="card-toggle w-full text-left p-4 flex items-start justify-between gap-3" data-fila="${p.fila}">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-semibold text-sm truncate">${p.nombre||'Sin nombre'}</span>
+          ${archivedBadge}
         </div>
-        <div class="flex flex-col items-end gap-2 flex-shrink-0">
-          <span class="font-display font-bold text-teal-300 text-sm">${totalStr}</span>
-          <svg class="card-chev w-4 h-4 text-slate-500 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-      </button>
-      <div class="card-body hidden border-t border-slate-700 p-4 space-y-4 animate-fade-up" data-fila="${p.fila}">
-        <div class="grid grid-cols-2 gap-3">
-          <div><div class="text-xs text-slate-500 font-semibold mb-0.5">FECHA</div><div class="text-xs">${p.fecha||''}</div></div>
-          <div><div class="text-xs text-slate-500 font-semibold mb-0.5">PAGO</div><div class="text-xs">${p.pago||''}</div></div>
-          <div class="col-span-2"><div class="text-xs text-slate-500 font-semibold mb-0.5">DIRECCIÓN</div><div class="text-xs">${p.barrio||''}, ${p.direccion||''} ${p.casa?'· '+p.casa:''}</div></div>
-        </div>
-        <div>
-          <div class="text-xs text-slate-500 font-semibold mb-2">PRODUCTOS</div>
-          <div class="bg-slate-900/50 rounded-xl p-3">${prodLines||"<div class='text-xs text-slate-500'>Sin detalle</div>"}</div>
-        </div>
-        <div class="flex justify-between items-center bg-teal-900/20 border border-teal-800/40 rounded-xl px-4 py-3">
-          <span class="text-sm text-slate-400 font-semibold">Total a pagar</span>
-          <span class="font-display font-bold text-teal-300 text-lg">${totalStr}</span>
-        </div>
-        <div class="bg-slate-900/40 rounded-xl p-4 space-y-3">
-          <div class="text-xs text-slate-400 font-bold tracking-wide">ACTUALIZAR ESTADO</div>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <div class="flex-1">
-              <label class="text-xs text-slate-500 mb-1 block">💳 Estado de pago</label>
-              <select class="sel-pago w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition" data-fila="${p.fila}">${selPago}</select>
-            </div>
-            <div class="flex-1">
-              <label class="text-xs text-slate-500 mb-1 block">🚚 Estado de envío</label>
-              <select class="sel-envio w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition" data-fila="${p.fila}" data-nombre="${encodeURIComponent(p.nombre||'')}" data-tel="${telLimpio}">${selEnvio}</select>
-            </div>
-          </div>
-          <div class="flex flex-wrap gap-2 items-center">
-            <button class="btn-guardar-estado flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-lg px-4 py-2.5 text-sm transition-all" data-fila="${p.fila}">💾 Guardar cambios</button>
-            <span class="save-msg-${p.fila} text-xs"></span>
-            ${telLimpio ? `<a class="wa-link flex items-center gap-1.5 bg-green-900/40 hover:bg-green-900/60 border border-green-600/40 text-green-400 rounded-lg px-3 py-2.5 text-sm font-semibold transition" href="https://wa.me/57${telLimpio}?text=${waMsg}" target="_blank" rel="noopener noreferrer" data-fila="${p.fila}">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-              Avisar cliente
-            </a>` : ''}
-          </div>
+        <div class="text-xs text-slate-400 mt-0.5 truncate">${String(p.telefono||'')} · ${p.barrio||''}</div>
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgePago(p.estado_pago)}">${p.estado_pago||'Pendiente'}</span>
+          <span class="text-xs rounded-full px-2.5 py-0.5 font-bold ${badgeEnvio(p.estado_envio)}">${p.estado_envio||'Recibido'}</span>
         </div>
       </div>
-    </div>`;
-  }).join('');
+      <div class="flex flex-col items-end gap-2 flex-shrink-0">
+        <span class="font-display font-bold text-teal-300 text-sm">${totalStr}</span>
+        <svg class="card-chev w-4 h-4 text-slate-500 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </button>
+    <div class="card-body hidden border-t border-slate-700 p-4 space-y-4 animate-fade-up" data-fila="${p.fila}">
+      <div class="grid grid-cols-2 gap-3">
+        <div><div class="text-xs text-slate-500 font-semibold mb-0.5">FECHA</div><div class="text-xs">${p.fecha||''}</div></div>
+        <div><div class="text-xs text-slate-500 font-semibold mb-0.5">PAGO</div><div class="text-xs">${p.pago||''}</div></div>
+        <div class="col-span-2"><div class="text-xs text-slate-500 font-semibold mb-0.5">DIRECCIÓN</div><div class="text-xs">${p.barrio||''}, ${p.direccion||''} ${p.casa?'· '+p.casa:''}</div></div>
+        ${p.nota ? `<div class="col-span-2"><div class="text-xs text-slate-500 font-semibold mb-0.5">NOTA</div><div class="text-xs text-yellow-300">${p.nota}</div></div>` : ''}
+      </div>
+      <div>
+        <div class="text-xs text-slate-500 font-semibold mb-2">PRODUCTOS</div>
+        <div class="bg-slate-900/50 rounded-xl p-3">${prodLines||"<div class='text-xs text-slate-500'>Sin detalle</div>"}</div>
+      </div>
+      <div class="flex justify-between items-center bg-teal-900/20 border border-teal-800/40 rounded-xl px-4 py-3">
+        <span class="text-sm text-slate-400 font-semibold">Total a pagar</span>
+        <span class="font-display font-bold text-teal-300 text-lg">${totalStr}</span>
+      </div>
+      ${!p.archivado ? `
+      <div class="bg-slate-900/40 rounded-xl p-4 space-y-3">
+        <div class="text-xs text-slate-400 font-bold tracking-wide">ACTUALIZAR ESTADO</div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1">
+            <label class="text-xs text-slate-500 mb-1 block">💳 Estado de pago</label>
+            <select class="sel-pago w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition" data-fila="${p.fila}">${selPago}</select>
+          </div>
+          <div class="flex-1">
+            <label class="text-xs text-slate-500 mb-1 block">🚚 Estado de envío</label>
+            <select class="sel-envio w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-teal-500 transition" data-fila="${p.fila}" data-nombre="${encodeURIComponent(p.nombre||'')}" data-tel="${telLimpio}">${selEnvio}</select>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <button class="btn-guardar-estado flex items-center gap-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-lg px-4 py-2.5 text-xs transition-all" data-fila="${p.fila}">💾 Guardar cambios</button>
+          <span class="save-msg-${p.fila} text-xs"></span>
+          ${telLimpio ? `<a class="wa-link flex items-center gap-1.5 bg-green-900/40 hover:bg-green-900/60 border border-green-600/40 text-green-400 rounded-lg px-3 py-2.5 text-xs font-semibold transition" href="https://wa.me/57${telLimpio}?text=${waMsg}" target="_blank" rel="noopener noreferrer" data-fila="${p.fila}">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            Avisar
+          </a>` : ''}
+        </div>
+      </div>
+      ` : `<div class="bg-slate-900/30 rounded-xl p-3 text-center text-xs text-slate-500">📦 Este pedido está archivado. Recupéralo para editarlo.</div>`}
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-700/50">
+        ${actionBtn}
+      </div>
+    </div>
+  </div>`;
+}
 
-  // Eventos: toggle cards
+function attachCardEvents() {
+  // Toggle cards
   document.querySelectorAll('.card-toggle').forEach(btn => {
     btn.addEventListener('click', () => toggleCard(btn.dataset.fila));
   });
 
-  // Eventos: actualizar link WA al cambiar estado envío
+  // Actualizar link WA al cambiar estado envío
   document.querySelectorAll('.sel-envio').forEach(sel => {
     sel.addEventListener('change', () => {
-      const fila   = sel.dataset.fila;
-      const nombre = decodeURIComponent(sel.dataset.nombre || '');
-      const tel    = sel.dataset.tel;
-      const link   = document.querySelector(`.wa-link[data-fila="${fila}"]`);
-      if (link) link.href = `https://wa.me/57${tel}?text=${encodeURIComponent(`Hola ${nombre}, tu pedido de Limpieza RR está: ${sel.value}`)}`;
+      const link = document.querySelector(`.wa-link[data-fila="${sel.dataset.fila}"]`);
+      if (link) link.href = `https://wa.me/57${sel.dataset.tel}?text=${encodeURIComponent(`Hola ${decodeURIComponent(sel.dataset.nombre||'')}, tu pedido de Limpieza RR está: ${sel.value}`)}`;
     });
   });
 
-  // Eventos: guardar estado
+  // Guardar estado
   document.querySelectorAll('.btn-guardar-estado').forEach(btn => {
     btn.addEventListener('click', () => guardarEstado(btn.dataset.fila, btn));
+  });
+
+  // Archivar
+  document.querySelectorAll('.btn-archivar').forEach(btn => {
+    btn.addEventListener('click', () => accionArchivar(btn.dataset.fila, btn));
+  });
+
+  // Recuperar
+  document.querySelectorAll('.btn-recuperar').forEach(btn => {
+    btn.addEventListener('click', () => accionRecuperar(btn.dataset.fila, btn));
   });
 }
 
@@ -189,8 +279,7 @@ function toggleCard(fila) {
   document.querySelectorAll('.card-chev').forEach(el => el.style.transform = '');
   const body = document.querySelector(`.card-body[data-fila="${fila}"]`);
   const chev = document.querySelector(`#card-${fila} .card-chev`);
-  const open = !body.classList.contains('hidden');
-  if (!open) {
+  if (body && body.classList.contains('hidden')) {
     body.classList.remove('hidden');
     if (chev) chev.style.transform = 'rotate(180deg)';
   }
@@ -216,6 +305,48 @@ async function guardarEstado(fila, btn) {
   btn.disabled = false; btn.textContent = '💾 Guardar cambios';
 }
 
+async function accionArchivar(fila, btn) {
+  if (!confirm('¿Archivar este pedido?\n\nEl pedido no se eliminará y podrás recuperarlo en cualquier momento desde la vista de Archivados.')) return;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    await adminApi.archivarPedido({ fila: Number(fila) });
+    // Remover de la lista local y del DOM
+    pedidos = pedidos.filter(p => p.fila !== Number(fila));
+    document.getElementById(`card-${fila}`)?.animate([
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: 0, transform: 'scale(0.95)' }
+    ], { duration: 250, fill: 'forwards' });
+    setTimeout(() => {
+      document.getElementById(`card-${fila}`)?.remove();
+      updateStats();
+    }, 260);
+    showToast('🗄️ Pedido archivado — puedes recuperarlo en Archivados');
+  } catch (err) {
+    showToast('❌ Error al archivar: ' + err.message);
+    btn.disabled = false; btn.textContent = 'Archivar';
+  }
+}
+
+async function accionRecuperar(fila, btn) {
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    await adminApi.recuperarPedido({ fila: Number(fila) });
+    pedidosArchivados = pedidosArchivados.filter(p => p.fila !== Number(fila));
+    document.getElementById(`card-${fila}`)?.animate([
+      { opacity: 1, transform: 'translateX(0)' },
+      { opacity: 0, transform: 'translateX(40px)' }
+    ], { duration: 250, fill: 'forwards' });
+    setTimeout(() => {
+      document.getElementById(`card-${fila}`)?.remove();
+      updateStats();
+    }, 260);
+    showToast('✅ Pedido recuperado y visible en la lista principal');
+  } catch (err) {
+    showToast('❌ Error al recuperar: ' + err.message);
+    btn.disabled = false; btn.textContent = 'Recuperar';
+  }
+}
+
 function limpiarFiltros() {
   ['filterSearch','filterPago','filterEnvio','filterFechaDesde','filterFechaHasta']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -223,18 +354,19 @@ function limpiarFiltros() {
 }
 
 function exportarCSV() {
-  if (!pedidos.length) { showToast('⚠️ Sin pedidos para exportar'); return; }
-  const cols = ['fecha','nombre','telefono','barrio','pago','zona_envio','total','estado_pago','estado_envio','productos'];
+  const lista = verArchivados ? pedidosArchivados : pedidos;
+  if (!lista.length) { showToast('⚠️ Sin pedidos para exportar'); return; }
+  const cols = ['fecha','nombre','telefono','barrio','pago','zona_envio','total','estado_pago','estado_envio','productos','archivado'];
   const bom  = '\uFEFF';
-  const rows = pedidos.map(p => cols.map(c => `"${String(p[c]||'').replace(/"/g,"'").replace(/\n|\\n/g,' | ')}"`).join(','));
+  const rows = lista.map(p => cols.map(c => `"${String(p[c]||'').replace(/"/g,"'").replace(/\n|\\n/g,' | ')}"`).join(','));
   const csv  = bom + cols.join(',') + '\n' + rows.join('\n');
   const link = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
-    download: `pedidos_LimpiezaRR_${new Date().toISOString().slice(0,10)}.csv`,
+    download: `pedidos_LimpiezaRR_${verArchivados?'archivados_':''}${new Date().toISOString().slice(0,10)}.csv`,
   });
   link.click();
   URL.revokeObjectURL(link.href);
-  showToast('✅ CSV exportado: ' + pedidos.length + ' pedidos');
+  showToast('✅ CSV exportado: ' + lista.length + ' pedidos');
 }
 
 function actualizarPaginacion() {
