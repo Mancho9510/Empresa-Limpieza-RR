@@ -1,0 +1,51 @@
+/* ══════════════════════════════════════════════════════
+   5. BOTONES GLOBALES
+══════════════════════════════════════════════════════ */
+.btn-primary {
+  background: var(--grad-brand);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 13px 30px;
+  font: 600 .97rem 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .25s cubic-bezier(.22,1,.36,1);
+  position: relative;
+  overflow: hidden;
+  background-size: 200% 200%;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform .5s ease;
+}
+.btn-primary:hover::after { transform: translateX(100%); }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lg);
+}
+.btn-primary:active { transform:translateY(0) scale(0.97); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--teal);
+  border: 2px solid var(--teal);
+  border-radius: 50px;
+  padding: 11px 26px;
+  font: 600 .97rem 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .25s cubic-bezier(.22,1,.36,1);
+}
+.btn-outline:hover {
+  background: var(--teal-pale);
+  transform: translateY(-1px);
+}
+

@@ -1,0 +1,47 @@
+
+/* ══════════════════════════════════════════════════════
+   15. BOTTOM NAV
+══════════════════════════════════════════════════════ */
+nav.fixed {
+  background: rgba(10,18,17,.96) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-top-color: rgba(255,255,255,.08) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   16. PING BADGE NUEVO
+══════════════════════════════════════════════════════ */
+.badge-nuevo { position:relative; display:inline-flex; align-items:center; }
+.badge-nuevo::before {
+  content:''; position:absolute; inset:0; border-radius:50px;
+  background:var(--g-green); animation:ping 1.5s cubic-bezier(0,0,.2,1) infinite; opacity:.4;
+}
+
+/* ══════════════════════════════════════════════════════
+   17. ALERTAS
+══════════════════════════════════════════════════════ */
+.bg-red-900\/30   { background:rgba(248,113,113,.08) !important; }
+.bg-yellow-900\/20{ background:rgba(251,191,36,.08)  !important; }
+.border-red-500\/40 { border-color:rgba(248,113,113,.25) !important; }
+.border-yellow-600\/30 { border-color:rgba(251,191,36,.22) !important; }
+
+/* ══════════════════════════════════════════════════════
+   18. COLORES DE TEXTO TAILWIND → preservar
+══════════════════════════════════════════════════════ */
+.text-teal-400  { color:#2DD4BF !important; }
+.text-teal-300  { color:#5EEAD4 !important; }
+.text-slate-400 { color:rgba(148,163,184,.85) !important; }
+.text-slate-500 { color:rgba(100,116,139,.75) !important; }
+.text-slate-300 { color:rgba(203,213,225,.95) !important; }
+.text-white     { color:#F0FDF9 !important; }
+.text-yellow-400{ color:#FBBF24 !important; }
+.text-green-400 { color:#4ADE80 !important; }
+.text-red-400   { color:#F87171 !important; }
+.text-blue-400  { color:#60A5FA !important; }
+
+/* Botones teal en el panel */
+.bg-teal-600  { background:linear-gradient(135deg,#0D9488,#14B8A6) !important; }
+.bg-teal-700  { background:linear-gradient(135deg,#0F766E,#0D9488) !important; }
+.hover\:bg-teal-700:hover { background:linear-gradient(135deg,#0F766E,#0D9488) !important; }
+.bg-teal-700\/40 { background:rgba(13,148,136,.2) !important; }

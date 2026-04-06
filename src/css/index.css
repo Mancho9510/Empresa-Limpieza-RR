@@ -1,0 +1,22 @@
+/* ═══════════════════════════════════════════════════════
+   LIMPIEZA RR — CSS Modular Index
+   Importa todos los módulos en el orden correcto.
+   Editado: cada sección en su propio archivo para
+   mejor mantenimiento y carga.
+═══════════════════════════════════════════════════════ */
+
+@import "./_tailwind.css";  /* Tailwind */
+@import "./tokens.css";  /* Tokens */
+@import "./animations.css";  /* Animations */
+@import "./theme-toggle.css";  /* Theme-Toggle */
+@import "./nav.css";  /* Nav */
+@import "./buttons.css";  /* Buttons */
+@import "./hero.css";  /* Hero */
+@import "./carousel.css";  /* Carousel */
+@import "./benefits.css";  /* Benefits */
+@import "./reviews.css";  /* Reviews */
+@import "./products.css";  /* Products */
+@import "./contact.css";  /* Contact */
+@import "./footer.css";  /* Footer */
+@import "./modals.css";  /* Modals */
+@import "./responsive.css";  /* Responsive */

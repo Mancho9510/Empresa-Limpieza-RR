@@ -1,4 +1,4 @@
-import '../tienda.css';
+import '../css/index.css';
 import { $ } from './utils/dom.js';
 import { state } from './store/state.js';
 import { loadCart } from './store/cart.js';

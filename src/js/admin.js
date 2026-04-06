@@ -2,7 +2,7 @@
    ADMIN.JS — Entry point del panel admin
    Limpieza RR v2 · Vite 6 + Tailwind 4
 ══════════════════════════════════════════ */
-import '/admin.css';
+import '../css/admin/index.css';
 
 import { initAuth }         from './admin/auth.js';
 import { initTabs, switchTab, getTabActivo } from './admin/tabs.js';

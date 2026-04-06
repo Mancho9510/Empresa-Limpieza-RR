@@ -1,0 +1,76 @@
+/* ══════════════════════════════════════════════════════
+   TEMA ADMIN — Dark (default) y Light
+   Toggle: html[data-admin-theme="light"]
+══════════════════════════════════════════════════════ */
+
+/* DARK (default) */
+:root,
+html[data-admin-theme="dark"] {
+  --a-bg1:        #0B1E1D;
+  --a-bg2:        #0D2535;
+  --a-bg3:        #07101C;
+  --a-surface:    rgba(255,255,255,.06);
+  --a-surface-h:  rgba(255,255,255,.10);
+  --a-border:     rgba(255,255,255,.12);
+  --a-border-h:   rgba(45,212,191,.45);
+  --a-text:       #F0FDF9;
+  --a-text-2:     #CBD5E1;
+  --a-text-muted: rgba(203,213,225,.6);
+  --a-teal:       #14B8A6;
+  --a-teal-l:     #2DD4BF;
+  --a-teal-dk:    #0D9488;
+  --a-card-bg:    rgba(255,255,255,.06);
+  --a-card-brd:   rgba(255,255,255,.12);
+  --a-header-bg:  rgba(11,30,29,.92);
+  --a-tab-bg:     rgba(13,37,53,.9);
+  --a-input-bg:   rgba(255,255,255,.06);
+  --a-kpi-bg:     rgba(255,255,255,.05);
+  --a-scroll:     rgba(45,212,191,.3);
+  --a-glow:       rgba(20,184,166,.4);
+}
+
+/* LIGHT */
+html[data-admin-theme="light"] {
+  --a-bg1:        #F0FDF9;
+  --a-bg2:        #E6F7F4;
+  --a-bg3:        #CCFBF1;
+  --a-surface:    rgba(255,255,255,.95);
+  --a-surface-h:  rgba(255,255,255,1);
+  --a-border:     rgba(13,148,136,.18);
+  --a-border-h:   rgba(13,148,136,.5);
+  --a-text:       #0F172A;
+  --a-text-2:     #334155;
+  --a-text-muted: #64748B;
+  --a-teal:       #0D9488;
+  --a-teal-l:     #14B8A6;
+  --a-teal-dk:    #0F766E;
+  --a-card-bg:    #FFFFFF;
+  --a-card-brd:   rgba(13,148,136,.15);
+  --a-header-bg:  rgba(240,253,249,.96);
+  --a-tab-bg:     rgba(240,253,249,.98);
+  --a-input-bg:   #F8FFFE;
+  --a-kpi-bg:     #FFFFFF;
+  --a-scroll:     rgba(13,148,136,.3);
+  --a-glow:       rgba(13,148,136,.2);
+}
+
+/* Botón toggle dark/light del admin */
+.admin-theme-toggle {
+  display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:10px; cursor:pointer;
+  background:var(--a-surface); border:1px solid var(--a-border);
+  color:var(--a-text-2); transition:all .25s; flex-shrink:0;
+}
+.admin-theme-toggle:hover {
+  background:var(--a-surface-h); border-color:var(--a-border-h);
+  color:var(--a-teal);
+}
+.admin-theme-toggle svg { width:18px; height:18px; }
+/* Mostrar sol en dark, luna en light */
+html[data-admin-theme="dark"]  .admin-icon-sun  { display:block; }
+html[data-admin-theme="dark"]  .admin-icon-moon { display:none; }
+html[data-admin-theme="light"] .admin-icon-sun  { display:none; }
+html[data-admin-theme="light"] .admin-icon-moon { display:block; }
+.admin-icon-sun, .admin-icon-moon               { display:none; }
+html[data-admin-theme="dark"]  .admin-icon-sun  { display:block; }
+

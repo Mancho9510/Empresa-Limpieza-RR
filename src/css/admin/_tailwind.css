@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════
+   LIMPIEZA RR — admin.css v3  (Glassmorphism + Tailwind 4)
+   Estilo: glass cards sobre fondo degradado teal/slate profundo
+   Importado desde src/js/admin.js
+═══════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════
+   1. TOKENS
+══════════════════════════════════════════════════════ */
+:root {
+  --g-teal:      #14B8A6;
+  --g-teal-l:    #2DD4BF;
+  --g-teal-dk:   #0D9488;
+  --g-teal-vdk:  #0F766E;
+  --g-teal-glow: rgba(20,184,166,.35);
+  --g-yellow:    #FBBF24;
+  --g-green:     #4ADE80;
+  --g-red:       #F87171;
+  --g-blue:      #60A5FA;
+
+  --g-glass:      rgba(255,255,255,.08);
+  --g-glass-brd:  rgba(255,255,255,.15);
+  --g-glass-brd-h:rgba(45,212,191,.5);
+
+  --g-text:      #F0FDF9;
+  --g-text-2:    #CBD5E1;
+  --g-text-muted:rgba(203,213,225,.65);
+
+  --g-sh:        0 8px 32px rgba(0,0,0,.35);
+  --g-sh-lg:     0 24px 64px rgba(0,0,0,.5);
+  --g-sh-card:   0 4px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+
+  --g-r:    16px;
+  --g-r-lg: 24px;
+  --g-r-xl: 32px;
+}

@@ -1,0 +1,37 @@
+
+/* ══════════════════════════════════════════════════════
+   11. BARRAS DEL DASHBOARD
+══════════════════════════════════════════════════════ */
+.bar-track {
+  background: rgba(255,255,255,.06);
+  border-radius: 99px; overflow:hidden; height:20px; flex:1; position:relative;
+}
+.bar-fill {
+  height:100%; border-radius:99px;
+  background: linear-gradient(90deg, var(--g-teal-dk), var(--g-teal-l));
+  transition:width .8s cubic-bezier(.22,1,.36,1);
+  display:flex; align-items:center; padding-left:8px; min-width:32px;
+  box-shadow: 0 0 12px rgba(20,184,166,.25);
+}
+.bar-fill.this-week { background:linear-gradient(90deg, #0D9488, #2DD4BF); }
+.bar-fill.yellow    { background:linear-gradient(90deg, #D97706, #FBBF24); }
+.bar-fill.green     { background:linear-gradient(90deg, #16A34A, #4ADE80); }
+.bar-value { font-size:.7rem; font-weight:700; color:#fff; white-space:nowrap; }
+
+/* ══════════════════════════════════════════════════════
+   12. RENTABILIDAD
+══════════════════════════════════════════════════════ */
+.margen-excelente { background:rgba(74,222,128,.12);  color:#4ADE80; }
+.margen-bueno     { background:rgba(45,212,191,.12);  color:#2DD4BF; }
+.margen-regular   { background:rgba(251,191,36,.12);  color:#FBBF24; }
+.margen-bajo      { background:rgba(248,113,113,.12); color:#F87171; }
+
+.calc-result {
+  background: rgba(20,184,166,.1);
+  border: 1px solid rgba(45,212,191,.3);
+  border-radius: 10px; padding:8px 12px;
+  font:700 .9rem 'Plus Jakarta Sans',sans-serif; color:var(--g-teal);
+  text-align:center; min-height:38px;
+  display:flex; align-items:center; justify-content:center;
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
