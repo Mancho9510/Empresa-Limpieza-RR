@@ -183,6 +183,20 @@ function buildCard(p) {
         Archivar
        </button>`;
 
+  const btnModificar = !p.archivado
+    ? `<button class="btn-modificar-pedido flex items-center gap-1.5 bg-blue-900/40 hover:bg-blue-700/60 border border-blue-700/40 text-blue-300 rounded-lg px-3 py-2 text-xs font-bold transition-all" data-fila="${p.fila}" title="Modificar datos del pedido">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        Modificar
+       </button>`
+    : '';
+
+  const btnCancelar = !p.archivado
+    ? `<button class="btn-cancelar-pedido flex items-center gap-1.5 bg-red-900/40 hover:bg-red-700/60 border border-red-700/40 text-red-300 rounded-lg px-3 py-2 text-xs font-bold transition-all" data-fila="${p.fila}" title="Cancelar pedido">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        Cancelar
+       </button>`
+    : '';
+
   return `
   <div class="bg-slate-800 border ${borderClass} rounded-2xl overflow-hidden transition-all animate-fade-up" id="card-${p.fila}">
     <button class="card-toggle w-full text-left p-4 flex items-start justify-between gap-3" data-fila="${p.fila}">
@@ -240,7 +254,9 @@ function buildCard(p) {
         </div>
       </div>
       ` : `<div class="bg-slate-900/30 rounded-xl p-3 text-center text-xs text-slate-500">📦 Este pedido está archivado. Recupéralo para editarlo.</div>`}
-      <div class="flex justify-end gap-2 pt-1 border-t border-slate-700/50">
+      <div class="flex flex-wrap justify-end gap-2 pt-3 border-t border-slate-700/50">
+        ${btnCancelar}
+        ${btnModificar}
         ${actionBtn}
       </div>
     </div>
