@@ -136,7 +136,7 @@ export async function confirmOrder() {
     const p = state.products.find(x => x.id === it.id);
     if (!p) return '';
     return `${p.name} ${p.size} | Cant: ${it.qty} | P.Unit: ${fmt(p.price)} | Subtotal: ${fmt(p.price * it.qty)}`;
-  }).filter(Boolean).join("\\n");
+  }).filter(Boolean).join("\n");
 
   const productosJson = JSON.stringify(state.cart.filter(it => state.products.find(x => x.id === it.id)).map(it => {
     const p = state.products.find(x => x.id === it.id);
@@ -171,54 +171,54 @@ export async function confirmOrder() {
   await saveOrderToSheets(orderData);
 
   const payInfo = PAY_INFO[pag.value];
-  let msg = `🧹 *NUEVO PEDIDO – Limpieza RR*\\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━\\n\\n`;
+  let msg = `🧹 *NUEVO PEDIDO – Limpieza RR*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-  msg += `📦 *PRODUCTOS:*\\n`;
+  msg += `📦 *PRODUCTOS:*\n`;
   state.cart.forEach(it => {
     const p = state.products.find(x => x.id === it.id);
     if (!p) return;
-    msg += `▪️ ${p.name} ${p.size}\\n`;
-    msg += `   Cantidad: ${it.qty}  |  ${fmt(p.price * it.qty)}\\n`;
+    msg += `▪️ ${p.name} ${p.size}\n`;
+    msg += `   Cantidad: ${it.qty}  |  ${fmt(p.price * it.qty)}\n`;
   });
 
-  msg += `\\n━━━━━━━━━━━━━━━━━━━━\\n`;
-  msg += `🛒 Subtotal: ${fmt(sub)}\\n`;
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `🛒 Subtotal: ${fmt(sub)}\n`;
   if (discount > 0) {
-    msg += `🏷️ Descuento (${state.activeCoupon?.code || "cupón"}): -${fmt(discount)}\\n`;
+    msg += `🏷️ Descuento (${state.activeCoupon?.code || "cupón"}): -${fmt(discount)}\n`;
   }
   if (shipping === null) {
-    msg += `🚚 Envío: A convenir (acordamos el costo por chat)\\n`;
-    msg += `💰 *TOTAL: ${fmt(sub - discount)} + envío*\\n`;
+    msg += `🚚 Envío: A convenir (acordamos el costo por chat)\n`;
+    msg += `💰 *TOTAL: ${fmt(sub - discount)} + envío*\n`;
   } else if (shipping === 0) {
-    msg += `🚚 Envío: Sin costo\\n`;
-    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\\n`;
+    msg += `🚚 Envío: Sin costo\n`;
+    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\n`;
   } else {
-    msg += `🚚 Envío: ${fmt(shipping)}\\n`;
-    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\\n`;
+    msg += `🚚 Envío: ${fmt(shipping)}\n`;
+    msg += `💰 *TOTAL A PAGAR: ${fmt(finalTotal)}*\n`;
   }
 
-  msg += `\\n━━━━━━━━━━━━━━━━━━━━\\n`;
-  msg += `📍 *DATOS DE ENTREGA:*\\n`;
-  msg += `• Nombre: ${nom}\\n`;
-  msg += `• Ciudad: ${ciu} – ${dep}\\n`;
-  msg += `• Barrio: ${bar}\\n`;
-  msg += `• Dirección: ${dir}\\n`;
-  if (cas) msg += `• Casa/Apto: ${cas}\\n`;
-  if (con) msg += `• Conjunto: ${con}\\n`;
-  if (not) msg += `• Nota: ${not}\\n`;
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📍 *DATOS DE ENTREGA:*\n`;
+  msg += `• Nombre: ${nom}\n`;
+  msg += `• Ciudad: ${ciu} – ${dep}\n`;
+  msg += `• Barrio: ${bar}\n`;
+  msg += `• Dirección: ${dir}\n`;
+  if (cas) msg += `• Casa/Apto: ${cas}\n`;
+  if (con) msg += `• Conjunto: ${con}\n`;
+  if (not) msg += `• Nota: ${not}\n`;
 
-  msg += `\\n━━━━━━━━━━━━━━━━━━━━\\n`;
-  msg += `💳 *MEDIO DE PAGO:* ${pag.value}\\n`;
+  msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💳 *MEDIO DE PAGO:* ${pag.value}\n`;
   if (isContra) {
-    msg += `🚪 Pago al momento de la entrega.\\n`;
+    msg += `🚪 Pago al momento de la entrega.\n`;
     msg += `💵 Por favor ten el dinero exacto listo.`;
   } else if (payInfo.num) {
-    msg += `📱 Número: *${payInfo.num}*\\n`;
-    msg += `👤 A nombre de: ${CONFIG.PAY_HOLDER}\\n`;
-    msg += `\\n📎 *Por favor adjunta el comprobante de pago a este mensaje.*`;
+    msg += `📱 Número: *${payInfo.num}*\n`;
+    msg += `👤 A nombre de: ${CONFIG.PAY_HOLDER}\n`;
+    msg += `\n📎 *Por favor adjunta el comprobante de pago a este mensaje.*`;
   } else {
-    msg += `🏦 Te compartiremos los datos bancarios para la transferencia.\\n`;
+    msg += `🏦 Te compartiremos los datos bancarios para la transferencia.\n`;
     msg += `📎 *Una vez transferido, adjunta el comprobante de pago.*`;
   }
 

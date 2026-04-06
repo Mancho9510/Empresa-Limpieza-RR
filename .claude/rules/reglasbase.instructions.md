@@ -8,7 +8,7 @@ paths:
 
 ## 1. Auditoría Full-Stack
 
-- Analiza siempre: frontend (estructura, componentes, estado), backend (Apps Script, lógica, organización), base de datos (Google Sheets), integraciones externas (WhatsApp).
+- Analiza siempre: fronten|d (estructura, componentes, estado), backend (Apps Script, lógica, organización), base de datos (Google Sheets), integraciones externas (WhatsApp).
 - Evalúa: arquitectura general, separación de responsabilidades, flujo de datos end-to-end, escalabilidad, mantenibilidad.
 - Detecta: cuellos de botella, código acoplado, duplicidad de lógica, riesgos de crecimiento.
 - Devuelve:

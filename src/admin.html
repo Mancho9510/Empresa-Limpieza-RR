@@ -8,7 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Admin — Limpieza RR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script type="module" src="/js/admin.js"></script>
   <style>
     @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -67,7 +68,7 @@
       -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
       border:1px solid rgba(255,255,255,.15); border-radius:12px;
       padding:13px 14px 13px 44px;
-      font:400 .95rem 'Outfit',sans-serif; color:#fff; outline:none; transition:all .25s;
+      font:400 .95rem 'Plus Jakarta Sans',sans-serif; color:#fff; outline:none; transition:all .25s;
     }
     .login-input::placeholder { color:rgba(255,255,255,.32); }
     .login-input:hover  { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.25); }
@@ -75,7 +76,7 @@
     .login-btn {
       width:100%; background:linear-gradient(135deg,#0D9488,#14B8A6);
       color:#fff; border:none; border-radius:12px; padding:14px;
-      font:700 1rem 'Outfit',sans-serif; cursor:pointer;
+      font:700 1rem 'Plus Jakarta Sans',sans-serif; cursor:pointer;
       transition:all .25s cubic-bezier(.22,1,.36,1); position:relative; overflow:hidden;
       box-shadow:0 4px 20px rgba(13,148,136,.4), inset 0 1px 0 rgba(255,255,255,.2); margin-top:6px;
     }
@@ -97,13 +98,9 @@
 <div id="loginWrap" class="fixed inset-0 z-50 overflow-hidden" style="display:flex;align-items:center;justify-content:center;padding:20px">
   <div class="login-card">
     <div class="login-logo-bg">
-      <svg width="38" height="38" viewBox="0 0 42 42" fill="none">
-        <circle cx="21" cy="21" r="21" fill="rgba(255,255,255,.12)"/>
-        <path d="M21 7 C21 7,13 17,13 23 C13 27.4 16.6 31 21 31 C25.4 31 29 27.4 29 23 C29 17 21 7 21 7Z" fill="white" opacity=".92"/>
-        <text x="15.5" y="26.5" font-family="Arial Black,sans-serif" font-size="8.5" font-weight="900" fill="#0F766E">RR</text>
-      </svg>
+      <img src="/icons/icon-192.png" alt="Limpieza RR" width="48" height="48" style="border-radius:12px;filter:drop-shadow(0 2px 8px rgba(13,148,136,.4))">
     </div>
-    <h1 style="font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em">Panel de Administración</h1>
+    <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.75rem;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em">Panel de Administración</h1>
     <p style="color:rgba(203,213,225,.65);font-size:.9rem;margin-bottom:30px">Limpieza RR</p>
     <div class="login-field">
       <div class="login-field-icon">
@@ -127,7 +124,7 @@
   <!-- TOPBAR -->
   <header class="sticky top-0 z-40 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between gap-3">
     <div class="flex items-center gap-3 min-w-0">
-      <span class="text-2xl flex-shrink-0">🧴</span>
+      <img src="/icons/icon-192.png" alt="LRR" width="36" height="36" style="border-radius:10px;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(13,148,136,.3))">
       <div class="min-w-0">
         <div class="font-display font-extrabold text-teal-400 text-base leading-tight truncate">Limpieza RR</div>
         <div class="text-slate-400 text-xs hidden sm:block">Panel de Administración</div>

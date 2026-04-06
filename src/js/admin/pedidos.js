@@ -98,7 +98,7 @@ export function renderPedidos() {
 
   document.getElementById('pedidosWrap').innerHTML = lista.map(p => {
     const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : (p.total || '');
-    const prodLines = String(p.productos||'').split('\n').filter(l=>l.trim())
+    const prodLines = String(p.productos||'').split(/\n|\\n/).filter(l=>l.trim())
       .map(l => `<div class="text-xs text-slate-400 py-0.5 border-b border-slate-700/50 last:border-0">▪ ${l.trim()}</div>`).join('');
     const selPago  = ['PENDIENTE','PAGADO','CONTRA ENTREGA'].map(v =>
       `<option value="${v}" ${(p.estado_pago||'')===v?'selected':''}>${v}</option>`).join('');
@@ -226,7 +226,7 @@ function exportarCSV() {
   if (!pedidos.length) { showToast('⚠️ Sin pedidos para exportar'); return; }
   const cols = ['fecha','nombre','telefono','barrio','pago','zona_envio','total','estado_pago','estado_envio','productos'];
   const bom  = '\uFEFF';
-  const rows = pedidos.map(p => cols.map(c => `"${String(p[c]||'').replace(/"/g,"'").replace(/\n/g,' | ')}"`).join(','));
+  const rows = pedidos.map(p => cols.map(c => `"${String(p[c]||'').replace(/"/g,"'").replace(/\n|\\n/g,' | ')}"`).join(','));
   const csv  = bom + cols.join(',') + '\n' + rows.join('\n');
   const link = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
