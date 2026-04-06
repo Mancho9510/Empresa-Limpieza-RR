@@ -721,6 +721,59 @@
 
 </div>
 
+<!-- MODAL EDITAR PEDIDO -->
+<dialog id="modalEditarPedido" class="bg-transparent m-auto inset-0 backdrop:bg-slate-900/80 p-4 w-full max-w-[500px]">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-2xl relative w-full overflow-y-auto max-h-[85vh]">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700/50">
+      <h3 class="text-teal-400 font-display font-bold text-lg">✏️ Modificar Pedido #<span id="editPedFila"></span></h3>
+      <button onclick="document.getElementById('modalEditarPedido').close()" class="text-slate-500 hover:text-white transition">✖</button>
+    </div>
+    <form id="formEditarPedido" class="space-y-4">
+      <input type="hidden" id="editPedId">
+      
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="text-xs text-slate-400 mb-1 block">Nombre</label>
+          <input id="editPedNombre" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Teléfono</label>
+          <input id="editPedTelefono" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Ciudad</label>
+          <input id="editPedCiudad" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Barrio</label>
+          <input id="editPedBarrio" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Dirección</label>
+          <input id="editPedDireccion" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs text-slate-400 mb-1 block">Nota / Indicaciones</label>
+          <input id="editPedNota" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-yellow-300 focus:border-teal-500 outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs text-slate-400 mb-1 block">Productos (Texto libre)</label>
+          <textarea id="editPedProductos" rows="2" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:border-teal-500 outline-none resize-none"></textarea>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Total a Pagar</label>
+          <input id="editPedTotal" type="number" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-teal-300 font-bold focus:border-teal-500 outline-none">
+        </div>
+      </div>
+      
+      <div class="pt-4 flex justify-end gap-2 border-t border-slate-700/50 mt-2">
+        <button type="button" onclick="document.getElementById('modalEditarPedido').close()" class="px-4 py-2 rounded-lg text-sm bg-slate-700 text-white font-medium hover:bg-slate-600 transition">Cancelar</button>
+        <button type="submit" id="btnGuardarEdicionPedido" class="px-5 py-2 rounded-lg text-sm bg-teal-600 text-white font-bold hover:bg-teal-500 transition">💾 Guardar</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
 <!-- TOAST -->
 <div id="toast" class="fixed bottom-28 sm:bottom-8 left-1/2 -translate-x-1/2 translate-y-48 bg-teal-700 text-white rounded-full px-5 py-2.5 text-sm font-semibold shadow-xl z-50 transition-all duration-300 whitespace-nowrap pointer-events-none opacity-0"></div>
 

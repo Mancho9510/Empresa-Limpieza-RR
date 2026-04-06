@@ -62,4 +62,5 @@ export const adminApi = {
   updatePrecio:        (p) => postJson({ accion: 'actualizar_precio',   ...p }),
   archivarPedido:      (p) => postJson({ accion: 'archivar_pedido',     ...p }),
   recuperarPedido:     (p) => postJson({ accion: 'recuperar_pedido',    ...p }),
+  modificarPedido:     (p) => postJson({ accion: 'modificar_pedido',    ...p }),
 };

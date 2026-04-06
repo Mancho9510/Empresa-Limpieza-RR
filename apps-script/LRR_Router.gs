@@ -73,6 +73,11 @@ function doPost(e) {
       recuperarPedido(ss, body);
       return jsonResponse({ ok: true });
     }
+    if (body.accion === "modificar_pedido") {
+      if (body.clave !== getAdminKey()) return jsonResponse({ ok: false, error: "No autorizado" });
+      modificarPedido(ss, body);
+      return jsonResponse({ ok: true });
+    }
 
     // ── Nuevo pedido ── validar primero, luego procesar
     validarBodyPedido(body);           // lanza Error si falta algo requerido

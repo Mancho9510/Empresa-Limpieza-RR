@@ -48,6 +48,9 @@ export function initPedidos() {
     btn.textContent = verArchivados ? '📋 Activos' : '🗄️ Archivados';
     loadPedidos(1);
   });
+
+  // Init Modal Events
+  initModalEdicion();
 }
 
 export async function loadPedidos(pagina) {
@@ -279,9 +282,61 @@ function attachCardEvents() {
 
   // Modificar
   document.querySelectorAll('.btn-modificar-pedido').forEach(btn => {
-    btn.addEventListener('click', () => {
-      alert("✏️ Para modificar productos, precios o direcciones, debes abrir la Google Sheet de 'Limpieza RR' y editar la fila directamente por ahora.\n\nEl panel mostrará los cambios cuando recargues la página.");
-    });
+    btn.addEventListener('click', () => abrirModalEdicion(btn.dataset.fila));
+  });
+}
+
+function abrirModalEdicion(fila) {
+  const p = (verArchivados ? pedidosArchivados : pedidos).find(x => x.fila === Number(fila));
+  if (!p) return;
+  document.getElementById('editPedFila').textContent = p.fila;
+  document.getElementById('editPedId').value = p.fila;
+  document.getElementById('editPedNombre').value = p.nombre || '';
+  document.getElementById('editPedTelefono').value = p.telefono || '';
+  document.getElementById('editPedCiudad').value = p.ciudad || '';
+  document.getElementById('editPedBarrio').value = p.barrio || '';
+  document.getElementById('editPedDireccion').value = p.direccion || '';
+  document.getElementById('editPedNota').value = p.nota || '';
+  document.getElementById('editPedProductos').value = (p.productos || '').replace(/\\n/g, '\n');
+  document.getElementById('editPedTotal').value = p.total || 0;
+  
+  document.getElementById('modalEditarPedido').showModal();
+}
+
+function initModalEdicion() {
+  const form = document.getElementById('formEditarPedido');
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnGuardarEdicionPedido');
+    const fila = document.getElementById('editPedId').value;
+    
+    const datos = {
+      nombre: document.getElementById('editPedNombre').value.trim(),
+      telefono: document.getElementById('editPedTelefono').value.trim(),
+      ciudad: document.getElementById('editPedCiudad').value.trim(),
+      barrio: document.getElementById('editPedBarrio').value.trim(),
+      direccion: document.getElementById('editPedDireccion').value.trim(),
+      nota: document.getElementById('editPedNota').value.trim(),
+      productos: document.getElementById('editPedProductos').value.trim().replace(/\n/g, '\\n'),
+      total: Number(document.getElementById('editPedTotal').value) || 0
+    };
+    
+    btn.disabled = true; btn.textContent = '⏳ Guardando...';
+    try {
+      const res = await adminApi.modificarPedido({ fila: Number(fila), datos });
+      if (res.ok) {
+        showToast('✅ Pedido actualizado correctamente');
+        document.getElementById('modalEditarPedido').close();
+        loadPedidos(); // Recargar datos
+      } else {
+        throw new Error(res.error || 'Error');
+      }
+    } catch(err) {
+      showToast('❌ Error: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Guardar';
+    }
   });
 }
 

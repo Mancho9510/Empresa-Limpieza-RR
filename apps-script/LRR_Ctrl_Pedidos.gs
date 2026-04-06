@@ -307,3 +307,32 @@ function recuperarPedido(ss, body) {
   invalidarCacheDashboard();
   cacheDelete("admin_rentabilidad_v1");
 }
+
+/* ──────────────────────────────────────────────────────────────
+   MODIFICAR PEDIDO (Campos libres)
+────────────────────────────────────────────────────────────── */
+function modificarPedido(ss, body) {
+  var sheet = ss.getSheetByName("Pedidos");
+  if (!sheet) throw new Error("Hoja Pedidos no encontrada");
+  var fila = parseInt(body.fila, 10);
+  if (!fila || fila < 2) throw new Error("Fila inválida");
+  
+  var datos = body.datos;
+  if (!datos) throw new Error("No hay datos para modificar");
+  
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var COL = {};
+  headers.forEach(function(h, i) { COL[String(h).toLowerCase().trim()] = i + 1; });
+  
+  var actualizados = 0;
+  Object.keys(datos).forEach(function(key) {
+    if (COL[key]) {
+      sheet.getRange(fila, COL[key]).setValue(datos[key]);
+      actualizados++;
+    }
+  });
+  
+  logInfo("modificarPedido", "Fila " + fila + " (" + actualizados + " campos modificados)");
+  invalidarCacheDashboard();
+  cacheDelete("admin_rentabilidad_v1");
+}
