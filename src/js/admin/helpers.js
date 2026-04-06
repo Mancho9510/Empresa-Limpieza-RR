@@ -14,6 +14,7 @@ export function badgeEnvio(val) {
   if (v === 'Entregado')      return 'bg-green-900/50 text-green-300 border border-green-600/40';
   if (v === 'En camino')      return 'bg-blue-900/50 text-blue-300 border border-blue-600/40';
   if (v === 'En preparación') return 'bg-yellow-900/50 text-yellow-300 border border-yellow-600/40';
+  if (v === 'Cancelado')      return 'bg-red-900/50 text-red-300 border border-red-600/40';
   return 'bg-slate-700/60 text-slate-300 border border-slate-600/40';
 }
 

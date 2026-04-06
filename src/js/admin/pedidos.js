@@ -150,9 +150,9 @@ function buildCard(p) {
   const totalStr  = !isNaN(Number(p.total)) ? fmt(Number(p.total)) : (p.total || '');
   const prodLines = String(p.productos||'').split(/\n|\\n/).filter(l=>l.trim())
     .map(l => `<div class="text-xs text-slate-400 py-0.5 border-b border-slate-700/50 last:border-0">▪ ${l.trim()}</div>`).join('');
-  const selPago  = ['PENDIENTE','PAGADO','CONTRA ENTREGA'].map(v =>
+  const selPago  = ['PENDIENTE','PAGADO','CONTRA ENTREGA','CANCELADO'].map(v =>
     `<option value="${v}" ${(p.estado_pago||'')=== v?'selected':''}>${v}</option>`).join('');
-  const selEnvio = ['Recibido','En preparación','En camino','Entregado'].map(v =>
+  const selEnvio = ['Recibido','En preparación','En camino','Entregado','Cancelado'].map(v =>
     `<option value="${v}" ${(p.estado_envio||'Recibido')===v?'selected':''}>${v}</option>`).join('');
   const waMsg     = encodeURIComponent(`Hola ${p.nombre||''}, tu pedido de Limpieza RR está: ${p.estado_envio||'Recibido'}`);
   const telLimpio = String(p.telefono||'').replace(/[^0-9]/g,'');
@@ -272,6 +272,17 @@ function attachCardEvents() {
   document.querySelectorAll('.btn-recuperar').forEach(btn => {
     btn.addEventListener('click', () => accionRecuperar(btn.dataset.fila, btn));
   });
+  // Cancelar
+  document.querySelectorAll('.btn-cancelar-pedido').forEach(btn => {
+    btn.addEventListener('click', () => accionCancelar(btn.dataset.fila, btn));
+  });
+
+  // Modificar
+  document.querySelectorAll('.btn-modificar-pedido').forEach(btn => {
+    btn.addEventListener('click', () => {
+      alert("✏️ Para modificar productos, precios o direcciones, debes abrir la Google Sheet de 'Limpieza RR' y editar la fila directamente por ahora.\n\nEl panel mostrará los cambios cuando recargues la página.");
+    });
+  });
 }
 
 function toggleCard(fila) {
@@ -345,6 +356,31 @@ async function accionRecuperar(fila, btn) {
     showToast('❌ Error al recuperar: ' + err.message);
     btn.disabled = false; btn.textContent = 'Recuperar';
   }
+}
+
+async function accionCancelar(fila, btn) {
+  if (!confirm('¿Estás seguro de que deseas cancelar este pedido? Se mercará la orden como CANCELADA.')) return;
+  const msg = document.querySelector(`.save-msg-${fila}`);
+  btn.disabled = true; btn.textContent = '⏳';
+  if (msg) { msg.className = 'text-xs text-yellow-400'; msg.textContent = 'Cancelando...'; }
+  try {
+    const res = await adminApi.updateEstado({ fila: Number(fila), estado_pago: 'CANCELADO', estado_envio: 'Cancelado' });
+    if (res.ok) {
+      showToast('🚫 Pedido cancelado correctamente');
+      if (msg) { msg.className = 'text-xs text-red-500 font-bold'; msg.textContent = '🚫 Cancelado'; }
+      const p = (verArchivados ? pedidosArchivados : pedidos).find(x => x.fila === Number(fila));
+      if (p) { p.estado_pago = 'CANCELADO'; p.estado_envio = 'Cancelado'; }
+      const selP = document.querySelector(`.sel-pago[data-fila="${fila}"]`);
+      const selE = document.querySelector(`.sel-envio[data-fila="${fila}"]`);
+      if (selP) selP.value = 'CANCELADO';
+      if (selE) selE.value = 'Cancelado';
+      updateStats();
+    } else throw new Error(res.error||'Error desconocido');
+  } catch(err) {
+    showToast('❌ Error: ' + err.message);
+    if (msg) { msg.className = 'text-xs text-red-400'; msg.textContent = '❌ Error'; }
+  }
+  btn.disabled = false; btn.textContent = '🚫 Cancelar';
 }
 
 function limpiarFiltros() {
