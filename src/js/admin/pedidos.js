@@ -113,11 +113,15 @@ export function renderPedidos() {
   const fHasta  = document.getElementById('filterFechaHasta')?.value || '';
 
   const filtrada = lista.filter(p => {
-    // Ocultar completados (PAGADO + Entregado)
+    // Ocultar completados (PAGADO + Entregado) o CANCELADOS
     if (ocultarCompletados && !verArchivados) {
       const pagado    = (p.estado_pago || '').toUpperCase() === 'PAGADO';
       const entregado = (p.estado_envio || '') === 'Entregado';
       if (pagado && entregado) return false;
+      
+      const canceladoPago = (p.estado_pago || '').toUpperCase() === 'CANCELADO';
+      const canceladoEnvio = (p.estado_envio || '') === 'Cancelado';
+      if (canceladoPago || canceladoEnvio) return false;
     }
     if (q && ![(p.nombre||''),(String(p.telefono||'')),(p.barrio||'')].join(' ').toLowerCase().includes(q)) return false;
     if (fP && (p.estado_pago||'').toUpperCase() !== fP) return false;
