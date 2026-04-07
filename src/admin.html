@@ -756,9 +756,30 @@
           <label class="text-xs text-slate-400 mb-1 block">Nota / Indicaciones</label>
           <input id="editPedNota" type="text" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-yellow-300 focus:border-teal-500 outline-none">
         </div>
-        <div class="col-span-2">
-          <label class="text-xs text-slate-400 mb-1 block">Productos (Texto libre)</label>
-          <textarea id="editPedProductos" rows="2" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:border-teal-500 outline-none resize-none"></textarea>
+        <div class="col-span-2 bg-slate-900/30 border border-slate-700/50 rounded-xl p-3">
+          <label class="text-xs text-slate-400 font-bold tracking-wide mb-2 block uppercase">Productos del Pedido</label>
+          
+          <!-- Lista de productos añadidos -->
+          <div id="editPedProductList" class="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1">
+            <div class="text-center text-slate-500 text-xs py-2 italic">Sin productos agregados</div>
+          </div>
+
+          <!-- Formulario Agregar Producto -->
+          <div class="flex flex-wrap sm:flex-nowrap gap-2 items-end mt-3 pt-3 border-t border-slate-700/50">
+            <div class="flex-1 min-w-[140px]">
+              <label class="text-xs text-slate-500 mb-1 block">Ingresar desde Inventario</label>
+              <select id="editPedSelProd" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white outline-none focus:border-teal-500 transition">
+                <option value="">— Seleccionar —</option>
+              </select>
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-slate-500 mb-1 block text-center">Cant.</label>
+              <input id="editPedSelCant" type="number" min="1" value="1" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-center text-white outline-none focus:border-teal-500 transition">
+            </div>
+            <button type="button" id="btnEditPedAddProd" class="bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg px-3 py-1.5 text-sm transition h-[34px] shadow-sm">
+              ➕
+            </button>
+          </div>
         </div>
         <div>
           <label class="text-xs text-slate-400 mb-1 block">Total a Pagar</label>

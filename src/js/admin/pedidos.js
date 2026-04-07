@@ -6,8 +6,10 @@ import { adminApi }  from './admin-api.js';
 import { showToast } from './admin-toast.js';
 import { fmt, badgePago, badgeEnvio } from './helpers.js';
 import { WA_NUMBER } from './config.js';
+import { getProductos } from './inventario.js';
 
 let pedidos         = [];
+let currentEditProducts = [];
 let pedidosArchivados = [];
 let verArchivados   = false;       // false = lista normal | true = archivados
 let ocultarCompletados = false;    // filtra PAGADO+ENTREGADO de la lista
@@ -313,20 +315,112 @@ function abrirModalEdicion(fila) {
   document.getElementById('editPedBarrio').value = p.barrio || '';
   document.getElementById('editPedDireccion').value = p.direccion || '';
   document.getElementById('editPedNota').value = p.nota || '';
-  document.getElementById('editPedProductos').value = (p.productos || '').replace(/\\n/g, '\n');
   document.getElementById('editPedTotal').value = p.total || 0;
   
+  // Parsear productos existentes
+  currentEditProducts = [];
+  const prodLines = String(p.productos || '').split(/\n|\\n/).filter(l => l.trim());
+  prodLines.forEach(line => {
+    // Expected format: "2x Producto A - $ 10.000"
+    const match = line.match(/^(\d+)x\s+(.+?)(?:\s+-\s+\$\s*([\d.]+))?$/);
+    if (match) {
+      const qty = parseInt(match[1], 10);
+      const name = match[2].trim();
+      let price = 0;
+      if (match[3]) {
+        price = parseFloat(match[3].replace(/\./g, ''));
+      }
+      currentEditProducts.push({ qty, name, price, totalItem: qty * price });
+    } else {
+      // Fallback para líneas sin el formato exacto
+      currentEditProducts.push({ qty: 1, name: line.trim(), price: 0, totalItem: 0 });
+    }
+  });
+
+  // Poblar select de inventario
+  const selProd = document.getElementById('editPedSelProd');
+  const invProds = getProductos();
+  selProd.innerHTML = '<option value="">— Seleccionar —</option>' + invProds.map(invP => {
+    return `<option value="${invP.nombre}" data-precio="${invP.precio || 0}">${invP.nombre} - $ ${fmt(invP.precio || 0)}</option>`;
+  }).join('');
+  document.getElementById('editPedSelCant').value = 1;
+
+  renderEditProductList();
+  
   document.getElementById('modalEditarPedido').showModal();
+}
+
+function renderEditProductList() {
+  const container = document.getElementById('editPedProductList');
+  if (currentEditProducts.length === 0) {
+    container.innerHTML = '<div class="text-center text-slate-500 text-xs py-2 italic">Sin productos agregados</div>';
+    return;
+  }
+  
+  container.innerHTML = currentEditProducts.map((prod, index) => `
+    <div class="flex items-center justify-between bg-slate-800/80 border border-slate-700/50 rounded-lg p-2">
+      <div class="min-w-0 flex-1">
+        <div class="text-xs font-bold text-slate-200 truncate">${prod.qty}x ${prod.name}</div>
+        <div class="text-[10px] text-teal-400">Total: $ ${fmt(prod.totalItem)}</div>
+      </div>
+      <button type="button" class="btn-remove-edit-prod text-slate-500 hover:text-red-400 p-1 transition" data-index="${index}">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6v-6M14 11v6v-6"/></svg>
+      </button>
+    </div>
+  `).join('');
+
+  // Attach delete handlers
+  container.querySelectorAll('.btn-remove-edit-prod').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      currentEditProducts.splice(idx, 1);
+      recalculateModalTotal();
+      renderEditProductList();
+    });
+  });
+}
+
+function recalculateModalTotal() {
+  const subtotal = currentEditProducts.reduce((sum, item) => sum + item.totalItem, 0);
+  document.getElementById('editPedTotal').value = subtotal;
 }
 
 function initModalEdicion() {
   const form = document.getElementById('formEditarPedido');
   if (!form) return;
+
+  // Add Product Button Logic
+  document.getElementById('btnEditPedAddProd')?.addEventListener('click', () => {
+    const selProd = document.getElementById('editPedSelProd');
+    const selOpt = selProd.options[selProd.selectedIndex];
+    const qty = parseInt(document.getElementById('editPedSelCant').value, 10) || 1;
+    
+    if (!selOpt || !selOpt.value) {
+      showToast('⚠️ Selecciona un producto del inventario');
+      return;
+    }
+    
+    const name = selOpt.value;
+    const price = parseFloat(selOpt.dataset.precio || 0);
+    currentEditProducts.push({ qty, name, price, totalItem: qty * price });
+    
+    recalculateModalTotal();
+    renderEditProductList();
+    selProd.value = '';
+    document.getElementById('editPedSelCant').value = 1;
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnGuardarEdicionPedido');
     const fila = document.getElementById('editPedId').value;
     
+    // Serializar productos a string
+    const stringProductos = currentEditProducts.map(p => {
+      if (p.price > 0) return `${p.qty}x ${p.name} - $ ${fmt(p.price)}`;
+      return `${p.qty}x ${p.name}`;
+    }).join('\\n');
+
     const datos = {
       nombre: document.getElementById('editPedNombre').value.trim(),
       telefono: document.getElementById('editPedTelefono').value.trim(),
@@ -334,7 +428,7 @@ function initModalEdicion() {
       barrio: document.getElementById('editPedBarrio').value.trim(),
       direccion: document.getElementById('editPedDireccion').value.trim(),
       nota: document.getElementById('editPedNota').value.trim(),
-      productos: document.getElementById('editPedProductos').value.trim().replace(/\n/g, '\\n'),
+      productos: stringProductos,
       total: Number(document.getElementById('editPedTotal').value) || 0
     };
     
