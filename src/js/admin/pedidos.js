@@ -325,18 +325,47 @@ function abrirModalEdicion(fila) {
   currentEditProducts = [];
   const prodLines = String(p.productos || '').split(/\n|\\n/).filter(l => l.trim());
   prodLines.forEach(line => {
-    // Expected format: "2x Producto A - $ 10.000"
-    const match = line.match(/^(\d+)x\s+(.+?)(?:\s+-\s+\$\s*([\d.]+))?$/);
-    if (match) {
-      const qty = parseInt(match[1], 10);
-      const name = match[2].trim();
-      let price = 0;
-      if (match[3]) {
-        price = parseFloat(match[3].replace(/\./g, ''));
+    let parsed = false;
+
+    // Formato Tienda: "Limpiapisos 1 Kg | Cant: 2 | P.Unit: $ 9.000 | Subtotal: $ 18.000"
+    const parts = line.split('|').map(s => s.trim());
+    if (parts.length >= 2 && line.toLowerCase().includes('cant')) {
+       let name = parts[0];
+       let qty = 1;
+       let price = 0;
+
+       const cantPart = parts.find(pt => pt.toLowerCase().includes('cant'));
+       if (cantPart) qty = parseInt(cantPart.replace(/[^\\d]/g, ''), 10) || 1;
+
+       const punitPart = parts.find(pt => pt.toLowerCase().includes('unit'));
+       if (punitPart) price = parseFloat(punitPart.replace(/[^\\d]/g, '')) || 0;
+
+       const subPart = parts.find(pt => pt.toLowerCase().includes('subtotal'));
+       let totalItem = subPart ? parseFloat(subPart.replace(/[^\\d]/g, '')) || 0 : (price * qty);
+
+       if (price === 0 && totalItem > 0 && qty > 0) price = totalItem / qty;
+
+       currentEditProducts.push({ qty, name, price, totalItem });
+       parsed = true;
+    }
+
+    if (!parsed) {
+      // Formato alternativo: "2x Producto A - $ 10.000"
+      const match = line.match(/^(\\d+)x\\s+(.+?)(?:\\s+-\\s+\\$\\s*([\\d.]+))?$/);
+      if (match) {
+        const qty = parseInt(match[1], 10);
+        const name = match[2].trim();
+        let price = 0;
+        if (match[3]) {
+          price = parseFloat(match[3].replace(/\\./g, ''));
+        }
+        currentEditProducts.push({ qty, name, price, totalItem: qty * price });
+        parsed = true;
       }
-      currentEditProducts.push({ qty, name, price, totalItem: qty * price });
-    } else {
-      // Fallback para líneas sin el formato exacto
+    }
+
+    if (!parsed) {
+      // Fallback para líneas sin formato exacto
       currentEditProducts.push({ qty: 1, name: line.trim(), price: 0, totalItem: 0 });
     }
   });
