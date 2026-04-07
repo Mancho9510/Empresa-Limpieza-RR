@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     // Si la acción requiere privilegios de admin, proteger
     if (
       (accion && accion.startsWith('admin_')) || 
-      ['actualizar_estado', 'actualizar_stock', 'actualizar_costo', 'actualizar_precio'].includes(accion)
+      ['actualizar_estado', 'actualizar_stock', 'actualizar_costo', 'actualizar_precio', 'archivar_pedido', 'recuperar_pedido', 'modificar_pedido'].includes(accion)
     ) {
       if (!sessionKey || sessionKey !== ADMIN_KEY) {
         return res.status(401).json({ ok: false, error: 'No autenticado' });
