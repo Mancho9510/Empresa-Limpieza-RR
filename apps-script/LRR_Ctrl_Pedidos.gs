@@ -77,6 +77,7 @@ function doGet_admin_pedidos(e, ss) {
       estado_pago:  String(r[aCOL["estado_pago"]]  || "PENDIENTE"),
       estado_envio: String(r[aCOL["estado_envio"]] || "Recibido"),
       productos:    String(r[aCOL["productos"]]    || ""),
+      productos_json: String(r[aCOL["productos_json"]] || "[]"),
       nota:         String(r[aCOL["nota"]]         || ""),
       archivado:    esArchivado,
     };

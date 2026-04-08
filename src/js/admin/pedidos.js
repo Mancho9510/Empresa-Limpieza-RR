@@ -321,60 +321,77 @@ function abrirModalEdicion(fila) {
   document.getElementById('editPedNota').value = p.nota || '';
   document.getElementById('editPedTotal').value = p.total || 0;
   
-  // Parsear productos existentes
+  // Parsear productos existentes dando prioridad al JSON
   currentEditProducts = [];
-  const prodLines = String(p.productos || '').split(/\n|\\n/).filter(l => l.trim());
-  prodLines.forEach(line => {
-    let parsed = false;
+  let parsedJson = false;
 
-    // Formato Tienda: "Limpiapisos 1 Kg | Cant: 2 | P.Unit: $ 9.000 | Subtotal: $ 18.000"
-    const parts = line.split('|').map(s => s.trim());
-    if (parts.length >= 2 && line.toLowerCase().includes('cant')) {
-       let name = parts[0];
-       let qty = 1;
-       let price = 0;
-
-       const cantPart = parts.find(pt => pt.toLowerCase().includes('cant'));
-       if (cantPart) qty = parseInt(cantPart.replace(/[^\\d]/g, ''), 10) || 1;
-
-       const punitPart = parts.find(pt => pt.toLowerCase().includes('unit'));
-       if (punitPart) price = parseFloat(punitPart.replace(/[^\\d]/g, '')) || 0;
-
-       const subPart = parts.find(pt => pt.toLowerCase().includes('subtotal'));
-       let totalItem = subPart ? parseFloat(subPart.replace(/[^\\d]/g, '')) || 0 : (price * qty);
-
-       if (price === 0 && totalItem > 0 && qty > 0) price = totalItem / qty;
-
-       currentEditProducts.push({ qty, name, price, totalItem });
-       parsed = true;
-    }
-
-    if (!parsed) {
-      // Formato alternativo: "2x Producto A - $ 10.000"
-      const match = line.match(/^(\\d+)x\\s+(.+?)(?:\\s+-\\s+\\$\\s*([\\d.]+))?$/);
-      if (match) {
-        const qty = parseInt(match[1], 10);
-        const name = match[2].trim();
-        let price = 0;
-        if (match[3]) {
-          price = parseFloat(match[3].replace(/\\./g, ''));
-        }
-        currentEditProducts.push({ qty, name, price, totalItem: qty * price });
-        parsed = true;
+  if (p.productos_json && p.productos_json !== '[]') {
+    try {
+      const arr = JSON.parse(p.productos_json);
+      if (Array.isArray(arr) && arr.length > 0) {
+        arr.forEach(item => {
+          const qty = parseInt(item.cantidad, 10) || 1;
+          const name = (item.nombre || '') + (item.tamano ? ' ' + item.tamano : '');
+          const price = parseFloat(item.precio || 0);
+          currentEditProducts.push({ qty, name: name.trim(), price, totalItem: qty * price, id: item.id || '' });
+        });
+        parsedJson = true;
       }
-    }
+    } catch(e) { console.warn('No se pudo parsear productos_json', e); }
+  }
 
-    if (!parsed) {
-      // Fallback para líneas sin formato exacto
-      currentEditProducts.push({ qty: 1, name: line.trim(), price: 0, totalItem: 0 });
-    }
-  });
+  // Fallback a texto si el JSON no existe o falló
+  if (!parsedJson) {
+    const prodLines = String(p.productos || '').split(/\n|\\n/).filter(l => l.trim());
+    prodLines.forEach(line => {
+      let parsed = false;
+
+      // Formato Tienda Moderno: "Limpiapisos 1 Kg | Cant: 2 | P.Unit: $ 9.000 | Subtotal: $ 18.000"
+      const parts = line.split('|').map(s => s.trim());
+      if (parts.length >= 2 && line.toLowerCase().includes('cant')) {
+         let name = parts[0];
+         let qty = 1; let price = 0;
+
+         const cantPart = parts.find(pt => pt.toLowerCase().includes('cant'));
+         if (cantPart) qty = parseInt(cantPart.replace(/[^\d]/g, ''), 10) || 1;
+
+         const punitPart = parts.find(pt => pt.toLowerCase().includes('unit'));
+         if (punitPart) price = parseFloat(punitPart.replace(/[^\d]/g, '')) || 0;
+
+         const subPart = parts.find(pt => pt.toLowerCase().includes('subtotal'));
+         let totalItem = subPart ? parseFloat(subPart.replace(/[^\d]/g, '')) || 0 : (price * qty);
+
+         if (price === 0 && totalItem > 0 && qty > 0) price = totalItem / qty;
+
+         currentEditProducts.push({ qty, name, price, totalItem, id: '' });
+         parsed = true;
+      }
+
+      if (!parsed) {
+        // Formato Manual Viejo: "2x Producto A - $ 10.000"
+        const match = line.match(/^(\d+)x\s+(.+?)(?:\s+-\s+\$\s*([\d.]+))?$/);
+        if (match) {
+          const qty = parseInt(match[1], 10);
+          const name = match[2].trim();
+          const price = match[3] ? parseFloat(match[3].replace(/\./g, '')) : 0;
+          currentEditProducts.push({ qty, name, price, totalItem: qty * price, id: '' });
+          parsed = true;
+        }
+      }
+
+      if (!parsed) {
+        // Fallback Genérico
+        currentEditProducts.push({ qty: 1, name: line.trim(), price: 0, totalItem: 0, id: '' });
+      }
+    });
+  }
 
   // Poblar select de inventario
   const selProd = document.getElementById('editPedSelProd');
   const invProds = getProductos();
   selProd.innerHTML = '<option value="">— Seleccionar —</option>' + invProds.map(invP => {
-    return `<option value="${invP.nombre}" data-precio="${invP.precio || 0}">${invP.nombre} - $ ${fmt(invP.precio || 0)}</option>`;
+    const pNameCompleto = invP.nombre + (invP.tamano ? ' ' + invP.tamano : '');
+    return `<option value="${pNameCompleto}" data-precio="${invP.precio || 0}" data-id="${invP.id || ''}">${pNameCompleto} - $ ${fmt(invP.precio || 0)}</option>`;
   }).join('');
   document.getElementById('editPedSelCant').value = 1;
 
@@ -435,7 +452,8 @@ function initModalEdicion() {
     
     const name = selOpt.value;
     const price = parseFloat(selOpt.dataset.precio || 0);
-    currentEditProducts.push({ qty, name, price, totalItem: qty * price });
+    const id = selOpt.dataset.id || '';
+    currentEditProducts.push({ qty, name, price, totalItem: qty * price, id });
     
     recalculateModalTotal();
     renderEditProductList();
@@ -448,11 +466,16 @@ function initModalEdicion() {
     const btn = document.getElementById('btnGuardarEdicionPedido');
     const fila = document.getElementById('editPedId').value;
     
-    // Serializar productos a string
+    // Serializar productos a string en formato extendido
     const stringProductos = currentEditProducts.map(p => {
-      if (p.price > 0) return `${p.qty}x ${p.name} - $ ${fmt(p.price)}`;
+      if (p.price > 0) return `${p.name} | Cant: ${p.qty} | P.Unit: $ ${fmt(p.price)} | Subtotal: $ ${fmt(p.totalItem)}`;
       return `${p.qty}x ${p.name}`;
     }).join('\\n');
+
+    // Serializar productos a JSON estructurado
+    const jsonProductos = JSON.stringify(currentEditProducts.map(p => {
+      return { id: p.id || '', nombre: p.name, tamano: '', cantidad: p.qty, precio: p.price };
+    }));
 
     const datos = {
       nombre: document.getElementById('editPedNombre').value.trim(),
@@ -462,6 +485,7 @@ function initModalEdicion() {
       direccion: document.getElementById('editPedDireccion').value.trim(),
       nota: document.getElementById('editPedNota').value.trim(),
       productos: stringProductos,
+      productos_json: jsonProductos,
       total: Number(document.getElementById('editPedTotal').value) || 0
     };
     
