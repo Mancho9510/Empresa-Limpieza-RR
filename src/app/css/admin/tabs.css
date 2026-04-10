@@ -1,0 +1,19 @@
+   6. TABS
+══════════════════════════════════════════════════════ */
+.bg-slate-800.border-b {
+  background: rgba(11,22,20,.75) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.tab-btn { position:relative; transition:all .2s; }
+.tab-btn::after {
+  content:''; position:absolute;
+  bottom:-1px; left:0; right:0;
+  height:2px;
+  background:linear-gradient(90deg, var(--g-teal-dk), var(--g-teal));
+  transform:scaleX(0);
+  transition:transform .25s cubic-bezier(.22,1,.36,1);
+  border-radius:2px 2px 0 0;
+}
+.tab-btn.border-teal-500::after { transform:scaleX(1); }
+

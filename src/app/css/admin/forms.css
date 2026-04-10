@@ -1,0 +1,30 @@
+
+/* ══════════════════════════════════════════════════════
+   9. INPUTS Y SELECTS DEL PANEL
+══════════════════════════════════════════════════════ */
+select,
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="password"] {
+  background: rgba(255,255,255,.07) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.13) !important;
+  color: #fff !important;
+  transition: all .2s !important;
+}
+select:focus,
+input:focus {
+  border-color: var(--g-teal) !important;
+  background: rgba(20,184,166,.08) !important;
+  box-shadow: 0 0 0 3px rgba(20,184,136,.14) !important;
+  outline: none !important;
+}
+select:hover:not(:focus),
+input:hover:not(:focus) {
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.1) !important;
+}
+select option { background: #0D2030; color:#fff; }
+input::placeholder, textarea::placeholder { color:rgba(148,163,184,.55) !important; }

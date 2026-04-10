@@ -1,0 +1,170 @@
+/* ══════════════════════════════════════════════════════
+   8. SECCIÓN BENEFITS (4 cards estilo mockup)
+══════════════════════════════════════════════════════ */
+#premium {
+  padding: 80px 5%;
+  background: #EBF9F4;
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="dark"] #premium {
+  background: linear-gradient(160deg, #0D1F1C 0%, #0B1816 100%);
+}
+#premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 90% 10%, rgba(13,148,136,.1) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.premium-inner { max-width:1200px; margin:0 auto; position:relative; z-index:1; }
+
+/* Título izquierda como en el mockup */
+.premium-hd { margin-bottom:48px; }
+.premium-title-big {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(2rem,4vw,3rem);
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.12;
+  letter-spacing: -.03em;
+  max-width: 520px;
+}
+[data-theme="dark"] .premium-title-big { color:#F0FDF9; }
+.premium-title-big em { font-style:normal; color:var(--teal); }
+
+/* Grid 4 columnas */
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* ── Card base ── */
+.benefit-card {
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 28px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--sh);
+  transition: all .35s cubic-bezier(.22,1,.36,1);
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="dark"] .benefit-card {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.1);
+}
+.benefit-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--sh-lg);
+  border-color: var(--teal-l);
+}
+
+/* ── Card teal destacada ── */
+.benefit-card--featured {
+  background: linear-gradient(160deg,#12A89A,#0D9488);
+  border-color: transparent;
+  box-shadow: 0 12px 40px rgba(13,148,136,.4);
+  color: #fff;
+}
+[data-theme="dark"] .benefit-card--featured {
+  background: linear-gradient(160deg,#0D9488,#0A5E55);
+}
+.benefit-card--featured:hover {
+  box-shadow: 0 20px 56px rgba(13,148,136,.5);
+  transform: translateY(-8px);
+}
+
+/* ── Ícono ── */
+.benefit-icon-wrap {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(13,148,136,.1);
+  display: flex; align-items:center; justify-content:center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+  transition: transform .35s cubic-bezier(.22,1,.36,1);
+}
+[data-theme="dark"] .benefit-icon-wrap { background:rgba(20,184,166,.12); }
+.benefit-card--featured .benefit-icon-wrap { background:rgba(255,255,255,.18); }
+.benefit-card:hover .benefit-icon-wrap { transform:scale(1.08) rotate(-3deg); }
+.benefit-icon-wrap svg {
+  width:40px; height:40px;
+  stroke:var(--teal); stroke-width:1.6;
+  fill:none; stroke-linecap:round; stroke-linejoin:round;
+}
+.benefit-card--featured .benefit-icon-wrap svg { stroke:#fff; }
+
+/* ── Wrapper de texto ── */
+.benefit-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Título ── */
+.benefit-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1rem; font-weight:800;
+  color: var(--text);
+  margin-bottom: 10px; line-height:1.3;
+}
+.benefit-card--featured .benefit-title { color:#fff; }
+
+/* ── Descripción ── */
+.benefit-desc {
+  font-size: .84rem;
+  color: var(--text-2);
+  line-height: 1.65;
+  flex: 1;
+  margin-bottom: 16px;
+}
+.benefit-card--featured .benefit-desc { color:rgba(255,255,255,.85); }
+
+/* ── Badge circular inferior ── */
+.benefit-badge {
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(13,148,136,.1);
+  border:1.5px solid rgba(13,148,136,.2);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:auto; flex-shrink:0;
+  transition:all .25s;
+}
+[data-theme="dark"] .benefit-badge { background:rgba(20,184,166,.12); border-color:rgba(45,212,191,.2); }
+.benefit-card--featured .benefit-badge { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.35); }
+.benefit-badge svg { width:16px; height:16px; stroke:var(--teal); stroke-width:2; fill:none; }
+.benefit-card--featured .benefit-badge svg { stroke:#fff; }
+.benefit-card:hover .benefit-badge { background:var(--teal); border-color:var(--teal); transform:scale(1.1); }
+.benefit-card:hover .benefit-badge svg { stroke:#fff; }
+.benefit-card--featured:hover .benefit-badge { background:rgba(255,255,255,.3); }
+
+/* ── Etiqueta badge texto ── */
+.benefit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--teal-pale);
+  color: var(--teal-dk);
+  border-radius: 50px;
+  padding: 5px 14px;
+  font-size: .75rem;
+  font-weight: 700;
+  width: fit-content;
+  margin-top: auto;
+}
+[data-theme="dark"] .benefit-tag { background:rgba(13,148,136,.2); color:var(--teal-l); }
+.benefit-tag--white { background:rgba(255,255,255,.22); color:#fff; }
+
+/* ════ RESPONSIVE BENEFITS ════
+   ≥1025px  : 4 columnas
+   601-1024 : 2×2
+   ≤600px   : 1 col horizontal
+═══════════════════════════════*/

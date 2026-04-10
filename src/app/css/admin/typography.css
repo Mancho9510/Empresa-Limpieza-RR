@@ -1,0 +1,74 @@
+
+/* ══════════════════════════════════════════════════════
+   19. RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width:640px) {
+  .login-card { padding:34px 22px 28px; }
+  .login-title { font-size:1.45rem; }
+  th:nth-child(n+5), td:nth-child(n+5) { display:none; }
+}
+
+/* ══════════════════════════════════════════════════════
+   TIPOGRAFÍA ADMIN — Tamaños aumentados para mejor lectura
+══════════════════════════════════════════════════════ */
+
+/* Base más grande */
+body { font-size: 15px; }
+
+/* KPI números */
+.font-display { font-family:'Bricolage Grotesque',sans-serif; }
+
+/* Tabla de inventario */
+#invList td,
+#invList th       { font-size: .85rem !important; padding: 10px 12px !important; }
+
+/* Cards de pedidos */
+#pedidosWrap .text-sm  { font-size: .9rem !important; }
+#pedidosWrap .text-xs  { font-size: .78rem !important; }
+
+/* Panel clientes y proveedores */
+#clientesWrap .text-sm  { font-size: .9rem !important; }
+#clientesWrap .text-xs  { font-size: .78rem !important; }
+#proveedoresWrap .text-sm { font-size: .9rem !important; }
+#proveedoresWrap .text-xs { font-size: .78rem !important; }
+
+/* Dashboard secciones */
+#dashContent .text-xs  { font-size: .8rem !important; }
+#dashContent .text-sm  { font-size: .9rem !important; }
+#dashContent .text-base{ font-size:1rem !important; }
+
+/* KPI números grandes */
+.font-display.text-2xl  { font-size:1.75rem !important; }
+.font-display.text-3xl  { font-size:2.25rem !important; }
+.font-display.text-4xl  { font-size:2.75rem !important; }
+.font-display.font-extrabold { letter-spacing:-.02em; }
+
+/* Tabs superiores */
+.tab-btn span { font-size:.9rem !important; }
+
+/* Tabs bottom nav */
+nav .text-xs { font-size:.72rem !important; }
+
+/* Labels de KPI */
+[class*="tracking-wide"] { font-size:.72rem !important; letter-spacing:.12em !important; }
+
+/* Header título */
+header .text-base { font-size:1rem !important; }
+header .text-xs   { font-size:.78rem !important; }
+
+/* Inputs y selects */
+input[type="text"], input[type="number"], input[type="date"],
+select, textarea {
+  font-size: .9rem !important;
+}
+
+/* Botones */
+button.text-xs { font-size:.78rem !important; }
+button.text-sm { font-size:.88rem !important; }
+
+/* Badges de estado */
+.rounded-full.text-xs { font-size:.72rem !important; padding:3px 10px !important; }
+
+/* Rentabilidad tabla */
+#rentTabla td, #rentTabla th { font-size:.82rem !important; }
+#calcMasivoTabla td { font-size:.82rem !important; }
