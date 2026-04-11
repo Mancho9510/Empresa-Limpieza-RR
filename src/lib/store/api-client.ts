@@ -115,10 +115,10 @@ export function fetchRentabilidad(params?: Record<string, string>) {
 
 
 // ─── Auth ───────────────────────────────────────────────────
-export function postLogin(password: string) {
+export function postLogin(email: string, password: string) {
   return apiFetch<{ ok: boolean; error?: string }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ email, password }),
   })
 }
 

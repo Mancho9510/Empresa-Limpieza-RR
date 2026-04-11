@@ -6,6 +6,7 @@ import { postLogin } from '@/lib/store/api-client'
 import styles from './login.module.css'
 
 export default function AdminLoginPage() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,17 +14,17 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!password.trim()) return
+    if (!email.trim() || !password.trim()) return
 
     setLoading(true)
     setError('')
 
     try {
-      const res = await postLogin(password)
+      const res = await postLogin(email.trim(), password)
       if (res.ok) {
         router.push('/admin/dashboard')
       } else {
-        setError('Contraseña incorrecta')
+        setError('Correo o contraseña incorrectos')
       }
     } catch {
       setError('Error al conectar con el servidor')
@@ -43,6 +44,23 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
+            <label htmlFor="admin-email" className={styles.label}>
+              Correo electrónico
+            </label>
+            <input
+              id="admin-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@limpiezarr.com"
+              className={styles.input}
+              autoComplete="email"
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
             <label htmlFor="admin-password" className={styles.label}>
               Contraseña
             </label>
@@ -51,9 +69,9 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Ingresa la contraseña"
+              placeholder="••••••••••••"
               className={styles.input}
-              autoFocus
+              autoComplete="current-password"
               required
             />
           </div>
@@ -72,7 +90,7 @@ export default function AdminLoginPage() {
             {loading ? (
               <span className={styles.spinner} />
             ) : (
-              'Acceder'
+              'Acceder al panel'
             )}
           </button>
         </form>

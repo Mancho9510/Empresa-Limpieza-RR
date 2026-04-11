@@ -6,7 +6,7 @@ import { compare } from 'bcryptjs'
 
 /**
  * POST /api/auth/login
- * Autentica al admin y crea una sesión JWT.
+ * Autentica al admin con correo + contraseña y crea sesión JWT.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,41 +20,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { password } = parsed.data
+    const { email, password } = parsed.data
     const supabase = createAdminClient()
 
-    // Buscar admin user
+    // Buscar admin por correo
     const { data: admin, error } = await supabase
       .from('admin_users')
-      .select('id, password_hash, role')
-      .limit(1)
+      .select('id, email, password_hash, role')
+      .eq('email', email.toLowerCase().trim())
       .single()
 
     if (error || !admin) {
-      // Fallback: si no hay tabla admin_users, intentar con ADMIN_KEY hasheado
-      const legacyKey = process.env.ADMIN_KEY
-      if (legacyKey) {
-        // Soporta ADMIN_KEY como hash bcrypt ($2a$...) o como texto plano (solo dev)
-        let legacyValid = false
-        if (legacyKey.startsWith('$2')) {
-          legacyValid = await compare(password, legacyKey)
-        } else if (process.env.NODE_ENV !== 'production') {
-          // Solo en desarrollo se permite texto plano
-          legacyValid = password === legacyKey
-        }
-        if (legacyValid) {
-          await createAdminSession('legacy-admin', 'admin')
-          return Response.json({ ok: true })
-        }
-      }
-
+      // Delay para evitar timing attacks (no revelar si el correo existe)
+      await new Promise(r => setTimeout(r, 400))
       return Response.json(
         { ok: false, error: 'Credenciales inválidas' },
         { status: 401 }
       )
     }
 
-    // Verificar password con bcrypt
+    // Verificar contraseña con bcrypt
     const isValid = await compare(password, admin.password_hash)
     if (!isValid) {
       return Response.json(
@@ -63,7 +48,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear sesión
+    // Crear sesión JWT
     await createAdminSession(admin.id, admin.role)
 
     return Response.json({ ok: true })
