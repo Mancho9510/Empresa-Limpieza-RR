@@ -1,9 +1,9 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { redis } from './redis'
 
-// Crea un nuevo limitador que permite 5 peticiones por hora
+// Crea un nuevo limitador que permite 50 peticiones por hora para evitar bloqueos 429 durante QA
 export const orderRateLimit = redis ? new Ratelimit({
   redis: redis as any,
-  limiter: Ratelimit.slidingWindow(5, '1 h'),
+  limiter: Ratelimit.slidingWindow(50, '1 h'),
   analytics: true,
 }) : null
