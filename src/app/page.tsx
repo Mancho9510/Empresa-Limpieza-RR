@@ -4,6 +4,7 @@ import Benefits from '@/components/store/Benefits'
 import ProductGrid from '@/components/store/ProductGrid'
 import Reviews from '@/components/store/Reviews'
 import Contact from '@/components/store/Contact'
+import Script from 'next/script'
 
 /**
  * Página principal de la tienda — Server Component.
@@ -55,8 +56,11 @@ export default async function HomePage() {
       <Contact />
 
       {/* Schema.org JSON-LD para Google (SEO Avanzado) */}
-      <script
+      {/* Schema.org JSON-LD para Google (SEO Avanzado) */}
+      <Script
+        id="producto-schema"
         type="application/ld+json"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(
             productos.map((p) => ({
@@ -64,7 +68,7 @@ export default async function HomePage() {
               '@type': 'Product',
               name: p.nombre,
               description: p.descripcion,
-              image: p.imagen_url,
+              image: p.imagen,
               offers: {
                 '@type': 'Offer',
                 price: p.precio,
