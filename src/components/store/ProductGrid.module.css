@@ -251,3 +251,33 @@
   font-size: var(--text-sm);
   margin-bottom: var(--space-sm);
 }
+
+/* Out of Stock visual indicators */
+.outOfStockCard {
+  opacity: 0.6;
+  filter: grayscale(80%);
+}
+.outOfStockCard:hover {
+  transform: none;
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-glass);
+}
+.outOfStockImage {
+  opacity: 0.5;
+}
+.agotadoBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: var(--color-error);
+  color: white;
+  padding: 8px 16px;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  border: 2px solid white;
+}

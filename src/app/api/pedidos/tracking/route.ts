@@ -19,10 +19,14 @@ export async function GET(request: NextRequest) {
 
     // No queremos exponer información súper sensible como la dirección exacta o la geolocalización a cualquier persona que escriba un número, 
     // pero sí la cantidad de productos, total, y estado. Seleccionamos campos específicos.
+    // Si tiene 10 dígitos, formatear como XXX XXX XXXX por si la base de datos lo tiene así 
+    const tStr = telefono
+    const tSpace = tStr.length === 10 ? `${tStr.slice(0,3)} ${tStr.slice(3,6)} ${tStr.slice(6)}` : tStr
+
     const { data, error } = await supabase
       .from('pedidos')
       .select('id, fecha, total, pago, estado_envio, productos_json')
-      .eq('telefono', telefono)
+      .or(`telefono.ilike.%${tStr}%,telefono.ilike.%${tSpace}%`)
       .eq('archivado', false)
       .order('fecha', { ascending: false })
       .limit(10)

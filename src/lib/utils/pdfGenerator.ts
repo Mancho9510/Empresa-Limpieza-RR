@@ -10,7 +10,7 @@ export async function generarFacturaPDF(pedido: any) {
 
   try {
      // Intenta cargar el logo si existe
-     const resLogo = await fetch('/logo_factura.jpg')
+     const resLogo = await fetch('/icons/icon-512.png')
      if (resLogo.ok) {
        const blob = await resLogo.blob()
        const base64 = await new Promise<string>((resolve) => {
@@ -18,8 +18,8 @@ export async function generarFacturaPDF(pedido: any) {
           reader.onloadend = () => resolve(reader.result as string)
           reader.readAsDataURL(blob)
        })
-       // Si el logo es muy rectangular o cuadrado, ajustar medidas
-       doc.addImage(base64, 'JPEG', 14, 10, 60, 60)
+       // Ajustamos las dimensiones para que el logo se vea bien
+       doc.addImage(base64, 'PNG', 14, 10, 30, 30)
      }
   } catch (e) {
      console.warn('No se pudo cargar el logo de la factura', e)

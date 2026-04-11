@@ -1,12 +1,10 @@
 import styles from './Benefits.module.css'
 
 const benefits = [
-  { emoji: '💪', title: 'Potencia Real', desc: 'Fórmulas concentradas que eliminan hasta la suciedad más difícil.' },
-  { emoji: '🌿', title: 'Eco-Amigable', desc: 'Ingredientes que cuidan el planeta sin sacrificar rendimiento.' },
-  { emoji: '🌸', title: 'Aromas Premium', desc: 'Fragancias duraderas que transforman cada espacio de tu hogar.' },
-  { emoji: '💰', title: 'Mejor Precio', desc: 'Calidad superior a precios accesibles. Más limpieza por menos.' },
-  { emoji: '🚚', title: 'Envío Nacional', desc: 'Llevamos nuestros productos a toda Colombia de forma segura.' },
-  { emoji: '⭐', title: 'Garantía', desc: 'Si no estás satisfecho, te devolvemos tu dinero. Sin preguntas.' },
+  { emoji: '💡', title: 'Fórmulas concentradas', desc: 'Nuestros productos están diseñados con una alta concentración de activos limpiadores, lo que significa mayor poder de limpieza con menos producto. Rinden más, duran más y cuidan tu bolsillo.', tag: 'Hasta 3x más rendimiento' },
+  { emoji: '🏆', title: 'Materias primas de calidad', desc: 'Trabajamos exclusivamente con materias primas de alta calidad, seleccionadas para garantizar resultados superiores en cada uso. Sin compromisos, sin rellenos innecesarios.', tag: 'Calidad certificada' },
+  { emoji: '⚡', title: 'Eficiencia garantizada', desc: 'Cada producto está formulado para ser efectivo desde la primera aplicación. Menos esfuerzo, mejores resultados — eso es lo que distingue un producto premium de uno ordinario.', tag: 'Resultados comprobados' },
+  { emoji: '🌿', title: 'Eco-amigables', desc: 'Un producto concentrado no solo limpia mejor — también es más amigable con el medio ambiente al requerir menor cantidad por uso y generar menos residuos.', tag: 'Impacto positivo' },
 ]
 
 export default function Benefits() {
@@ -25,6 +23,7 @@ export default function Benefits() {
               <span className={styles.icon}>{b.emoji}</span>
               <h3 className={styles.cardTitle}>{b.title}</h3>
               <p className={styles.cardDesc}>{b.desc}</p>
+              {b.tag && <span className={styles.cardTag}>{b.tag}</span>}
             </div>
           ))}
         </div>

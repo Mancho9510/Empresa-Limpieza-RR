@@ -181,12 +181,42 @@ export interface CalificacionAPI {
 
 export interface DashboardAPI {
   hoy: { pedidos: number; total: number }
-  mes: { pedidos: number; total: number }
-  general: { totalPedidos: number; totalGeneral: number; pendientes: number; ticketPromedio: number }
+  mes: { pedidos: number; total: number; ingresosNetos: number; gananciaNetaMes: number; descuentos: number; costoEnvio: number }
+  mesAnterior: { pedidos: number; total: number }
+  crecimientoMes: number
+  general: {
+    totalPedidos: number
+    totalGeneral: number
+    pendientes: number
+    totalPendienteValor: number
+    ticketPromedio: number
+    tasaCancelacion: number
+    pedidosConCupon: number
+    pedidosSinCupon: number
+  }
   estados: Record<string, number>
-  clientes: { total: number; vip: number }
-  rating: { total: number; avg: number }
-  topProductos: Array<{ nombre: string; qty: number }>
+  ventasPorDia: Array<{ fecha: string; total: number; pedidos: number }>
+  ventasPorHora: Array<{ hora: number; pedidos: number }>
+  topProductos: Array<{ nombre: string; qty: number; total: number; categoria: string }>
+  topProductosPorIngresos: Array<{ nombre: string; qty: number; total: number; categoria: string }>
+  ventasPorCategoria: Array<{ categoria: string; total: number; qty: number }>
+  stockBajo: Array<{ id: string; nombre: string; stock: number; categoria: string }>
+  clientes: {
+    total: number
+    vip: number
+    recurrentes: number
+    nuevos: number
+    lvtPromedio: number
+    tasaRecurrencia: number
+    top: Array<{ nombre: string; telefono: string; totalPedidos: number; totalGastado: number; tipo: string }>
+    porMes: Array<{ mes: string; nuevos: number }>
+  }
+  rating: {
+    total: number
+    avg: number
+    distribucion: Array<{ estrellas: number; count: number }>
+    recientes: Array<{ estrellas: number; comentario: string; fecha: string; telefono: string }>
+  }
 }
 
 export interface ClienteAPI {

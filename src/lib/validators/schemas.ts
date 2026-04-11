@@ -112,17 +112,19 @@ export const CalificacionSchema = z.object({
 // ═══ Stock ══════════════════════════════════════════════════
 
 export const ActualizarStockSchema = z.object({
-  id: z.string().min(1),
+  id: z.union([z.string(), z.number()]).transform(String).refine(s => s.length > 0),
   stock: z.number().int().min(0),
+  qty: z.number().int().min(1).optional(),
+  operacion: z.enum(['restar', 'sumar']).optional(),
 })
 
 export const ActualizarPrecioSchema = z.object({
-  id: z.string().min(1),
+  id: z.union([z.string(), z.number()]).transform(String).refine(s => s.length > 0),
   precio: z.number().min(0),
 })
 
 export const ActualizarCostoSchema = z.object({
-  id: z.string().min(1),
+  id: z.union([z.string(), z.number()]).transform(String).refine(s => s.length > 0),
   costo: z.number().min(0),
 })
 

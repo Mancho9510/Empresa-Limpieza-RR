@@ -22,6 +22,15 @@ export async function GET(request: NextRequest) {
     const { data: pedidos, error } = await query
 
     if (error) throw error
+    
+    // Obtener catálogo de productos para el fallback de costos (si un pedido histórico no tiene costo)
+    const { data: productosCat } = await supabase.from('productos').select('id, costo')
+    const costoMap = new Map()
+    if (productosCat) {
+       for (const pc of productosCat) {
+          costoMap.set(String(pc.id), pc.costo || 0)
+       }
+    }
 
     // Parse items to get profitability
     let totalIngresos = 0
@@ -36,7 +45,12 @@ export async function GET(request: NextRequest) {
       for (const item of ped.productos_json) {
         const qty = item.qty || 1
         const precio = item.precio || 0
-        const costo = item.costo || 0
+        let costo = item.costo || 0
+        
+        // Fallback: Si el costo guardado en el historial es 0 o no existe, intentar usar el actual
+        if (costo === 0 && item.id) {
+           costo = costoMap.get(String(item.id)) || 0
+        }
         
         const ingresoBruto = precio * qty
         const costoOp = costo * qty

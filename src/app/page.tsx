@@ -3,6 +3,7 @@ import Hero from '@/components/store/Hero'
 import Benefits from '@/components/store/Benefits'
 import ProductGrid from '@/components/store/ProductGrid'
 import Reviews from '@/components/store/Reviews'
+import Contact from '@/components/store/Contact'
 
 /**
  * Página principal de la tienda — Server Component.
@@ -49,6 +50,9 @@ export default async function HomePage() {
 
       {/* Reseñas (con fallback estático) */}
       <Reviews resenas={resenas} />
+
+      {/* Contacto */}
+      <Contact />
     </>
   )
 }

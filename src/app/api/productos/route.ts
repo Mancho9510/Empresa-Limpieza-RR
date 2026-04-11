@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       case 'actualizar_precio': {
         const parsed = ActualizarPrecioSchema.safeParse(body)
         if (!parsed.success) {
-          return Response.json({ ok: false, error: 'Datos inválidos' }, { status: 400 })
+          return Response.json({ ok: false, error: 'Datos de precio inválidos', details: parsed.error.flatten() }, { status: 400 })
         }
         const { error } = await supabase
           .from('productos')
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       case 'actualizar_costo': {
         const parsed = ActualizarCostoSchema.safeParse(body)
         if (!parsed.success) {
-          return Response.json({ ok: false, error: 'Datos inválidos' }, { status: 400 })
+          return Response.json({ ok: false, error: 'Datos de costo inválidos', details: parsed.error.flatten() }, { status: 400 })
         }
         const { error } = await supabase
           .from('productos')

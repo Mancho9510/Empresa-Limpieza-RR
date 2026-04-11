@@ -84,18 +84,21 @@ export default function ProductGrid({ productos }: ProductGridProps) {
         <div className="grid-products">
           {filtered.map((p, i) => {
             const qty = getItemQty(p.id)
+            const isOutOfStock = p.stock !== null && p.stock !== undefined && p.stock <= 0
             
             return (
             <div
               key={p.id}
-              className={`card ${styles.productCard}`}
+              className={`card ${styles.productCard} ${isOutOfStock ? styles.outOfStockCard : ''}`}
               style={{ animationDelay: `${i * 50}ms` }}
               onClick={() => setSelectedProduct(p)}
             >
-              {p.destacado && <span className={styles.featured}>⭐ Destacado</span>}
+              {p.destacado && !isOutOfStock && <span className={styles.featured}>⭐ Destacado</span>}
+              {isOutOfStock && <span className={styles.agotadoBadge}>Agotado</span>}
+              
               <div className={styles.cardEmoji}>
                 {p.imagen ? (
-                  <img src={p.imagen} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '150px' }} />
+                  <img src={p.imagen} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '150px' }} className={isOutOfStock ? styles.outOfStockImage : ''} />
                 ) : (
                   p.emoji || '📦'
                 )}
@@ -108,8 +111,10 @@ export default function ProductGrid({ productos }: ProductGridProps) {
                   <span className={styles.cardPrice}>{fmt(p.precio)}</span>
                   
                   {/* Controles de Cantidad Nativos */}
-                  <div onClick={(e) => e.stopPropagation()}>
-                    {qty > 0 ? (
+                  <div onClick={(e) => { e.stopPropagation(); if (isOutOfStock) e.preventDefault(); }}>
+                    {isOutOfStock ? (
+                      <button className="btn btn-secondary btn-sm" disabled style={{ opacity: 0.6 }}>Agotado</button>
+                    ) : qty > 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-pill)', padding: '2px 6px' }}>
                         <button className="btn btn-icon btn-sm" onClick={() => updateQty(p.id, qty - 1)}>-</button>
                         <span style={{ fontWeight: 'bold' }}>{qty}</span>
