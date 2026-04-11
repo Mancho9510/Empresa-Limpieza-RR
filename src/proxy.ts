@@ -49,11 +49,12 @@ export async function proxy(request: NextRequest) {
   // Content-Security-Policy
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-inline'"}`,
+    `script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://vercel.live https://*.vercel-scripts.com${isDev ? " 'unsafe-eval' 'unsafe-inline'" : " 'unsafe-inline'"}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' blob: data: https://drive.google.com https://lh3.googleusercontent.com https://*.googleusercontent.com ${supabaseUrl}`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com ${supabaseUrl}`,
+    `connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.sentry.io https://*.vercel-scripts.com https://vercel.live https://*.vercel.app ${supabaseUrl}`,
+    `worker-src 'self' blob:`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

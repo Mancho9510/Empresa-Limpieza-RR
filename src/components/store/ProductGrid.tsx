@@ -22,11 +22,30 @@ export default function ProductGrid({ productos }: ProductGridProps) {
     return ['Todos', ...Array.from(cats).sort()]
   }, [productos])
 
+  const [showAgotados, setShowAgotados] = useState(false)
+
   const filtered = useMemo(() => {
-    return productos.filter((p) => {
+    const list = productos.filter((p) => {
       const matchSearch = !search || p.nombre.toLowerCase().includes(search.toLowerCase()) || p.categoria.toLowerCase().includes(search.toLowerCase())
       const matchCat = category === 'Todos' || p.categoria === category
       return matchSearch && matchCat
+    })
+
+    // Algoritmo de ordenamiento: 1. Con foto. 2. Sin foto. 3. Agotados (al final)
+    return list.sort((a, b) => {
+      const isOutA = a.stock !== null && a.stock !== undefined && a.stock <= 0
+      const isOutB = b.stock !== null && b.stock !== undefined && b.stock <= 0
+      
+      if (isOutA && !isOutB) return 1
+      if (!isOutA && isOutB) return -1
+      
+      const hasImgA = !!a.imagen
+      const hasImgB = !!b.imagen
+      
+      if (hasImgA && !hasImgB) return -1
+      if (!hasImgA && hasImgB) return 1
+      
+      return a.nombre.localeCompare(b.nombre)
     })
   }, [productos, search, category])
 
@@ -47,6 +66,64 @@ export default function ProductGrid({ productos }: ProductGridProps) {
   const getItemQty = (id: string) => {
     return items.find(i => i.id === id)?.qty || 0
   }
+
+  const renderProductCard = (p: ProductoAPI, i: number) => {
+    const qty = getItemQty(p.id)
+    const isOutOfStock = p.stock !== null && p.stock !== undefined && p.stock <= 0
+    
+    return (
+      <div
+        key={p.id}
+        className={`card ${styles.productCard} ${isOutOfStock ? styles.outOfStockCard : ''}`}
+        style={{ animationDelay: `${i * 50}ms` }}
+        onClick={() => setSelectedProduct(p)}
+      >
+        {p.destacado && !isOutOfStock && <span className={styles.featured}>⭐ Destacado</span>}
+        {isOutOfStock && <span className={styles.agotadoBadge}>Agotado</span>}
+        
+        <div className={styles.cardEmoji}>
+          {p.imagen ? (
+            <img src={p.imagen} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '150px' }} className={isOutOfStock ? styles.outOfStockImage : ''} />
+          ) : (
+            p.emoji || '📦'
+          )}
+        </div>
+        <div className={styles.cardBody}>
+          <h3 className={styles.cardName}>{p.nombre}</h3>
+          {p.tamano && <span className={styles.cardSize}>{p.tamano}</span>}
+          {p.categoria && <span className={styles.cardCat}>{p.categoria}</span>}
+          <div className={styles.cardFooter}>
+            <span className={styles.cardPrice}>{fmt(p.precio)}</span>
+            
+            {/* Controles de Cantidad Nativos */}
+            <div onClick={(e) => { e.stopPropagation(); if (isOutOfStock) e.preventDefault(); }}>
+              {isOutOfStock ? (
+                <button className="btn btn-secondary btn-sm" disabled style={{ opacity: 0.6 }}>Agotado</button>
+              ) : qty > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-pill)', padding: '2px 6px' }}>
+                  <button className="btn btn-icon btn-sm" onClick={() => updateQty(p.id, qty - 1)}>-</button>
+                  <span style={{ fontWeight: 'bold' }}>{qty}</span>
+                  <button className="btn btn-icon btn-sm" onClick={() => updateQty(p.id, qty + 1)}>+</button>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleAdd(p)}
+                  id={`add-${p.id}`}
+                >
+                  + Agregar
+                </button>
+              )}
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const availableProducts = filtered.filter(p => !(p.stock !== null && p.stock !== undefined && p.stock <= 0))
+  const exhaustedProducts = filtered.filter(p => p.stock !== null && p.stock !== undefined && p.stock <= 0)
 
   return (
     <section className={styles.section} id="productos">
@@ -80,62 +157,31 @@ export default function ProductGrid({ productos }: ProductGridProps) {
           </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid-products">
-          {filtered.map((p, i) => {
-            const qty = getItemQty(p.id)
-            const isOutOfStock = p.stock !== null && p.stock !== undefined && p.stock <= 0
-            
-            return (
-            <div
-              key={p.id}
-              className={`card ${styles.productCard} ${isOutOfStock ? styles.outOfStockCard : ''}`}
-              style={{ animationDelay: `${i * 50}ms` }}
-              onClick={() => setSelectedProduct(p)}
+        {/* Grid de Productos Disponibles */}
+        {availableProducts.length > 0 && (
+          <div className="grid-products">
+            {availableProducts.map(renderProductCard)}
+          </div>
+        )}
+
+        {/* Contenedor de Productos Agotados (Desplegable) */}
+        {exhaustedProducts.length > 0 && (
+          <div style={{ marginTop: 'var(--space-2xl)', textAlign: 'center' }}>
+            <button 
+              onClick={() => setShowAgotados(!showAgotados)} 
+              className="btn btn-secondary"
+              style={{ margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
-              {p.destacado && !isOutOfStock && <span className={styles.featured}>⭐ Destacado</span>}
-              {isOutOfStock && <span className={styles.agotadoBadge}>Agotado</span>}
-              
-              <div className={styles.cardEmoji}>
-                {p.imagen ? (
-                  <img src={p.imagen} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '150px' }} className={isOutOfStock ? styles.outOfStockImage : ''} />
-                ) : (
-                  p.emoji || '📦'
-                )}
+              {showAgotados ? '⬆ Ocultar agotados' : `⬇ Ver ${exhaustedProducts.length} agotados`}
+            </button>
+
+            {showAgotados && (
+              <div className="grid-products" style={{ marginTop: 'var(--space-lg)', opacity: 0.8 }}>
+                {exhaustedProducts.map(renderProductCard)}
               </div>
-              <div className={styles.cardBody}>
-                <h3 className={styles.cardName}>{p.nombre}</h3>
-                {p.tamano && <span className={styles.cardSize}>{p.tamano}</span>}
-                {p.categoria && <span className={styles.cardCat}>{p.categoria}</span>}
-                <div className={styles.cardFooter}>
-                  <span className={styles.cardPrice}>{fmt(p.precio)}</span>
-                  
-                  {/* Controles de Cantidad Nativos */}
-                  <div onClick={(e) => { e.stopPropagation(); if (isOutOfStock) e.preventDefault(); }}>
-                    {isOutOfStock ? (
-                      <button className="btn btn-secondary btn-sm" disabled style={{ opacity: 0.6 }}>Agotado</button>
-                    ) : qty > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-pill)', padding: '2px 6px' }}>
-                        <button className="btn btn-icon btn-sm" onClick={() => updateQty(p.id, qty - 1)}>-</button>
-                        <span style={{ fontWeight: 'bold' }}>{qty}</span>
-                        <button className="btn btn-icon btn-sm" onClick={() => updateQty(p.id, qty + 1)}>+</button>
-                      </div>
-                    ) : (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleAdd(p)}
-                        id={`add-${p.id}`}
-                      >
-                        + Agregar
-                      </button>
-                    )}
-                  </div>
-                  
-                </div>
-              </div>
-            </div>
-          )})}
-        </div>
+            )}
+          </div>
+        )}
 
         {filtered.length === 0 && (
           <div className={styles.noResults}>
