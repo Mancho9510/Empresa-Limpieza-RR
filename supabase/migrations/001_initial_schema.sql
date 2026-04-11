@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS productos (
 
 -- Trigger para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
@@ -134,7 +136,9 @@ CREATE TABLE IF NOT EXISTS proveedores (
 
 -- ─── FUNCIÓN: decrementar stock ───────────────────────────────
 CREATE OR REPLACE FUNCTION decrement_stock(product_id UUID, qty INTEGER)
-RETURNS VOID AS $$
+RETURNS VOID 
+SET search_path = public
+AS $$
 BEGIN
   UPDATE productos
   SET stock = GREATEST(stock - qty, 0)

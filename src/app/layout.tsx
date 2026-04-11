@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, Plus_Jakarta_Sans } from 'next/font/google'
 import ClientShell from '@/components/ClientShell'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
 const display = Bricolage_Grotesque({
@@ -83,6 +84,7 @@ export default function RootLayout({
       </head>
       <body className={`${display.variable} ${body.variable}`}>
         <ClientShell>{children}</ClientShell>
+        <SpeedInsights />
       </body>
     </html>
   )
