@@ -86,12 +86,24 @@ export async function deleteAdminSession(): Promise<void> {
 }
 
 /**
- * Verifica que la sesión es de admin. Lanza Error si no lo es.
- * Usar en Route Handlers protegidos.
+ * Verifica que hay una sesión activa (admin o superadmin).
+ * Usar en Route Handlers que cualquier admin puede acceder.
  */
 export async function requireAdmin(): Promise<AdminSessionPayload> {
   const session = await validateAdminSession()
-  if (!session || session.role !== 'admin') {
+  if (!session || !['admin', 'superadmin'].includes(session.role)) {
+    throw new Error('No autorizado')
+  }
+  return session
+}
+
+/**
+ * Verifica que la sesión es de superadmin.
+ * Usar para operaciones sensibles: precios, costos, eliminar productos.
+ */
+export async function requireSuperAdmin(): Promise<AdminSessionPayload> {
+  const session = await validateAdminSession()
+  if (!session || session.role !== 'superadmin') {
     throw new Error('No autorizado')
   }
   return session

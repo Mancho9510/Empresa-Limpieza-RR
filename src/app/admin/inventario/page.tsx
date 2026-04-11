@@ -11,5 +11,5 @@ export default async function AdminInventarioPage() {
   const session = await validateAdminSession()
   if (!session) redirect('/admin/login')
 
-  return <AdminInventarioClient />
+  return <AdminInventarioClient role={session.role} />
 }

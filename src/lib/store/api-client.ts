@@ -23,10 +23,25 @@ export function fetchProductos() {
 }
 
 export function postProductoAccion(accion: string, data: Record<string, unknown>) {
-  return apiFetch<{ ok: boolean }>('/productos', {
+  return apiFetch<{ ok: boolean; data?: ProductoAPI }>('/productos', {
     method: 'POST',
     body: JSON.stringify({ accion, ...data }),
   })
+}
+
+export async function uploadImagenProducto(file: File, slot: string = '1') {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('slot', slot)
+  const res = await fetch('/api/productos', {
+    method: 'PUT',
+    body: formData,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Error al subir imagen')
+  }
+  return res.json() as Promise<{ ok: boolean; url: string; fileName: string }>
 }
 
 // ─── Pedidos ────────────────────────────────────────────────

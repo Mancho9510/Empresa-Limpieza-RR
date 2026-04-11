@@ -1,10 +1,20 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/auth/session'
-import { ProductoSchema, ActualizarStockSchema, ActualizarPrecioSchema, ActualizarCostoSchema } from '@/lib/validators/schemas'
 import { NextRequest } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth/session'
+import { ProductoSchema, ActualizarStockSchema, ActualizarPrecioSchema, ActualizarCostoSchema } from '@/lib/validators/schemas'
 
 import { redis } from '@/lib/redis'
+
+const BUCKET = 'productos'
+
+/**
+ * Invalida la caché de productos en Redis.
+ */
+async function invalidarCache() {
+  if (redis) {
+    await redis.del('catalogo_productos')
+  }
+}
 
 /**
  * GET /api/productos
@@ -18,7 +28,7 @@ export async function GET() {
       return Response.json({ ok: true, data: cached, cached: true })
     }
 
-    const supabase = await createServerSupabaseClient()
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('productos')
@@ -45,15 +55,21 @@ export async function GET() {
 
 /**
  * POST /api/productos
- * Operaciones admin sobre productos:
- * - accion: "crear" | "actualizar_stock" | "actualizar_precio" | "actualizar_costo"
+ * - accion: "crear" | "actualizar_stock" | "actualizar_precio" | "actualizar_costo" | "eliminar" | "editar"
+ * - "actualizar_precio" y "actualizar_costo" requieren superadmin
  */
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin()
     const body = await request.json()
     const accion = body.accion || 'crear'
     const supabase = createAdminClient()
+
+    // Precio y costo solo para superadmin
+    if (accion === 'actualizar_precio' || accion === 'actualizar_costo') {
+      await requireSuperAdmin()
+    } else {
+      await requireAdmin()
+    }
 
     let resultData = null
 
@@ -73,6 +89,34 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'editar': {
+        // Edición completa — si incluye precio/costo, requiere superadmin
+        const { id, ...campos } = body
+        if (!id) return Response.json({ ok: false, error: 'ID requerido' }, { status: 400 })
+        if ((campos.precio !== undefined || campos.costo !== undefined)) {
+          await requireSuperAdmin()
+        }
+        const { accion: _a, ...updateData } = campos
+        const { data, error } = await supabase
+          .from('productos')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .single()
+        if (error) throw error
+        resultData = data
+        break
+      }
+
+      case 'eliminar': {
+        await requireSuperAdmin()
+        const { id } = body
+        if (!id) return Response.json({ ok: false, error: 'ID requerido' }, { status: 400 })
+        const { error } = await supabase.from('productos').delete().eq('id', id)
+        if (error) throw error
+        break
+      }
+
       case 'actualizar_stock': {
         const parsed = ActualizarStockSchema.safeParse(body)
         if (!parsed.success) {
@@ -85,6 +129,10 @@ export async function POST(request: NextRequest) {
           error = res.error
         } else if (parsed.data.operacion === 'sumar') {
           const res = await supabase.rpc('increment_stock', { product_id: parsed.data.id, qty })
+          error = res.error
+        } else {
+          // Set directo
+          const res = await supabase.from('productos').update({ stock: parsed.data.stock }).eq('id', parsed.data.id)
           error = res.error
         }
         if (error) throw error
@@ -121,15 +169,63 @@ export async function POST(request: NextRequest) {
         return Response.json({ ok: false, error: 'Acción no válida' }, { status: 400 })
     }
 
-    // Invalidar caché tras cualquier cambio exitoso
-    if (redis) {
-      await redis.del('catalogo_productos')
-    }
-
+    await invalidarCache()
     return Response.json({ ok: true, ...(resultData ? { data: resultData } : {}) })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error del servidor'
     const status = message === 'No autorizado' ? 401 : 500
+    return Response.json({ ok: false, error: message }, { status })
+  }
+}
+
+/**
+ * PUT /api/productos/imagen — Upload de imagen a Supabase Storage
+ * Body: multipart/form-data con campo "file" y "productoId" (opcional)
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    await requireAdmin()
+    const supabase = createAdminClient()
+
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    const slot = (formData.get('slot') as string) || '1' // '1', '2' o '3'
+
+    if (!file) {
+      return Response.json({ ok: false, error: 'No se recibió ningún archivo' }, { status: 400 })
+    }
+
+    // Validar tipo MIME
+    if (!file.type.startsWith('image/')) {
+      return Response.json({ ok: false, error: 'El archivo debe ser una imagen' }, { status: 400 })
+    }
+
+    // Validar tamaño (máx 5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return Response.json({ ok: false, error: 'La imagen no puede superar 5 MB' }, { status: 400 })
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const fileName = `producto_${Date.now()}_${slot}.${ext}`
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      })
+
+    if (uploadError) throw uploadError
+
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(fileName)
+
+    return Response.json({ ok: true, url: urlData.publicUrl, fileName })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error del servidor'
+    const status = message === 'No autorizado' ? 401 : 500
+    console.error('Error upload imagen:', err)
     return Response.json({ ok: false, error: message }, { status })
   }
 }
