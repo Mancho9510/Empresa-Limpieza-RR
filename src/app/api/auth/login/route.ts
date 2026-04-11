@@ -31,11 +31,21 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error || !admin) {
-      // Fallback: comparar con la clave legacy (durante migración)
+      // Fallback: si no hay tabla admin_users, intentar con ADMIN_KEY hasheado
       const legacyKey = process.env.ADMIN_KEY
-      if (legacyKey && password === legacyKey) {
-        await createAdminSession('legacy-admin', 'admin')
-        return Response.json({ ok: true })
+      if (legacyKey) {
+        // Soporta ADMIN_KEY como hash bcrypt ($2a$...) o como texto plano (solo dev)
+        let legacyValid = false
+        if (legacyKey.startsWith('$2')) {
+          legacyValid = await compare(password, legacyKey)
+        } else if (process.env.NODE_ENV !== 'production') {
+          // Solo en desarrollo se permite texto plano
+          legacyValid = password === legacyKey
+        }
+        if (legacyValid) {
+          await createAdminSession('legacy-admin', 'admin')
+          return Response.json({ ok: true })
+        }
       }
 
       return Response.json(

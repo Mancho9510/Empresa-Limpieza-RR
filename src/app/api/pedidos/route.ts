@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
     console.error("TRYCATCH ERROR:", err)
     const message = err?.message || 'Error del servidor'
     const status = message === 'No autorizado' ? 401 : 500
-    return Response.json({ ok: false, error: message, fullError: err }, { status })
+    return Response.json({ ok: false, error: message }, { status })
   }
 }
 

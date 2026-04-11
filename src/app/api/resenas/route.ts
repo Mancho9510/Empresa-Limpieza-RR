@@ -1,6 +1,14 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { CalificacionSchema } from '@/lib/validators/schemas'
 import { NextRequest } from 'next/server'
+import { redis } from '@/lib/redis'
+import { Ratelimit } from '@upstash/ratelimit'
+
+// Rate limit: máx 3 reseñas por IP por hora (protección anti-spam)
+const reviewLimit = redis ? new Ratelimit({
+  redis: redis as any,
+  limiter: Ratelimit.slidingWindow(3, '1 h'),
+}) : null
 
 /**
  * GET /api/resenas
@@ -43,6 +51,18 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit anti-spam: máx 3 reseñas/hora por IP
+    if (reviewLimit) {
+      const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
+      const { success } = await reviewLimit.limit(`review_${ip}`)
+      if (!success) {
+        return Response.json(
+          { ok: false, error: 'Has enviado demasiadas reseñas. Intenta más tarde.' },
+          { status: 429 }
+        )
+      }
+    }
+
     const body = await request.json()
     const parsed = CalificacionSchema.safeParse(body)
 
