@@ -3,6 +3,7 @@
    Limpieza RR v2 · Vite 6 + Tailwind 4
 ══════════════════════════════════════════ */
 import '../css/admin/index.css';
+import { inject } from '@vercel/analytics';
 
 import { initAuth }         from './admin/auth.js';
 import { initTabs, switchTab, getTabActivo } from './admin/tabs.js';
@@ -13,6 +14,9 @@ import { initProveedores, loadProveedores }   from './admin/proveedores.js';
 import { initDashboard,   loadDashboard, hasDashData }     from './admin/dashboard.js';
 import { initRentabilidad, loadRentabilidad, hasRentData } from './admin/rentabilidad.js';
 import { showToast }        from './admin/admin-toast.js';
+
+/* ── Initialize Vercel Analytics ── */
+inject();
 
 /* ── Init widgets siempre (DOM listo) ── */
 initAuth({
