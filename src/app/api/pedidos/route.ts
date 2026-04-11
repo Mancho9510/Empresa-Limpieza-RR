@@ -2,7 +2,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/session'
 import { PedidoSchema, ActualizarEstadoSchema } from '@/lib/validators/schemas'
+import { Resend } from 'resend'
+import { generateInvoiceEmailHtml } from '@/lib/emails/InvoiceEmail'
 import { NextRequest } from 'next/server'
+import { orderRateLimit } from '@/lib/ratelimit'
 
 /**
  * GET /api/pedidos
@@ -118,6 +121,18 @@ export async function POST(request: NextRequest) {
     }
 
     // ─── Nuevo pedido (público) ──────────────────────────────
+    
+    // Rate Limiting
+    const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
+    const { success } = await orderRateLimit.limit(ip)
+    
+    if (!success) {
+      return Response.json(
+        { ok: false, error: 'Has superado el límite de pedidos. Intenta más tarde.' },
+        { status: 429 }
+      )
+    }
+
     const parsed = PedidoSchema.safeParse(body)
     if (!parsed.success) {
       return Response.json(
@@ -226,6 +241,24 @@ export async function POST(request: NextRequest) {
       }
     } catch {
       console.error('Error updating stock')
+    }
+
+    // ─── Enviar Factura por Correo (Resend) ────────────────
+    try {
+      if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        const htmlBody = generateInvoiceEmailHtml(orderData)
+        
+        await resend.emails.send({
+          from: 'Limpieza RR <onboarding@resend.dev>',
+          to: 'german.951026@gmail.com',
+          subject: `✨ Nuevo Pedido Recibido - ${orderData.nombre}`,
+          html: htmlBody,
+        })
+      }
+    } catch (emailErr) {
+      console.error('Error enviando email con Resend:', emailErr)
+      // No fallamos el pedido si el correo falla
     }
 
     return Response.json({ ok: true, id: data?.id })
