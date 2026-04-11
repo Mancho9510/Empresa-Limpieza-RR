@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest } from 'next/server'
 
 /**
@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server'
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
+    const supabase = createAdminClient()
     const { searchParams } = request.nextUrl
     
     // Solo permitimos buscar si envían al menos 7 dígitos válidos numéricos
