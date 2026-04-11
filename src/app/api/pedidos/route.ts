@@ -124,13 +124,18 @@ export async function POST(request: NextRequest) {
     
     // Rate Limiting
     const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
-    const { success } = await orderRateLimit.limit(ip)
-    
-    if (!success) {
-      return Response.json(
-        { ok: false, error: 'Has superado el límite de pedidos. Intenta más tarde.' },
-        { status: 429 }
-      )
+    if (orderRateLimit) {
+      try {
+        const { success } = await orderRateLimit.limit(ip)
+        if (!success) {
+          return Response.json(
+            { ok: false, error: 'Has superado el límite de pedidos. Intenta más tarde.' },
+            { status: 429 }
+          )
+        }
+      } catch (rlError) {
+        console.warn('Error en rate limit (posiblemente falta config Upstash). Ignorando.', rlError)
+      }
     }
 
     const parsed = PedidoSchema.safeParse(body)
@@ -175,7 +180,10 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error("SUPABASE ERROR:", error)
+      throw error
+    }
 
     // ─── Upsert cliente ─────────────────────────────────────
     try {
@@ -262,10 +270,11 @@ export async function POST(request: NextRequest) {
     }
 
     return Response.json({ ok: true, id: data?.id })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error del servidor'
+  } catch (err: any) {
+    console.error("TRYCATCH ERROR:", err)
+    const message = err?.message || 'Error del servidor'
     const status = message === 'No autorizado' ? 401 : 500
-    return Response.json({ ok: false, error: message }, { status })
+    return Response.json({ ok: false, error: message, fullError: err }, { status })
   }
 }
 
