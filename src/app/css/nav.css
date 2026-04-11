@@ -63,6 +63,15 @@ nav ul a:hover { color: var(--teal); }
 nav ul a:hover::after { width: 100%; }
 .nav-r { display:flex; align-items:center; gap:8px; }
 
+/* Separador visual sutil antes de botones */
+.nav-r::before {
+  content: '';
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin-right: 4px;
+}
+
 /* Botón carrito */
 .btn-cart {
   position: relative;
@@ -98,9 +107,9 @@ nav ul a:hover::after { width: 100%; }
   box-shadow: 0 2px 6px rgba(0,0,0,.2);
 }
 
-/* Botón WhatsApp nav */
+/* Botón WhatsApp nav — integrado con brand teal */
 .btn-wa-nav {
-  background: #25D366;
+  background: var(--wa-brand, var(--teal));
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -111,9 +120,13 @@ nav ul a:hover::after { width: 100%; }
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background .2s, transform .15s;
+  transition: background .2s, transform .15s, box-shadow .2s;
 }
-.btn-wa-nav:hover { background:#1ebe5d; transform:translateY(-1px); }
+.btn-wa-nav:hover {
+  background: var(--wa-hover, var(--teal-dk));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--teal-glow);
+}
 
 /* Hamburger */
 .hamburger {
@@ -172,12 +185,11 @@ nav ul a:hover::after { width: 100%; }
 .mm-icon { font-size:1.1rem; width:24px; text-align:center; }
 .mm-divider { height:1px; background:var(--border); margin:6px 20px; }
 .mobile-menu .mm-wa {
-  background: #25D366;
+  background: var(--wa-brand, var(--teal));
   color: #fff !important;
   border-radius: 10px;
   margin: 8px 16px;
   width: calc(100% - 32px);
   padding: 13px 16px;
 }
-.mobile-menu .mm-wa:hover { background:#1ebe5d !important; }
-
+.mobile-menu .mm-wa:hover { background: var(--wa-hover, var(--teal-dk)) !important; }

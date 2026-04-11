@@ -3,18 +3,18 @@
 ══════════════════════════════════════════════════════ */
 #premium {
   padding: 80px 5%;
-  background: #EBF9F4;
+  background: var(--grad-section);
   position: relative;
   overflow: hidden;
 }
 [data-theme="dark"] #premium {
-  background: linear-gradient(160deg, #0D1F1C 0%, #0B1816 100%);
+  background: var(--grad-section);
 }
 #premium::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 90% 10%, rgba(13,148,136,.1) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 90% 10%, rgba(13,148,136,.08) 0%, transparent 55%);
   pointer-events: none;
 }
 
@@ -26,12 +26,11 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: clamp(2rem,4vw,3rem);
   font-weight: 800;
-  color: #0F172A;
+  color: var(--text);
   line-height: 1.12;
   letter-spacing: -.03em;
   max-width: 520px;
 }
-[data-theme="dark"] .premium-title-big { color:#F0FDF9; }
 .premium-title-big em { font-style:normal; color:var(--teal); }
 
 /* Grid 4 columnas */
@@ -58,27 +57,27 @@
   overflow: hidden;
 }
 [data-theme="dark"] .benefit-card {
-  background: rgba(255,255,255,.06);
-  border-color: rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  border-color: var(--border);
 }
 .benefit-card:hover {
   transform: translateY(-6px);
-  box-shadow: var(--sh-lg);
+  box-shadow: var(--sh-card-hover);
   border-color: var(--teal-l);
 }
 
 /* ── Card teal destacada ── */
 .benefit-card--featured {
-  background: linear-gradient(160deg,#12A89A,#0D9488);
+  background: linear-gradient(160deg,#0FA897,#0D9488);
   border-color: transparent;
-  box-shadow: 0 12px 40px rgba(13,148,136,.4);
+  box-shadow: 0 12px 40px rgba(13,148,136,.35);
   color: #fff;
 }
 [data-theme="dark"] .benefit-card--featured {
   background: linear-gradient(160deg,#0D9488,#0A5E55);
 }
 .benefit-card--featured:hover {
-  box-shadow: 0 20px 56px rgba(13,148,136,.5);
+  box-shadow: 0 20px 56px rgba(13,148,136,.45);
   transform: translateY(-8px);
 }
 
@@ -86,13 +85,13 @@
 .benefit-icon-wrap {
   width: 80px; height: 80px;
   border-radius: 50%;
-  background: rgba(13,148,136,.1);
+  background: rgba(13,148,136,.08);
   display: flex; align-items:center; justify-content:center;
   margin-bottom: 20px;
   flex-shrink: 0;
   transition: transform .35s cubic-bezier(.22,1,.36,1);
 }
-[data-theme="dark"] .benefit-icon-wrap { background:rgba(20,184,166,.12); }
+[data-theme="dark"] .benefit-icon-wrap { background:rgba(20,184,166,.10); }
 .benefit-card--featured .benefit-icon-wrap { background:rgba(255,255,255,.18); }
 .benefit-card:hover .benefit-icon-wrap { transform:scale(1.08) rotate(-3deg); }
 .benefit-icon-wrap svg {
@@ -132,13 +131,13 @@
 /* ── Badge circular inferior ── */
 .benefit-badge {
   width:36px; height:36px; border-radius:50%;
-  background:rgba(13,148,136,.1);
-  border:1.5px solid rgba(13,148,136,.2);
+  background:rgba(13,148,136,.08);
+  border:1.5px solid rgba(13,148,136,.15);
   display:flex; align-items:center; justify-content:center;
   margin-top:auto; flex-shrink:0;
   transition:all .25s;
 }
-[data-theme="dark"] .benefit-badge { background:rgba(20,184,166,.12); border-color:rgba(45,212,191,.2); }
+[data-theme="dark"] .benefit-badge { background:rgba(20,184,166,.10); border-color:rgba(45,212,191,.15); }
 .benefit-card--featured .benefit-badge { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.35); }
 .benefit-badge svg { width:16px; height:16px; stroke:var(--teal); stroke-width:2; fill:none; }
 .benefit-card--featured .benefit-badge svg { stroke:#fff; }
@@ -160,7 +159,7 @@
   width: fit-content;
   margin-top: auto;
 }
-[data-theme="dark"] .benefit-tag { background:rgba(13,148,136,.2); color:var(--teal-l); }
+[data-theme="dark"] .benefit-tag { background:rgba(13,148,136,.15); color:var(--teal-l); }
 .benefit-tag--white { background:rgba(255,255,255,.22); color:#fff; }
 
 /* ════ RESPONSIVE BENEFITS ════

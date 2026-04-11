@@ -17,19 +17,20 @@
   position: relative;
   overflow: hidden;
   background-size: 200% 200%;
+  box-shadow: 0 4px 16px rgba(13,148,136,.2);
 }
 .btn-primary::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
   transform: translateX(-100%);
   transition: transform .5s ease;
 }
 .btn-primary:hover::after { transform: translateX(100%); }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--sh-lg);
+  box-shadow: 0 8px 28px rgba(13,148,136,.3), var(--sh-glow);
 }
 .btn-primary:active { transform:translateY(0) scale(0.97); }
 
@@ -47,5 +48,5 @@
 .btn-outline:hover {
   background: var(--teal-pale);
   transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--teal-glow);
 }
-

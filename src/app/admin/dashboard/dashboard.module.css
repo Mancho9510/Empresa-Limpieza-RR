@@ -4,11 +4,11 @@
    Modo oscuro alineado con la Vite store
 ══════════════════════════════════════════════════════════════ */
 
-/* ── Variables del módulo ─────────────────────────────────── */
+/* ── Variables del módulo — Light mode (default) ──────────── */
 :root {
   --dash-teal:       #0D9488;
-  --dash-teal-l:     #14B8A6;
-  --dash-teal-ll:    #2DD4BF;
+  --dash-teal-l:     #0F766E;
+  --dash-teal-ll:    #14B8A6;
   --dash-accent:     #06D6A0;
   --dash-yellow:     #F59E0B;
   --dash-blue:       #3B82F6;
@@ -16,23 +16,48 @@
   --dash-red:        #EF4444;
   --dash-green:      #10B981;
 
-  --dash-bg:         #060E0C;
-  --dash-surface:    #0C1614;
-  --dash-surface-2:  #111E1B;
-  --dash-surface-3:  #162623;
+  --dash-bg:         #F5F7F6;
+  --dash-surface:    #FFFFFF;
+  --dash-surface-2:  #F0F4F3;
+  --dash-surface-3:  #E8EDEB;
+  --dash-border:     #D1E0DB;
+  --dash-border-2:   #E2ECE8;
+
+  --dash-text:       #0F172A;
+  --dash-text-2:     #334155;
+  --dash-muted:      #64748B;
+
+  --dash-sh:         0 2px 16px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --dash-sh-lg:      0 8px 40px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.04);
+  --dash-glow:       0 0 0 1px rgba(13, 148, 136, 0.08);
+
+  --dash-header-bg:  rgba(245, 247, 246, 0.92);
+
+  --dash-r:          14px;
+  --dash-r-lg:       20px;
+}
+
+/* ── Variables del módulo — Dark mode ─────────────────────── */
+:global([data-theme="dark"]) {
+  --dash-teal-l:     #14B8A6;
+  --dash-teal-ll:    #2DD4BF;
+
+  --dash-bg:         #080D0C;
+  --dash-surface:    #0D1714;
+  --dash-surface-2:  #121F1C;
+  --dash-surface-3:  #172825;
   --dash-border:     rgba(45, 212, 191, 0.14);
   --dash-border-2:   rgba(45, 212, 191, 0.08);
 
-  --dash-text:       #F0FDF9;
-  --dash-text-2:     #CBD5E1;
-  --dash-muted:      #64748B;
+  --dash-text:       #F1F5F3;
+  --dash-text-2:     #C8D5D0;
+  --dash-muted:      #8A9A94;
 
   --dash-sh:         0 2px 16px rgba(0, 0, 0, 0.35);
   --dash-sh-lg:      0 8px 40px rgba(0, 0, 0, 0.45);
   --dash-glow:       0 0 0 1px rgba(45, 212, 191, 0.12);
 
-  --dash-r:          14px;
-  --dash-r-lg:       20px;
+  --dash-header-bg:  rgba(8, 13, 12, 0.92);
 }
 
 /* ── Layout principal ────────────────────────────────────── */
@@ -54,7 +79,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.875rem 1.75rem;
-  background: rgba(6, 14, 12, 0.92);
+  background: var(--dash-header-bg, rgba(245, 247, 246, 0.92));
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--dash-border);
   flex-wrap: wrap;
@@ -768,7 +793,7 @@
 
 :global(.rating-stars) { font-size: 1rem; color: #F59E0B; line-height: 1; margin-bottom: 2px; }
 :global(.star-filled) { color: #F59E0B; }
-:global(.star-empty)  { color: #334155; }
+:global(.star-empty)  { color: var(--dash-border); }
 :global(.rating-total) { font-size: 0.72rem; color: var(--dash-muted); }
 
 /* ── Reseñas recientes ───────────────────────────────────── */
@@ -805,7 +830,7 @@
   border: 1px solid var(--dash-border);
   border-radius: 10px;
   padding: 0.625rem 0.875rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--dash-sh-lg);
 }
 
 :global(.chart-tooltip-label) {

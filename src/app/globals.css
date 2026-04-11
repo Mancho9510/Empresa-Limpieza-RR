@@ -1,61 +1,61 @@
 /* ══════════════════════════════════════════════════════════════
    LIMPIEZA RR — Design System (Esmeralda Crystal)
-   Global styles, tokens, animations, utilities
+   Global styles + variable bridge for .module.css files
    ══════════════════════════════════════════════════════════════ */
 
-/* ─── CSS Custom Properties (Design Tokens) ────────────────── */
+/* ─── CSS Custom Properties (Bridge: maps globals → tokens.css) ── */
 :root {
-  /* Brand — Esmeralda */
-  --color-primary: #10b981;
-  --color-primary-light: #34d399;
-  --color-primary-dark: #059669;
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-200: #a7f3d0;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
+  /* Brand — mapped from tokens.css --teal system */
+  --color-primary: var(--teal, #0D9488);
+  --color-primary-light: var(--teal-l, #14B8A6);
+  --color-primary-dark: var(--teal-dk, #0F766E);
+  --color-primary-50: var(--teal-pale, #E0F5F0);
+  --color-primary-100: var(--teal-pale, #E0F5F0);
+  --color-primary-200: var(--border, #D1F0E8);
+  --color-primary-500: var(--teal, #0D9488);
+  --color-primary-600: var(--teal-dk, #0F766E);
+  --color-primary-700: var(--teal-deep, #0A5E55);
   --color-primary-900: #064e3b;
 
-  /* Accent */
-  --color-accent: #f59e0b;
+  /* Accent — mapped */
+  --color-accent: var(--yellow, #F59E0B);
   --color-accent-light: #fbbf24;
   --color-accent-dark: #d97706;
 
-  /* Surfaces — Light Mode */
-  --bg-primary: #f8fafb;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --bg-elevated: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.72);
-  --bg-glass-strong: rgba(255, 255, 255, 0.88);
+  /* Surfaces — mapped from tokens.css */
+  --bg-primary: var(--bg, #FAFCFB);
+  --bg-secondary: var(--surface, #FFFFFF);
+  --bg-tertiary: var(--bg-3, #F0F7F5);
+  --bg-elevated: var(--surface, #FFFFFF);
+  --bg-glass: var(--surface-glass, rgba(255,255,255,0.78));
+  --bg-glass-strong: rgba(255, 255, 255, 0.90);
 
-  /* Text */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
+  /* Text — mapped */
+  --text-primary: var(--text, #0F172A);
+  --text-secondary: var(--text-2, #334155);
+  --text-tertiary: var(--text-muted, #64748B);
   --text-inverse: #ffffff;
   --text-on-primary: #ffffff;
 
-  /* Borders */
-  --border-default: #e2e8f0;
-  --border-subtle: #f1f5f9;
-  --border-strong: #cbd5e1;
-  --border-glass: rgba(255, 255, 255, 0.18);
+  /* Borders — mapped */
+  --border-default: var(--border, #D1F0E8);
+  --border-subtle: var(--border-2, #E8F7F3);
+  --border-strong: var(--border, #D1F0E8);
+  --border-glass: rgba(255, 255, 255, 0.15);
 
   /* Status */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  --color-success: var(--teal, #0D9488);
+  --color-warning: var(--yellow, #F59E0B);
   --color-error: #ef4444;
   --color-info: #3b82f6;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
-  --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.15);
-  --shadow-glow-strong: 0 0 40px rgba(16, 185, 129, 0.25);
+  /* Shadows — mapped */
+  --shadow-sm: var(--sh, 0 2px 12px rgba(15,23,42,0.06));
+  --shadow-md: var(--sh, 0 2px 12px rgba(15,23,42,0.06));
+  --shadow-lg: var(--sh-lg, 0 12px 40px rgba(15,23,42,0.10));
+  --shadow-xl: 0 20px 50px rgba(15,23,42,0.12), 0 8px 16px rgba(15,23,42,0.06);
+  --shadow-glow: var(--sh-glow, 0 0 32px rgba(13,148,136,0.10));
+  --shadow-glow-strong: 0 0 40px rgba(13,148,136,0.20);
 
   /* Spacing */
   --space-xs: 4px;
@@ -107,31 +107,31 @@
   --z-max: 9999;
 }
 
-/* ─── Dark Mode Tokens ─────────────────────────────────────── */
+/* ─── Dark Mode Bridge ─────────────────────────────────────── */
 [data-theme="dark"] {
-  --bg-primary: #0c1220;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1e293b;
-  --bg-elevated: #1a2332;
-  --bg-glass: rgba(17, 24, 39, 0.78);
-  --bg-glass-strong: rgba(17, 24, 39, 0.92);
+  --bg-primary: var(--bg, #080D0C);
+  --bg-secondary: var(--surface, #121F1C);
+  --bg-tertiary: var(--bg-3, #0F1A17);
+  --bg-elevated: var(--surface-2, #172825);
+  --bg-glass: var(--surface-glass, rgba(18,31,28,0.88));
+  --bg-glass-strong: rgba(18, 31, 28, 0.94);
 
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  --text-primary: var(--text, #F1F5F3);
+  --text-secondary: var(--text-2, #C8D5D0);
+  --text-tertiary: var(--text-muted, #8A9A94);
   --text-inverse: #0f172a;
 
-  --border-default: #1e293b;
-  --border-subtle: #1a2332;
-  --border-strong: #334155;
-  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-default: var(--border, rgba(45,212,191,0.15));
+  --border-subtle: var(--border-2, rgba(45,212,191,0.07));
+  --border-strong: rgba(45,212,191,0.22);
+  --border-glass: rgba(255, 255, 255, 0.06);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow-sm: var(--sh, 0 2px 12px rgba(0,0,0,0.35));
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: var(--sh-lg, 0 12px 40px rgba(0,0,0,0.45));
   --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.2);
-  --shadow-glow-strong: 0 0 40px rgba(16, 185, 129, 0.35);
+  --shadow-glow: var(--sh-glow, 0 0 32px rgba(20,184,166,0.10));
+  --shadow-glow-strong: 0 0 40px rgba(20, 184, 166, 0.25);
 }
 
 /* ─── Reset ────────────────────────────────────────────────── */
@@ -199,7 +199,7 @@ input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
 }
 
 ul, ol {

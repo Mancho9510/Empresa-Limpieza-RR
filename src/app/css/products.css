@@ -61,58 +61,63 @@
 [data-theme="dark"] .prod-card {
   background: var(--surface-glass);
   border-color: var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  box-shadow: var(--sh-card);
 }
 .prod-card:hover {
   transform: translateY(-6px) scale(1.01);
   border-color: var(--teal-l);
-  box-shadow: 0 0 0 2px rgba(45,212,191,.3), 0 16px 40px rgba(13,148,136,.15), var(--sh-glow);
+  box-shadow: var(--sh-card-hover);
 }
 
 /* Imagen circular */
 .p-img-wrap {
   width:110px; height:110px; border-radius:50%;
   overflow:hidden; display:flex; align-items:center; justify-content:center;
-  background: #F1F5F9; flex-shrink:0; margin-bottom:14px; transition:transform .3s;
+  background: var(--bg-3); flex-shrink:0; margin-bottom:14px; transition:transform .3s;
 }
-[data-theme="dark"] .p-img-wrap { background:rgba(255,255,255,.08); }
+[data-theme="dark"] .p-img-wrap { background:rgba(255,255,255,.06); }
 .prod-card:hover .p-img-wrap { transform:scale(1.04); }
 .p-img { width:80px; height:80px; object-fit:contain; border-radius:0; }
 .p-img-fallback { width:80px; height:80px; border-radius:0; background:transparent; display:flex; align-items:center; justify-content:center; font-size:2.4rem; }
 .p-icon { width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-size:2.4rem; transition:transform .3s; }
 .prod-card:hover .p-icon { transform:scale(1.12) rotate(-5deg); }
 
-/* Badge categoría */
+/* Badge categoría — UNIFICADO monocromático teal */
 .p-cat-badge {
   display:inline-flex; align-items:center;
   border-radius:50px; padding:4px 12px;
   font-size:.65rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
   margin-bottom:10px; flex-shrink:0;
 }
-.p-cat-badge--detergentes { background:#DBEAFE; color:#1D4ED8; }
-.p-cat-badge--limpiapisos  { background:#CCFBF1; color:#0F766E; }
-.p-cat-badge--fragancias   { background:#FCE7F3; color:#BE185D; }
-.p-cat-badge--antibacteri  { background:#FEF3C7; color:#B45309; }
-.p-cat-badge--lavaloza     { background:#DCFCE7; color:#15803D; }
-.p-cat-badge--ceras        { background:#EDE9FE; color:#6D28D9; }
-.p-cat-badge--vidrios      { background:#E0F2FE; color:#0369A1; }
-.p-cat-badge--otros        { background:#F3F4F6; color:#374151; }
-.p-cat-badge--default      { background:var(--teal-pale); color:var(--teal-dk); }
-[data-theme="dark"] .p-cat-badge--detergentes { background:rgba(59,130,246,.15); color:#60A5FA; }
-[data-theme="dark"] .p-cat-badge--limpiapisos  { background:rgba(20,184,166,.15); color:#2DD4BF; }
-[data-theme="dark"] .p-cat-badge--fragancias   { background:rgba(236,72,153,.15); color:#F472B6; }
-[data-theme="dark"] .p-cat-badge--antibacteri  { background:rgba(245,158,11,.15); color:#FBBF24; }
-[data-theme="dark"] .p-cat-badge--lavaloza     { background:rgba(74,222,128,.12); color:#4ADE80; }
-[data-theme="dark"] .p-cat-badge--ceras        { background:rgba(167,139,250,.15); color:#A78BFA; }
-[data-theme="dark"] .p-cat-badge--vidrios      { background:rgba(56,189,248,.15); color:#38BDF8; }
-[data-theme="dark"] .p-cat-badge--otros        { background:rgba(148,163,184,.1); color:#94A3B8; }
-[data-theme="dark"] .p-cat-badge--default      { color:var(--teal); }
+
+/* Todas las categorías usan variaciones monocromáticas teal */
+.p-cat-badge--detergentes { background:var(--teal-pale); color:var(--teal-dk); }
+.p-cat-badge--limpiapisos { background:var(--teal-pale); color:var(--teal-deep); }
+.p-cat-badge--fragancias  { background:var(--teal-pale); color:var(--teal-dk); opacity:.9; }
+.p-cat-badge--antibacteri { background:var(--teal-pale); color:var(--teal-dk); }
+.p-cat-badge--lavaloza    { background:var(--teal-pale); color:var(--teal-deep); }
+.p-cat-badge--ceras       { background:var(--teal-pale); color:var(--teal-dk); opacity:.9; }
+.p-cat-badge--vidrios     { background:var(--teal-pale); color:var(--teal-deep); }
+.p-cat-badge--otros       { background:var(--teal-pale); color:var(--teal-dk); opacity:.85; }
+.p-cat-badge--default     { background:var(--teal-pale); color:var(--teal-dk); }
+
+/* Dark mode — mismo enfoque monocromático */
+[data-theme="dark"] .p-cat-badge--detergentes,
+[data-theme="dark"] .p-cat-badge--limpiapisos,
+[data-theme="dark"] .p-cat-badge--fragancias,
+[data-theme="dark"] .p-cat-badge--antibacteri,
+[data-theme="dark"] .p-cat-badge--lavaloza,
+[data-theme="dark"] .p-cat-badge--ceras,
+[data-theme="dark"] .p-cat-badge--vidrios,
+[data-theme="dark"] .p-cat-badge--otros,
+[data-theme="dark"] .p-cat-badge--default {
+  background: rgba(20,184,166,.12);
+  color: var(--teal-l);
+}
 
 .p-name  { font-weight:700; font-size:.9rem; color:var(--text); line-height:1.35; margin-bottom:2px; }
-[data-theme="dark"] .p-name { color:#F0FDF9; }
 .p-size  { font-size:.78rem; color:var(--text-muted); margin-bottom:8px; }
 .p-price { font-family:'Bricolage Grotesque',sans-serif; font-size:1.4rem; font-weight:800; color:var(--text); margin-bottom:14px; }
-[data-theme="dark"] .p-price { color:#F0FDF9; }
 
 /* Qty + botón */
 .p-card-bottom { width:100%; display:flex; flex-direction:column; gap:10px; margin-top:auto; }
@@ -124,17 +129,16 @@
   display:flex; align-items:center; justify-content:center;
   font-size:1rem; font-weight:700; transition:all .2s; line-height:1;
 }
-[data-theme="dark"] .p-qty-btn { border-color:rgba(255,255,255,.18); color:rgba(255,255,255,.6); }
+[data-theme="dark"] .p-qty-btn { border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.6); }
 .p-qty-btn:hover { background:var(--teal); border-color:var(--teal); color:#fff; }
 .p-qty-btn:disabled { opacity:.3; cursor:not-allowed; }
 .p-qty-num { font-weight:700; font-size:.95rem; min-width:20px; text-align:center; color:var(--text); }
-[data-theme="dark"] .p-qty-num { color:#F0FDF9; }
 
 .p-addbtn {
   width:100%; background:var(--grad-brand); color:#fff; border:none; border-radius:50px;
   padding:10px 16px; font:700 .85rem 'Plus Jakarta Sans',sans-serif; cursor:pointer;
   transition:all .25s cubic-bezier(.22,1,.36,1);
-  box-shadow:0 4px 14px rgba(13,148,136,.25);
+  box-shadow:0 4px 14px rgba(13,148,136,.2);
   background-size: 200% 200%;
   position: relative;
   overflow: hidden;
@@ -148,7 +152,7 @@
   transition: transform .4s ease;
 }
 .p-addbtn:hover::after { transform: translateX(100%); }
-.p-addbtn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,148,136,.4); }
+.p-addbtn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,148,136,.35); }
 .p-addbtn:active { transform: scale(0.97); }
 .p-addbtn:disabled { background:var(--text-muted); cursor:not-allowed; transform:none; box-shadow:none; }
 
@@ -163,12 +167,12 @@
 .p-sharebtn {
   position:absolute; top:12px; left:12px;
   width:30px; height:30px; border-radius:50%;
-  background:rgba(0,0,0,.05); border:1px solid rgba(0,0,0,.08);
+  background:rgba(0,0,0,.05); border:1px solid rgba(0,0,0,.06);
   color:var(--text-muted); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   opacity:0; transition:all .2s;
 }
-[data-theme="dark"] .p-sharebtn { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.1); }
+[data-theme="dark"] .p-sharebtn { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.08); }
 .prod-card:hover .p-sharebtn { opacity:1; }
 .p-sharebtn:hover { background:var(--teal); color:#fff; border-color:var(--teal); opacity:1; }
 
@@ -176,16 +180,16 @@
 .stock-badge { position:absolute; top:12px; left:12px; border-radius:50px; padding:3px 10px; font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
 .stock-badge--out { background:#FEE2E2; color:#DC2626; }
 .stock-badge--low { background:#FEF3C7; color:#D97706; }
-[data-theme="dark"] .stock-badge--out { background:rgba(220,38,38,.2); color:#FCA5A5; }
-[data-theme="dark"] .stock-badge--low { background:rgba(217,119,6,.2); color:#FCD34D; }
-.prod-card--agotado { opacity:.6; cursor:not-allowed; }
+[data-theme="dark"] .stock-badge--out { background:rgba(220,38,38,.15); color:#FCA5A5; }
+[data-theme="dark"] .stock-badge--low { background:rgba(217,119,6,.15); color:#FCD34D; }
+.prod-card--agotado { opacity:.55; cursor:not-allowed; }
 
 /* Skeletons */
-.skeleton { background:linear-gradient(90deg,#f0f4f2 25%,#e4ede9 50%,#f0f4f2 75%); background-size:200% 100%; border-radius:22px; animation:shimmer 1.5s infinite; }
-[data-theme="dark"] .skeleton { background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%); background-size:200% 100%; }
+.skeleton { background:linear-gradient(90deg,var(--bg-3) 25%,var(--border) 50%,var(--bg-3) 75%); background-size:200% 100%; border-radius:22px; animation:shimmer 1.5s infinite; }
+[data-theme="dark"] .skeleton { background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 75%); background-size:200% 100%; }
 .skel-card { height:320px; }
 .error-banner { background:#FEF2F2; border:1.5px solid #FECACA; border-radius:22px; padding:20px 24px; color:#B91C1C; text-align:center; grid-column:1/-1; }
-[data-theme="dark"] .error-banner { background:rgba(239,68,68,.1); border-color:rgba(239,68,68,.3); color:#FCA5A5; }
+[data-theme="dark"] .error-banner { background:rgba(239,68,68,.08); border-color:rgba(239,68,68,.25); color:#FCA5A5; }
 .error-banner button { margin-top:10px; background:#EF4444; color:#fff; border:none; border-radius:50px; padding:8px 20px; font:600 .85rem 'Plus Jakarta Sans',sans-serif; cursor:pointer; }
 .no-results { grid-column:1/-1; text-align:center; padding:48px 20px; color:var(--text-muted); }
 .no-results-icon { font-size:3rem; margin-bottom:12px; }
@@ -199,4 +203,3 @@
 .gallery-dot { width:44px; height:44px; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:border-color .2s; background:var(--teal-pale); }
 .gallery-dot img { width:100%; height:100%; object-fit:cover; }
 .gallery-dot.on { border-color:var(--teal); }
-

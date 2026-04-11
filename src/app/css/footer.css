@@ -8,8 +8,8 @@ footer {
   overflow: hidden;
 }
 [data-theme="dark"] footer {
-  background: #080D0C;
-  border-top-color: rgba(45,212,191,.12);
+  background: var(--bg-3);
+  border-top-color: var(--border);
 }
 
 /* Banda superior del footer */
@@ -20,7 +20,6 @@ footer {
   gap: 40px;
   border-bottom: 1px solid var(--border);
 }
-[data-theme="dark"] .footer-top { border-bottom-color: rgba(45,212,191,.1); }
 
 /* Columna marca */
 .footer-logo {
@@ -42,10 +41,10 @@ footer {
   max-width: 240px;
 }
 
-/* WhatsApp en el footer */
+/* WhatsApp en el footer — integrado con brand teal */
 .footer-wa {
   display: inline-flex; align-items:center; gap:8px;
-  background: #25D366;
+  background: var(--wa-brand, var(--teal));
   color: #fff;
   border-radius: 50px;
   padding: 10px 20px;
@@ -53,7 +52,11 @@ footer {
   text-decoration: none;
   transition: all .2s;
 }
-.footer-wa:hover { background:#1ebe5d; transform:translateY(-2px); }
+.footer-wa:hover {
+  background: var(--wa-hover, var(--teal-dk));
+  transform:translateY(-2px);
+  box-shadow: 0 4px 16px var(--teal-glow);
+}
 
 /* Columnas nav del footer */
 .footer-nav-title {
@@ -87,7 +90,7 @@ footer {
   display:flex; align-items:center; justify-content:center;
   font-size:.9rem; flex-shrink:0;
 }
-[data-theme="dark"] .footer-contact-icon { background:rgba(45,212,191,.12); }
+[data-theme="dark"] .footer-contact-icon { background:rgba(45,212,191,.10); }
 .footer-contact-text { font-size:.85rem; color:var(--text-muted); line-height:1.5; }
 .footer-contact-text a { color:var(--teal); text-decoration:none; }
 .footer-contact-text a:hover { text-decoration:underline; }
@@ -134,4 +137,3 @@ footer {
   color: var(--text-muted);
 }
 .footer-badge span { font-size:.8rem; }
-

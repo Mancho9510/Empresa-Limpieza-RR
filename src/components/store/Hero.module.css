@@ -36,9 +36,9 @@
 }
 
 [data-theme="dark"] .badge {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(20, 184, 166, 0.12);
   color: var(--color-primary-light);
-  border-color: rgba(16, 185, 129, 0.2);
+  border-color: rgba(20, 184, 166, 0.18);
 }
 
 .title {
@@ -121,7 +121,7 @@
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(13, 148, 136, 0.18), transparent 70%);
   pointer-events: none;
   z-index: 0;
   animation: pulse 4s ease-in-out infinite;
@@ -180,11 +180,12 @@
   gap: var(--space-md);
   position: relative;
   overflow: hidden;
-  transition: box-shadow var(--transition-base);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
 .heroCard:hover {
   box-shadow: var(--shadow-xl), var(--shadow-glow-strong);
+  border-color: rgba(13, 148, 136, 0.2);
 }
 
 .heroBadge {
@@ -311,6 +312,7 @@
   background: var(--color-primary);
   color: #fff;
   border-color: var(--color-primary);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.3);
 }
 
 .heroNavPrev {
@@ -343,6 +345,7 @@
 .heroDotActive {
   background: var(--color-primary);
   transform: scale(1.4);
+  box-shadow: 0 0 8px rgba(13, 148, 136, 0.3);
 }
 
 /* ── Responsive ── */

@@ -17,10 +17,12 @@
   overflow: hidden;
   width: 100%;
   border: 1px solid var(--border);
-  transition: box-shadow .3s, border-color .3s;
+  transition: box-shadow .35s ease, border-color .35s ease;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 .carousel-box:hover {
-  box-shadow: var(--sh-lg);
+  box-shadow: var(--sh-card-hover);
   border-color: var(--teal-l);
 }
 .carousel-track { display:flex; transition:transform .55s cubic-bezier(.4,0,.2,1); width:100%; }
@@ -74,7 +76,7 @@
   transition: all .2s;
   margin-top: 4px;
 }
-.c-add:hover { background:var(--teal-dk); transform:scale(1.04); }
+.c-add:hover { background:var(--teal-dk); transform:scale(1.04); box-shadow: 0 4px 16px var(--teal-glow); }
 
 .carousel-nav {
   display: flex;
@@ -97,9 +99,8 @@
   display: flex; align-items: center; justify-content: center;
 }
 [data-theme="dark"] .c-btn { color:var(--teal); }
-.c-btn:hover { background:var(--teal); color:#fff; border-color:var(--teal); }
+.c-btn:hover { background:var(--teal); color:#fff; border-color:var(--teal); box-shadow: 0 4px 12px var(--teal-glow); }
 .c-dots { display:flex; gap:6px; }
 .c-dot { width:8px; height:8px; border-radius:50%; background:var(--border); cursor:pointer; transition:all .3s; }
-.c-dot.on { background:var(--teal); width:22px; border-radius:4px; }
-
+.c-dot.on { background:var(--teal); width:22px; border-radius:4px; box-shadow: 0 0 8px var(--teal-glow); }
 

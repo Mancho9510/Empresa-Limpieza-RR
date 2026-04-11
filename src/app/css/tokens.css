@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   1. DESIGN TOKENS — LIGHT + DARK
+   1. DESIGN TOKENS — LIGHT + DARK  (Unified System)
 ══════════════════════════════════════════════════════ */
 @layer base {
 
@@ -8,47 +8,53 @@
     /* Brand — fresh, clean, aquatic */
     --teal:       #0D9488;
     --teal-l:     #14B8A6;
-    --teal-pale:  #CCFBF1;
+    --teal-pale:  #E0F5F0;
     --teal-dk:    #0F766E;
     --teal-deep:  #0A5E55;
-    --teal-glow:  rgba(13,148,136,0.18);
+    --teal-glow:  rgba(13,148,136,0.14);
     --yellow:     #F59E0B;
     --yellow-pale:#FEF3C7;
 
     /* Accent — mint / seafoam */
     --accent:     #06D6A0;
-    --accent-pale:rgba(6,214,160,0.12);
+    --accent-pale:rgba(6,214,160,0.10);
 
-    /* Surface — layered depth */
-    --bg:         #F0FDF9;
+    /* WhatsApp — brand-integrated */
+    --wa-brand:   #0D9488;
+    --wa-hover:   #0F766E;
+
+    /* Surface — cleaner, more neutral layered depth */
+    --bg:         #FAFCFB;
     --bg-2:       #FFFFFF;
-    --bg-3:       #E6FBF5;
+    --bg-3:       #F0F7F5;
     --surface:    #FFFFFF;
-    --surface-2:  #F8FFFE;
-    --surface-glass: rgba(255,255,255,0.72);
+    --surface-2:  #F8FCFB;
+    --surface-glass: rgba(255,255,255,0.78);
 
-    /* Text */
+    /* Text — high contrast, clear hierarchy */
     --text:       #0F172A;
     --text-2:     #334155;
     --text-muted: #64748B;
 
-    /* Border */
-    --border:     #99F6E4;
-    --border-2:   #CCFBF1;
+    /* Border — softer, let teal CTAs pop */
+    --border:     #D1F0E8;
+    --border-2:   #E8F7F3;
 
-    /* Shadows — richer depth */
-    --sh:         0 4px 20px rgba(13,148,136,0.10);
-    --sh-lg:      0 16px 48px rgba(13,148,136,0.18);
-    --sh-card:    0 2px 16px rgba(15,118,110,0.08), 0 0 0 1px rgba(153,246,228,0.4);
-    --sh-glow:    0 0 40px rgba(13,148,136,0.15), 0 0 80px rgba(13,148,136,0.05);
+    /* Shadows — clean and precise */
+    --sh:         0 2px 12px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+    --sh-lg:      0 12px 40px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.04);
+    --sh-card:    0 2px 16px rgba(15,23,42,0.05), 0 0 0 1px rgba(209,240,232,0.5);
+    --sh-glow:    0 0 32px rgba(13,148,136,0.10), 0 0 64px rgba(13,148,136,0.04);
+    --sh-card-hover: 0 0 0 2px rgba(13,148,136,0.18), 0 12px 36px rgba(13,148,136,0.12), 0 0 60px rgba(13,148,136,0.06);
 
     /* Gradients */
-    --grad-hero:  linear-gradient(135deg, #F0FDF9 0%, #E0FAF0 40%, #CCFBF1 100%);
+    --grad-hero:  linear-gradient(145deg, #FAFCFB 0%, #F0F7F5 40%, #E8F5F0 100%);
     --grad-brand: linear-gradient(135deg, #0D9488 0%, #06D6A0 100%);
-    --grad-card:  linear-gradient(160deg, #FFFFFF 0%, #F8FFFE 100%);
+    --grad-card:  linear-gradient(165deg, #FFFFFF 0%, #FAFCFB 100%);
+    --grad-section: linear-gradient(145deg, #F0F7F5 0%, #E8F5F0 50%, #F0F7F5 100%);
 
     /* Nav overlay */
-    --nav-bg:     rgba(240,253,249,0.92);
+    --nav-bg:     rgba(250,252,251,0.92);
 
     /* Radii */
     --r:          16px;
@@ -60,40 +66,45 @@
   [data-theme="dark"] {
     --teal:       #14B8A6;
     --teal-l:     #2DD4BF;
-    --teal-pale:  rgba(13,148,136,0.18);
+    --teal-pale:  rgba(13,148,136,0.14);
     --teal-dk:    #5EEAD4;
     --teal-deep:  #99F6E4;
-    --teal-glow:  rgba(20,184,166,0.25);
+    --teal-glow:  rgba(20,184,166,0.20);
     --yellow:     #FBBF24;
-    --yellow-pale:rgba(251,191,36,0.15);
+    --yellow-pale:rgba(251,191,36,0.12);
 
     --accent:     #34D399;
-    --accent-pale:rgba(52,211,153,0.12);
+    --accent-pale:rgba(52,211,153,0.10);
 
-    --bg:         #060E0C;
-    --bg-2:       #0C1614;
-    --bg-3:       #0A1210;
-    --surface:    #111E1B;
-    --surface-2:  #162623;
-    --surface-glass: rgba(17,30,27,0.85);
+    --wa-brand:   #14B8A6;
+    --wa-hover:   #2DD4BF;
 
-    --text:       #F0FDF9;
-    --text-2:     #CBD5E1;
-    --text-muted: #94A3B8;
+    --bg:         #080D0C;
+    --bg-2:       #0D1714;
+    --bg-3:       #0F1A17;
+    --surface:    #121F1C;
+    --surface-2:  #172825;
+    --surface-glass: rgba(18,31,28,0.88);
 
-    --border:     rgba(45,212,191,0.18);
-    --border-2:   rgba(45,212,191,0.08);
+    --text:       #F1F5F3;
+    --text-2:     #C8D5D0;
+    --text-muted: #8A9A94;
 
-    --sh:         0 4px 20px rgba(0,0,0,0.4);
-    --sh-lg:      0 16px 48px rgba(0,0,0,0.5);
-    --sh-card:    0 2px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(45,212,191,0.12);
-    --sh-glow:    0 0 40px rgba(20,184,166,0.12), 0 0 80px rgba(20,184,166,0.04);
+    --border:     rgba(45,212,191,0.15);
+    --border-2:   rgba(45,212,191,0.07);
 
-    --grad-hero:  linear-gradient(135deg, #060E0C 0%, #0A1614 40%, #0D1F1C 100%);
+    --sh:         0 2px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2);
+    --sh-lg:      0 12px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.2);
+    --sh-card:    0 2px 16px rgba(0,0,0,0.25), 0 0 0 1px rgba(45,212,191,0.10);
+    --sh-glow:    0 0 32px rgba(20,184,166,0.10), 0 0 64px rgba(20,184,166,0.03);
+    --sh-card-hover: 0 0 0 2px rgba(45,212,191,0.22), 0 12px 36px rgba(0,0,0,0.4), 0 0 48px rgba(20,184,166,0.08);
+
+    --grad-hero:  linear-gradient(145deg, #080D0C 0%, #0F1A17 40%, #132420 100%);
     --grad-brand: linear-gradient(135deg, #0D9488 0%, #14B8A6 100%);
-    --grad-card:  linear-gradient(160deg, #111E1B 0%, #162623 100%);
+    --grad-card:  linear-gradient(165deg, #121F1C 0%, #172825 100%);
+    --grad-section: linear-gradient(145deg, #0F1A17 0%, #132420 50%, #0F1A17 100%);
 
-    --nav-bg:     rgba(6,14,12,0.94);
+    --nav-bg:     rgba(8,13,12,0.94);
   }
 
   /* ── Reset ── */
@@ -123,4 +134,3 @@
   /* Selection */
   ::selection { background: var(--teal-pale); color: var(--teal-dk); }
 }
-
