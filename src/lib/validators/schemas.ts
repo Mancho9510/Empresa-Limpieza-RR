@@ -51,6 +51,7 @@ export const PedidoSchema = z.object({
   costo_envio: z.number().min(0).optional().default(0),
   subtotal: z.number().min(0),
   total: z.number().min(0),
+  correo: z.string().email().or(z.literal('')).optional().default(''),
   productos: z.string().optional().default(''),
   productos_json: z.array(z.object({
     id: z.string(),

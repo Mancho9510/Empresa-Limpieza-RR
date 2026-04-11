@@ -34,6 +34,7 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
+    correo: '',
     ciudad: 'Bogotá',
     departamento: 'Cundinamarca',
     barrio: '',
@@ -82,6 +83,7 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
         casa: formData.casa,
         conjunto: formData.conjunto,
         nota: notasFinales,
+        correo: formData.correo.trim(),
         cupon: coupon?.code || '',
         descuento: discount,
         pago: formData.pago,
@@ -107,30 +109,30 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
       const data = await res.json()
 
       if (data.ok) {
-        toast('¡Pedido registrado con éxito! 🎉', 'success')
+        // Guardar datos del pedido para la página de éxito
+        try {
+          sessionStorage.setItem('lrr_last_order', JSON.stringify({
+            id: data.id,
+            nombre: formData.nombre,
+            telefono: formData.telefono,
+            correo: formData.correo,
+            ciudad: formData.ciudad,
+            barrio: formData.barrio,
+            direccion: formData.direccion,
+            casa: formData.casa,
+            pago: formData.pago,
+            zona_envio: formData.zona_envio,
+            items,
+            subtotal,
+            discount,
+            total,
+            coupon: coupon?.code || null,
+          }))
+        } catch {}
+
         clearCart()
         onClose()
-
-        const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER || '573503443140'
-        const metodoLabel = METODOS_PAGO.find(m => m.value === formData.pago)?.label || formData.pago
-        let text = `¡Hola Limpieza RR! Acabo de realizar un pedido.\n\n`
-        text += `*Nombre:* ${formData.nombre}\n`
-        text += `*Teléfono:* ${formData.telefono}\n`
-        text += `*Dirección:* ${formData.direccion}${formData.casa ? ', ' + formData.casa : ''}, ${formData.barrio} (${formData.ciudad})\n`
-        if (formData.conjunto) text += `*Conjunto:* ${formData.conjunto}\n`
-        text += `*Zona de envío:* ${formData.zona_envio || 'A convenir'}\n`
-        text += `*Método de pago:* ${metodoLabel}\n\n`
-        text += `*Productos:*\n`
-        items.forEach(item => {
-          text += `• ${item.nombre}${item.tamano ? ' ' + item.tamano : ''} ×${item.qty} = ${fmt(item.precio * item.qty)}\n`
-        })
-        text += `\n*Total:* ${fmt(total)} + envío\n`
-        if (formData.nota) text += `\n*Nota:* ${formData.nota}`
-        if (formData.pago !== 'CONTRA_ENTREGA') {
-          text += `\n\nAdjunto el comprobante de pago de ${fmt(total)} a la línea 3203346819.`
-        }
-
-        window.location.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`
+        window.location.href = '/checkout/success'
       } else {
         toast(data.error || 'Error al procesar el pedido', 'error')
       }
@@ -189,6 +191,22 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
                     onChange={handleChange}
                   />
                 </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="co-correo">
+                  Correo electrónico <span style={{fontWeight:400, opacity:0.7}}>(opcional — para confirmación)</span>
+                </label>
+                <input
+                  id="co-correo"
+                  className={styles.input}
+                  name="correo"
+                  type="email"
+                  placeholder="Ej: tucorreo@gmail.com"
+                  value={formData.correo}
+                  onChange={handleChange}
+                  autoComplete="email"
+                />
               </div>
 
               <div className={styles.row}>

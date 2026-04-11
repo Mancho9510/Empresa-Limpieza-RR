@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/session'
 import { PedidoSchema, ActualizarEstadoSchema } from '@/lib/validators/schemas'
 import { Resend } from 'resend'
-import { generateInvoiceEmailHtml } from '@/lib/emails/InvoiceEmail'
+import { generateClientEmailHtml, generateAdminEmailHtml } from '@/lib/emails/InvoiceEmail'
 import { NextRequest } from 'next/server'
 import { orderRateLimit } from '@/lib/ratelimit'
 
@@ -249,25 +249,40 @@ export async function POST(request: NextRequest) {
       console.error('Error updating stock')
     }
 
-    // ─── Enviar Factura por Correo (Resend) ────────────────
+    // ─── Enviar Correos (Resend) ────────────────────────────
     try {
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY)
-        const htmlBody = generateInvoiceEmailHtml(orderData)
-        
+        const adminHtml = generateAdminEmailHtml({ ...orderData, id: data?.id })
+        const ADMIN_EMAIL = 'limpiezarradmin@gmail.com'
+        const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+
+        // 1. Email al administrador (siempre)
         await resend.emails.send({
-          from: 'Limpieza RR <onboarding@resend.dev>',
-          to: 'german.951026@gmail.com',
-          subject: `✨ Nuevo Pedido Recibido - ${orderData.nombre}`,
-          html: htmlBody,
+          from: `Limpieza RR <${FROM_EMAIL}>`,
+          to: ADMIN_EMAIL,
+          subject: `🔔 Nuevo Pedido LRR-${String(data?.id).padStart(5,'0')} — ${orderData.nombre}`,
+          html: adminHtml,
         })
+
+        // 2. Email al cliente (solo si proporcionó correo)
+        const correoCliente = (orderData as any).correo
+        if (correoCliente && correoCliente.includes('@')) {
+          const clientHtml = generateClientEmailHtml({ ...orderData, id: data?.id })
+          await resend.emails.send({
+            from: `Limpieza RR <${FROM_EMAIL}>`,
+            to: correoCliente,
+            subject: `✅ Tu pedido LRR-${String(data?.id).padStart(5,'0')} fue confirmado — Limpieza RR`,
+            html: clientHtml,
+          })
+        }
       }
     } catch (emailErr) {
-      console.error('Error enviando email con Resend:', emailErr)
-      // No fallamos el pedido si el correo falla
+      console.error('Error enviando emails con Resend:', emailErr)
+      // No fallar el pedido si el correo falla
     }
 
-    return Response.json({ ok: true, id: data?.id })
+    return Response.json({ ok: true, id: data?.id, pedido: { ...orderData, id: data?.id } })
   } catch (err: any) {
     console.error("TRYCATCH ERROR:", err)
     const message = err?.message || 'Error del servidor'
