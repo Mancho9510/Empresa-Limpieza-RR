@@ -1,4 +1,5 @@
 import '../css/index.css';
+import { inject } from '@vercel/analytics';
 import { $ } from './utils/dom.js';
 import { state } from './store/state.js';
 import { loadCart } from './store/cart.js';
@@ -78,6 +79,9 @@ window.overlayClick = function() {
   closeStatus();
   closeRecibo();
 };
+
+// Initialize Vercel Analytics
+inject();
 
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("lrr-theme");
