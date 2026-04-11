@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/session'
 import { PedidoSchema, ActualizarEstadoSchema } from '@/lib/validators/schemas'
 import { Resend } from 'resend'
@@ -146,7 +145,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createServerSupabaseClient()
     const adminSupa = createAdminClient()
     
     // Fetch costs to freeze them in history
@@ -174,7 +172,7 @@ export async function POST(request: NextRequest) {
       fecha: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminSupa
       .from('pedidos')
       .insert(orderData)
       .select('id')
