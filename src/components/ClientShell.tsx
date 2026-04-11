@@ -9,6 +9,7 @@ import Footer from '@/components/ui/Footer'
 import Cart from '@/components/store/Cart'
 import Checkout from '@/components/store/Checkout'
 import ReviewButton from '@/components/ui/ReviewButton'
+import PWAInstallPrompt from '@/components/ui/PWAInstallPrompt'
 
 /**
  * ClientShell — wraps the entire app with all providers and interactive chrome.
@@ -48,6 +49,9 @@ export default function ClientShell({ children }: { children: ReactNode }) {
 
           {/* Botón flotante de reseña (en todas las páginas) */}
           <ReviewButton />
+          
+          {/* Prompt de instalación PWA (flotante, global) */}
+          <PWAInstallPrompt />
         </ToastProvider>
       </CartProvider>
     </ThemeProvider>
