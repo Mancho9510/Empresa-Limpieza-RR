@@ -13,7 +13,7 @@ import { redis } from '@/lib/redis'
 export async function GET() {
   try {
     const cacheKey = 'catalogo_productos'
-    const cached = await redis.get(cacheKey)
+    const cached = redis ? await redis.get(cacheKey) : null
     if (cached) {
       return Response.json({ ok: true, data: cached, cached: true })
     }
@@ -29,7 +29,9 @@ export async function GET() {
     if (error) throw error
 
     // Caché por 5 minutos
-    await redis.set(cacheKey, JSON.stringify(data), { ex: 300 })
+    if (redis) {
+      await redis.set(cacheKey, JSON.stringify(data), { ex: 300 })
+    }
 
     return Response.json({ ok: true, data })
   } catch (err) {
@@ -120,7 +122,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Invalidar caché tras cualquier cambio exitoso
-    await redis.del('catalogo_productos')
+    if (redis) {
+      await redis.del('catalogo_productos')
+    }
 
     return Response.json({ ok: true, ...(resultData ? { data: resultData } : {}) })
   } catch (err) {
