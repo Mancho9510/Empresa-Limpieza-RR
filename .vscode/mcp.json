@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "Sentry": {
+      "url": "https://mcp.sentry.dev/mcp/limpieza-rr/javascript-nextjs",
+      "type": "http"
+    }
+  }
+}
