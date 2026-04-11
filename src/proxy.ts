@@ -1,20 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isOriginAllowed } from '@/lib/security/cors'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+// Verificamos si Upstash está configurado
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+
+// Límite conservador para evitar spam: 20 peticiones por 10 segundos por IP
+const ratelimit = redisUrl && redisToken ? new Ratelimit({
+  redis: new Redis({
+    url: redisUrl,
+    token: redisToken,
+  }),
+  limiter: Ratelimit.slidingWindow(20, '10 s'),
+  analytics: true,
+}) : null
 
 /**
  * Proxy — Limpieza RR
  * 
  * Se ejecuta en CADA request (excepto assets estáticos).
- * Responsable de:
- * 1. Security headers (CSP, HSTS, X-Frame-Options, etc.)
- * 2. CORS validation para API routes
- * 3. Protección de rutas /admin y /api/admin/*
  */
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const origin = request.headers.get('origin')
   const response = NextResponse.next()
+
+  // 0. RATE LIMITING (Upstash Redis) para APIs Críticas y Monitoreo
+  if (ratelimit && (pathname.startsWith('/api/') || pathname.startsWith('/monitoring'))) {
+     const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1'
+     const namespace = pathname.startsWith('/api/') ? 'api' : 'sentry'
+     
+     const { success } = await ratelimit.limit(`${namespace}_${ip}`)
+     if (!success) {
+       return NextResponse.json(
+         { error: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.' }, 
+         { status: 429 }
+       )
+     }
+  }
 
   // ═══ 1. SECURITY HEADERS (todas las rutas) ═══════════════
   const isDev = process.env.NODE_ENV === 'development'

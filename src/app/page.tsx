@@ -53,6 +53,29 @@ export default async function HomePage() {
 
       {/* Contacto */}
       <Contact />
+
+      {/* Schema.org JSON-LD para Google (SEO Avanzado) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            productos.map((p) => ({
+              '@context': 'https://schema.org',
+              '@type': 'Product',
+              name: p.nombre,
+              description: p.descripcion,
+              image: p.imagen_url,
+              offers: {
+                '@type': 'Offer',
+                price: p.precio,
+                priceCurrency: 'COP',
+                availability: p.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://limpiezarr.vercel.app'}/#producto-${p.id}`
+              }
+            }))
+          )
+        }}
+      />
     </>
   )
 }

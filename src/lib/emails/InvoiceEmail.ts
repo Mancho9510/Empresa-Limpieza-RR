@@ -74,6 +74,13 @@ export function generateInvoiceEmailHtml(pedido: any): string {
             <div class="status-badge">Estado: ${pedido.estado_envio || 'Recibido'}</div>
           </div>
 
+          ${pedido.nota ? `
+          <div style="background-color: #fef08a; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #eab308;">
+            <strong style="color: #854d0e; font-size: 14px;">📝 Notas o Trackers del Pedido:</strong>
+            <p style="margin-top: 5px; color: #713f12; font-size: 13px; line-height: 1.5; white-space: pre-wrap;">${pedido.nota}</p>
+          </div>
+          ` : ''}
+
           <table class="table-container">
             ${productosHtml}
           </table>

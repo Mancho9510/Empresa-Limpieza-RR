@@ -61,6 +61,17 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
 
     setLoading(true)
     try {
+      let notasFinales = formData.nota
+      try {
+        const utmStr = localStorage.getItem('lrr-utm-tracking')
+        if (utmStr) {
+          const utm = JSON.parse(utmStr)
+          notasFinales += `\n[Tracker: source=${utm.source}, medium=${utm.medium}, campaign=${utm.campaign}]`
+        }
+      } catch (e) {
+        // Ignorar si hay error de JSON parse en ls
+      }
+
       const payload = {
         nombre: formData.nombre,
         telefono: formData.telefono,
@@ -70,7 +81,7 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
         direccion: formData.direccion,
         casa: formData.casa,
         conjunto: formData.conjunto,
-        nota: formData.nota,
+        nota: notasFinales,
         cupon: coupon?.code || '',
         descuento: discount,
         pago: formData.pago,

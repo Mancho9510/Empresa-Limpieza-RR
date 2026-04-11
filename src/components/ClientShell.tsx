@@ -10,6 +10,7 @@ import Cart from '@/components/store/Cart'
 import Checkout from '@/components/store/Checkout'
 import ReviewButton from '@/components/ui/ReviewButton'
 import PWAInstallPrompt from '@/components/ui/PWAInstallPrompt'
+import UTMTracker from '@/components/ui/UTMTracker'
 
 /**
  * ClientShell — wraps the entire app with all providers and interactive chrome.
@@ -52,6 +53,9 @@ export default function ClientShell({ children }: { children: ReactNode }) {
           
           {/* Prompt de instalación PWA (flotante, global) */}
           <PWAInstallPrompt />
+
+          {/* Capturador de analíticas UTM */}
+          <UTMTracker />
         </ToastProvider>
       </CartProvider>
     </ThemeProvider>
