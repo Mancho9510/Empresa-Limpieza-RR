@@ -147,12 +147,7 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // ═══ Experimental: SRI para scripts estáticos ══════════════
-  experimental: {
-    sri: {
-      algorithm: 'sha256',
-    },
-  },
+  // Removed SRI due to Vercel hash mismatch.
 }
 
 export default withSentryConfig(nextConfig, {
