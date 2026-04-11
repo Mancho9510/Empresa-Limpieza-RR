@@ -5,7 +5,7 @@
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Variables del módulo — Light mode (default) ──────────── */
-:root {
+:global(:root) {
   --dash-teal:       #0D9488;
   --dash-teal-l:     #0F766E;
   --dash-teal-ll:    #14B8A6;

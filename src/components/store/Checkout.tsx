@@ -71,7 +71,7 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
         casa: formData.casa,
         conjunto: formData.conjunto,
         nota: formData.nota,
-        cupon: coupon?.codigo || '',
+        cupon: coupon?.code || '',
         descuento: discount,
         pago: formData.pago,
         zona_envio: formData.zona_envio,
