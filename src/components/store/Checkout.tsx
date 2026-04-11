@@ -74,7 +74,7 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
 
       const payload = {
         nombre: formData.nombre,
-        telefono: formData.telefono,
+        telefono: formData.telefono.replace(/\D/g, ''),
         ciudad: formData.ciudad,
         departamento: formData.departamento,
         barrio: formData.barrio,
@@ -90,10 +90,10 @@ export default function Checkout({ isOpen, onClose }: CheckoutProps) {
         subtotal,
         total,
         productos_json: items.map(item => ({
-          id: item.id,
+          id: String(item.id),
           nombre: item.nombre,
-          precio: item.precio,
-          qty: item.qty,
+          precio: Number(item.precio),
+          qty: Number(item.qty),
           tamano: item.tamano || '',
           emoji: item.emoji || '',
         })),
