@@ -15,11 +15,30 @@ export async function generarFacturaPDF(pedido: any) {
        const blob = await resLogo.blob()
        const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
+          reader.onloadend = () => {
+            const img = new Image()
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              canvas.width = img.width
+              canvas.height = img.height
+              const ctx = canvas.getContext('2d')
+              if (ctx) {
+                // Rellenar con blanco para evitar el fondo negro de la transparencia en jsPDF
+                ctx.fillStyle = '#FFFFFF'
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+                ctx.drawImage(img, 0, 0)
+                resolve(canvas.toDataURL('image/jpeg'))
+              } else {
+                resolve(reader.result as string)
+              }
+            }
+            img.onerror = () => resolve(reader.result as string)
+            img.src = reader.result as string
+          }
           reader.readAsDataURL(blob)
        })
        // Ajustamos las dimensiones para que el logo se vea bien
-       doc.addImage(base64, 'PNG', 14, 10, 30, 30)
+       doc.addImage(base64, 'JPEG', 14, 10, 30, 30)
      }
   } catch (e) {
      console.warn('No se pudo cargar el logo de la factura', e)
@@ -34,7 +53,7 @@ export async function generarFacturaPDF(pedido: any) {
   doc.setTextColor(...textColor)
   doc.text('Servicios Profesionales de Aseo', 140, 32, { align: 'center' })
   doc.text('NIT: Pendiente', 140, 38, { align: 'center' })
-  doc.text('WhatsApp: +57 300 000 0000', 140, 44, { align: 'center' })
+  doc.text('WhatsApp: +57 350 344 3140', 140, 44, { align: 'center' })
 
   // Separador
   doc.setDrawColor(200, 200, 200)
