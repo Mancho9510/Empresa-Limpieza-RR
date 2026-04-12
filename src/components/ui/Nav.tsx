@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useTheme } from '@/components/ui/ThemeProvider'
 import { useCart } from '@/lib/store/cart-store'
 import styles from './Nav.module.css'
+import WhatsAppIcon from './WhatsAppIcon'
 
 export default function Nav({ onCartOpen }: { onCartOpen: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -82,7 +83,7 @@ export default function Nav({ onCartOpen }: { onCartOpen: () => void }) {
               aria-label="WhatsApp"
               id="nav-whatsapp"
             >
-              💬
+              <WhatsAppIcon style={{ width: '1em', height: '1em' }} />
             </a>
           )}
 

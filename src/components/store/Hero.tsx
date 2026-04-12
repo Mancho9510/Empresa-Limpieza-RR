@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useCart } from '@/lib/store/cart-store'
 import { useToast } from '@/components/ui/Toast'
 import type { ProductoAPI } from '@/lib/store/api-client'
+import WhatsAppIcon from '@/components/ui/WhatsAppIcon'
 import styles from './Hero.module.css'
 
 interface HeroProps {
@@ -71,8 +72,9 @@ export default function Hero({ productos = [] }: HeroProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary btn-lg"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              💬 WhatsApp
+              <WhatsAppIcon /> WhatsApp
             </a>
           </div>
           <div className={styles.stats}>

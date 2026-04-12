@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './Footer.module.css'
+import WhatsAppIcon from './WhatsAppIcon'
 
 export default function Footer() {
   const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER || '573503443140'
@@ -34,7 +35,7 @@ export default function Footer() {
               className="btn btn-primary"
               style={{ padding: '8px 16px', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              💬 Pedir por WhatsApp
+              <WhatsAppIcon /> Pedir por WhatsApp
             </a>
           </div>
 
