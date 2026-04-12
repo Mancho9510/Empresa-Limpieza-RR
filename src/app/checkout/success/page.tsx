@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import confetti from 'canvas-confetti'
 import styles from './success.module.css'
+import { postResena } from '@/lib/store/api-client'
+import { useToast } from '@/components/ui/Toast'
 
 interface OrderItem {
   id: string
@@ -44,6 +46,14 @@ export default function CheckoutSuccessPage() {
   const router = useRouter()
   const [order, setOrder] = useState<OrderData | null>(null)
   const [waLink, setWaLink] = useState('')
+
+  // Reseñas state
+  const [showReview, setShowReview] = useState(false)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+  const [nextAction, setNextAction] = useState<(() => void) | null>(null)
+  const { toast } = useToast()
 
   const fmt = (n: number) =>
     (n ?? 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
@@ -144,15 +154,80 @@ export default function CheckoutSuccessPage() {
         {/* Acciones */}
         <div className={styles.actions}>
           {waLink && (
-            <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg">
+            <a 
+              href={waLink} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="btn btn-primary btn-lg"
+              onClick={() => setShowReview(true)}
+            >
               💬 Confirmar por WhatsApp
             </a>
           )}
-          <button onClick={() => router.push('/')} className={`btn btn-ghost ${styles.backBtn}`}>
+          <button 
+            onClick={() => {
+              setNextAction(() => () => router.push('/'))
+              setShowReview(true)
+            }} 
+            className={`btn btn-ghost ${styles.backBtn}`}
+          >
             ← Volver a la tienda
           </button>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReview && (
+        <div className="overlay" style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ background: 'var(--bg-secondary)', padding: 'var(--space-2xl)', borderRadius: 'var(--radius-lg)', maxWidth: '400px', width: '90%', textAlign: 'center', position: 'relative' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: 'var(--space-sm)' }}>
+              ¿Cómo calificarías tu experiencia?
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>Nos ayuda a seguir mejorando.</p>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', fontSize: '2.5rem', marginBottom: 'var(--space-lg)' }}>
+               {[1, 2, 3, 4, 5].map(star => (
+                   <button 
+                     key={star} 
+                     onClick={() => setRating(star)} 
+                     style={{ cursor: 'pointer', opacity: rating >= star ? 1 : 0.3, transition: '0.2s', background: 'transparent', border: 'none', filter: rating >= star ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))' : 'none' }}
+                   >
+                     ⭐
+                   </button>
+               ))}
+            </div>
+
+            <textarea 
+                placeholder="Opcional: Cuéntanos qué te pareció..." 
+                value={comment} 
+                onChange={e => setComment(e.target.value)}
+                style={{ width: '100%', minHeight: '100px', marginBottom: 'var(--space-lg)', padding: 'var(--space-sm)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', resize: 'vertical' }}
+            />
+
+            <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => {
+                    setShowReview(false)
+                    if (nextAction) nextAction()
+                }}>
+                    Saltar
+                </button>
+                <button className="btn btn-primary" style={{ flex: 2 }} onClick={async () => {
+                    setIsSubmittingReview(true)
+                    try {
+                       await postResena({ telefono: order?.telefono, estrellas: rating, comentario: comment })
+                       toast('¡Gracias por tu reseña!', 'success')
+                    } catch (e) {
+                       toast('Hubo un error al enviar.', 'error')
+                    }
+                    setShowReview(false)
+                    if (nextAction) nextAction()
+                }} disabled={isSubmittingReview}>
+                    {isSubmittingReview ? 'Enviando...' : 'Enviar Reseña'}
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
