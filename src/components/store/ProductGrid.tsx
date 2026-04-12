@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import { useCart } from '@/lib/store/cart-store'
 import { useToast } from '@/components/ui/Toast'
 import type { ProductoAPI } from '@/lib/store/api-client'
@@ -83,7 +84,9 @@ export default function ProductGrid({ productos }: ProductGridProps) {
         
         <div className={styles.cardEmoji}>
           {p.imagen ? (
-            <img src={p.imagen} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', maxHeight: '150px' }} className={isOutOfStock ? styles.outOfStockImage : ''} />
+            <div style={{ position: 'relative', width: '100%', height: '150px' }}>
+              <Image src={p.imagen} alt={p.nombre} fill style={{ objectFit: 'contain' }} className={isOutOfStock ? styles.outOfStockImage : ''} sizes="(max-width: 640px) 160px, 260px" />
+            </div>
           ) : (
             p.emoji || '📦'
           )}
@@ -200,7 +203,9 @@ export default function ProductGrid({ productos }: ProductGridProps) {
                <button className={styles.modalClose} onClick={() => setSelectedProduct(null)}>✕</button>
                <div className={styles.modalEmoji}>
                  {selectedProduct.imagen ? (
-                   <img src={selectedProduct.imagen} alt={selectedProduct.nombre} style={{ maxHeight: '200px', objectFit: 'contain', margin: '0 auto' }} />
+                   <div style={{ position: 'relative', width: '100%', height: '200px' }}>
+                     <Image src={selectedProduct.imagen} alt={selectedProduct.nombre} fill style={{ objectFit: 'contain' }} sizes="(max-width: 600px) 100vw, 600px" />
+                   </div>
                  ) : (
                    selectedProduct.emoji || '📦'
                  )}

@@ -166,8 +166,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { correo, ...dbData } = parsed.data
+
     const orderData = {
-      ...parsed.data,
+      ...dbData,
       productos_json: enrichedProducts,
       fecha: new Date().toISOString(),
     }
@@ -266,12 +268,11 @@ export async function POST(request: NextRequest) {
         })
 
         // 2. Email al cliente (solo si proporcionó correo)
-        const correoCliente = (orderData as any).correo
-        if (correoCliente && correoCliente.includes('@')) {
-          const clientHtml = generateClientEmailHtml({ ...orderData, id: data?.id })
+        if (correo && correo.includes('@')) {
+          const clientHtml = generateClientEmailHtml({ ...orderData, id: data?.id, correo })
           await resend.emails.send({
             from: `Limpieza RR <${FROM_EMAIL}>`,
-            to: correoCliente,
+            to: correo,
             subject: `✅ Tu pedido LRR-${String(data?.id).padStart(5,'0')} fue confirmado — Limpieza RR`,
             html: clientHtml,
           })
@@ -282,7 +283,7 @@ export async function POST(request: NextRequest) {
       // No fallar el pedido si el correo falla
     }
 
-    return Response.json({ ok: true, id: data?.id, pedido: { ...orderData, id: data?.id } })
+    return Response.json({ ok: true, id: data?.id, pedido: { ...orderData, correo, id: data?.id } })
   } catch (err: any) {
     console.error("TRYCATCH ERROR:", err)
     const message = err?.message || 'Error del servidor'

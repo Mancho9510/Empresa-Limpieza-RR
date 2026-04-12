@@ -50,6 +50,7 @@ const CSP = [
 const nextConfig: NextConfig = {
   // ═══ Images: Google Drive + Supabase Storage ═══════════════
   images: {
+    unoptimized: isDev,
     remotePatterns: [
       {
         protocol: 'https',
