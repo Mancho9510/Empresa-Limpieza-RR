@@ -99,9 +99,12 @@ export async function proxy(request: NextRequest) {
   }
 
   // ═══ 3. Protección de rutas admin ════════════════════════
-  // La verificación de sesión real se hace en los Route Handlers
-  // y Server Components usando validateAdminSession().
-  // El middleware solo agrega headers de seguridad.
+  if (pathname.startsWith('/admin') && !pathname.endsWith('/login')) {
+    const sessionCookie = request.cookies.get('lrr_admin_session')?.value
+    if (!sessionCookie) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+  }
 
   return response
 }
