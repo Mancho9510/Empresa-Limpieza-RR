@@ -165,6 +165,9 @@ export default withSentryConfig(nextConfig, {
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   tunnelRoute: '/monitoring',
 
+  // Desactivar instrumentación de Sentry en el middleware para evitar bugs de compilación .nft en Vercel
+  autoInstrumentMiddleware: false,
+
   webpack: {
     automaticVercelMonitors: true,
     treeshake: {
