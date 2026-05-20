@@ -1,6 +1,7 @@
 import WhatsAppIcon from '@/components/ui/WhatsAppIcon'
 
 export default function Contact() {
+  const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER || '573228230206'
   return (
     <section id="contacto" style={{ padding: 'var(--space-3xl) 0', background: 'var(--bg-secondary)' }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -20,7 +21,7 @@ export default function Contact() {
             <div style={{ fontSize: '2rem', marginBottom: 'var(--space-sm)' }}>📱</div>
             <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-xs)' }}>Ventas y Asesoría</h3>
             <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>Escríbenos por WhatsApp para que un asesor te asista con tu pedido.</p>
-            <a href="https://wa.me/573000000000" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <WhatsAppIcon /> Chat en WhatsApp
             </a>
           </div>

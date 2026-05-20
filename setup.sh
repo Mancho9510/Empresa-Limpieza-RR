@@ -430,7 +430,7 @@ cat > src/js/modules/api.js << 'EOF'
 // ── Configuración ──────────────────────────────────────────
 export const CONFIG = {
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby-dGGJrYSeWPHPscyzIP5ndwA519NZzRpJHSh7TFylsQIooLzRL0qS4Ge2CxNy6CHo/exec',
-  WA_NUMBER:  '573503443140',
+  WA_NUMBER:  '573228230206',
   PAY_NUMBER: '3203346819',
   PAY_HOLDER: 'Limpieza RR',
   AUTOPLAY_MS: 4200,

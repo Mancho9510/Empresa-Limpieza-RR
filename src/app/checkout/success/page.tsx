@@ -67,7 +67,7 @@ export default function CheckoutSuccessPage() {
         const data: OrderData = JSON.parse(raw)
         setOrder(data)
 
-        const phone = process.env.NEXT_PUBLIC_WA_NUMBER || '573503443140'
+        const phone = process.env.NEXT_PUBLIC_WA_NUMBER || '573228230206'
         const orderId = `LRR-${String(data.id || '?').padStart(5, '0')}`
         const pago = METODOS[data.pago] || data.pago
         let msg = `¡Hola Limpieza RR! 👋 Acabo de confirmar mi pedido *${orderId}*\n\n`

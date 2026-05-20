@@ -81,11 +81,11 @@ export function generateClientEmailHtml(pedido: any): string {
       <div style="background:#fef9e7;border:1px dashed #f59e0b;border-radius:10px;padding:16px;margin-bottom:24px;">
         <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#92400e;">💳 Recuerda realizar tu pago</p>
         <p style="margin:0;font-size:14px;color:#b45309;">Nequi / Daviplata / Breb: <strong>320 334 6819</strong></p>
-        <p style="margin:6px 0 0;font-size:12px;color:#b45309;">Envía el comprobante por WhatsApp al: <strong>+57 350 344 3140</strong></p>
+        <p style="margin:6px 0 0;font-size:12px;color:#b45309;">Envía el comprobante por WhatsApp al: <strong>+57 322 823 0206</strong></p>
       </div>` : ''}
 
       <div style="text-align:center;margin-bottom:28px;">
-        <a href="https://wa.me/573503443140?text=${encodeURIComponent(`Hola, mi pedido es ${orderId}, aquí está mi comprobante de pago 🧾`)}"
+        <a href="https://wa.me/573228230206?text=${encodeURIComponent(`Hola, mi pedido es ${orderId}, aquí está mi comprobante de pago 🧾`)}"
            style="background:#25D366;color:#fff;text-decoration:none;padding:14px 28px;border-radius:50px;font-weight:700;font-size:15px;display:inline-block;">
           💬 Confirmar por WhatsApp
         </a>
@@ -95,7 +95,7 @@ export function generateClientEmailHtml(pedido: any): string {
     <div style="background:#f8fafc;padding:20px;text-align:center;border-top:1px solid #e2e8f0;">
       <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6;">
         <strong>Limpieza RR</strong> — Servicios Profesionales de Aseo<br>
-        WhatsApp: <a href="https://wa.me/573503443140" style="color:#0f766e;">+57 350 344 3140</a> | 
+        WhatsApp: <a href="https://wa.me/573228230206" style="color:#0f766e;">+57 322 823 0206</a> | 
         <a href="mailto:limpiezarradmin@gmail.com" style="color:#0f766e;">limpiezarradmin@gmail.com</a>
       </p>
     </div>

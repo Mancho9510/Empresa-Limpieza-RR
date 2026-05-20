@@ -4,7 +4,7 @@ import styles from './Footer.module.css'
 import WhatsAppIcon from './WhatsAppIcon'
 
 export default function Footer() {
-  const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER || '573503443140'
+  const waNumber = process.env.NEXT_PUBLIC_WA_NUMBER || '573228230206'
   const year = new Date().getFullYear()
 
   return (

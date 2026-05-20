@@ -37,7 +37,7 @@ export async function generarFacturaPDF(pedido: any) {
   doc.setTextColor(...textColor)
   doc.text('Servicios Profesionales de Aseo', 140, 32, { align: 'center' })
   // doc.text('NIT: Pendiente', 140, 38, { align: 'center' })
-  doc.text('WhatsApp: +57 350 344 3140', 140, 44, { align: 'center' })
+  doc.text('WhatsApp: +57 322 823 0206', 140, 44, { align: 'center' })
 
   // Separador
   doc.setDrawColor(200, 200, 200)
